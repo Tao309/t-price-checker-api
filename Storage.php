@@ -24,75 +24,74 @@ class Storage {
     private int $userId = 2;// tao309.
 
     private tPdo $tPdo;
+    private tResponse $tResponse;
 
-    public function __construct(string $type)
+    public function __construct(string $type, tResponse $tResponse)
     {
         $this->checkShopTypeAndApply($type);
 
         $this->tPdo = new tPdo($type, $this->userId);
+        $this->tResponse = $tResponse;
     }
 
-    public function getBooksByTitle(string $title)
+    // api call
+    public function getBooksByTitle(array $data): void
     {
+        if (!isset($data['title'])) {
+            throw new \Exception('Not found title');
+        }
+
         $result = [];
 
-        $rows = $this->tPdo->getBooks($title);
+        $rows = $this->tPdo->getBooks($data['title']);
 
         foreach ($rows as $row) {
             $result[] = (new Book($row))->toArray();
         }
 
-        return $result;
+        $this->tResponse->setSuccess(true);
+        $this->tResponse->setData($result);
     }
 
-
-    public function deleteProduct($productId)
+    // api call
+    public function deleteProduct(array $data): void
     {
-        if (empty($productId)) {
-            throw new \Exception('Product Id require.');
+        if (empty($data['product_id'])) {
+            throw new \Exception('Not found product_id');
         }
 
-        return $this->tPdo->deleteByProductId($productId);
+        $this->tPdo->deleteByProductId($data['product_id']);
+        $this->tResponse->setSuccess(true);
+        $this->tResponse->setMessage('Product is removed');
     }
 
-    public function removeStock(array $stockData): array
+    // api call
+    public function removeStock(array $stockData): void
     {
-        $success = false;
-        $message = null;
-
         $foundStock = $this->tPdo->getStock($stockData);
 
-        if ($foundStock) {
-            try {
-                if ($countRemoved = $this->tPdo->removeStock($stockData)) {
-                    $message = 'Stock is removed: '. $countRemoved;
-                    $success = true;
-                } else {
-                    $message = 'Stock is not removed. Not row affected.';
-                }
-
-            } catch (\Throwable $e) {
-                $message = $e->getMessage();
-            }
-        } else {
-            $message = 'Stock is not found';
+        if (!$foundStock) {
+            throw new \Exception('Stock is not found');
         }
 
-        return [
-            'success' => $success,
-            'message' => $message
-        ];
+        $countRemoved = $this->tPdo->removeStock($stockData);
+        $this->tResponse->setSuccess(true);
+        $this->tResponse->setMessage('Stock is removed, affected: '. $countRemoved);
     }
 
-    /**
-     * Получаем список товаров по списку ID.
-     *
-     * @param array $productIds Массив product_id товаров.
-     *
-     * @return Product[]
-     */
-    public function getProductsByShopType(array $productIds)
+    // api call
+    public function getProductsByShopType(array $data): void
     {
+        if (empty($data['ids'])) {
+            throw new \Exception('Не указан передаваемый массив ID товаров.');
+        }
+
+        $productIds = json_decode($data['ids'], true);
+
+        if (!is_array($productIds)) {
+            throw new \Exception('Не корректен передаваемый массив ID товаров.');
+        }
+
         $productsData = $this->tPdo->getProducts($productIds);
         $ids = array_column($productsData, Entity::PARAM_ID);
 
@@ -113,51 +112,49 @@ class Storage {
             $result[] = (new Product($productData))->toArray();
         }
 
-        return $result;
+        $this->tResponse->setSuccess(true);
+        $this->tResponse->setData($result);
     }
 
-    public function saveBook(array $bookData): array
+    // api call
+    public function saveBook(array $bookData): void
     {
-        $success = false;
-        $message = null;
-        $entityId = null;
+        $entityId = $this->tPdo->saveBook($bookData);
 
-        try {
-            $entityId = $this->tPdo->saveBook($bookData);
-
-            $success = true;
-        } catch (\Throwable $e) {
-            $message = $e->getMessage();
-        }
-
-        return [
-            'success' => $success,
-            'message' => $message,
+        $this->tResponse->setSuccess(true);
+        $this->tResponse->setData([
             'entity' => (new Book($this->tPdo->getBookData($entityId)))->toArray()
-        ];
+        ]);
+        $this->tResponse->setMessage('Book is saved');
     }
 
-    public function saveProduct(array $productData): array
+    // api call
+    public function saveProduct(array $productData): void
     {
-        $success = false;
-        $message = null;
+        $this->tPdo->saveProduct($productData);
+        $this->tResponse->setSuccess(true);
+        $this->tResponse->setMessage('Product is saved');
+    }
 
-        try {
-            $this->tPdo->saveProduct($productData);
+    // api call
+    public function importByShopType(array $productsData): void
+    {
+        $this->saveProducts($productsData);
+    }
 
-            $success = true;
-        } catch (\Throwable $e) {
-            $message = $e->getMessage();
+    // api call
+    public function saveProducts(array $data): void
+    {
+        if (empty($data['products'])) {
+            throw new \Exception('Не указан передаваемый массив товаров для сохранения.');
         }
 
-        return [
-            'success' => $success,
-            'message' => $message
-        ];
-    }
+        $productsData = json_decode($data['products'], true);
 
-    public function saveProducts(array $productsData): array
-    {
+        if (!is_array($productsData)) {
+            throw new \Exception('Не корректен передаваемый массив товаров для сохранения.');
+        }
+
         $count = 0;
         $error = 0;
         $errorMessage = [];
@@ -174,11 +171,13 @@ class Storage {
             }
         }
 
-        return [
+        $this->tResponse->setSuccess(true);
+        $this->tResponse->setData([
             'count' => $count,
             'error' => $error,
             'error_message' => implode(', ', $errorMessage),
-        ];
+        ]);
+        $this->tResponse->setMessage('Products are saved');
     }
 
     /**

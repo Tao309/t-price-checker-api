@@ -63,6 +63,10 @@ class tPdo implements tPdoInterface {
             'date' => $stockData['date']
         ]);
 
+        if (!$stmt->rowCount()) {
+            throw new \Exception('Stock is not removed. Not row affected.');
+        }
+
         return $stmt->rowCount();
     }
 
