@@ -77,6 +77,14 @@ class tPdo implements tPdoInterface {
                 'b.*'
             ])
             ->from(['b' => 'books'])
+            ->leftJoin(
+                ['bbt' => 'book_binding_type'],
+                'bbt.id = b.binding_type',
+                [
+                    'bbt.id AS \''.Book::PARAM_BINDING_TYPE_ID.'\'',
+                    'bbt.label AS \''.Book::PARAM_BINDING_TYPE_LABEL.'\''
+                ]
+            )
             ->where('LOWER(b.title) LIKE :title')
             ->limit(7);
 
