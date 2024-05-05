@@ -8,6 +8,7 @@ class Product
 {
     public const PARAM_ID = 'id';
     public const PARAM_PRODUCT_ID = 'product_id';
+    public const PARAM_CODE = 'code';
     public const PARAM_BOOK_ID = 'book_id';
     public const PARAM_SHOP_ID = 'shop_id';
     public const PARAM_USER_ID = 'user_id';
@@ -31,9 +32,11 @@ class Product
     public const FLAG_TO_SAVE_STOCKS = 'flag_to_save_stocks';
     public const FLAG_TO_LINK_BOOK = 'flag_to_link_book';
     public const FLAG_TO_UNLINK_BOOK = 'flag_to_unlink_book';
+    public const FLAG_TO_CHANGE_ID = 'flag_to_change_id';
 
     private int $id;
     private int $productId;
+    private ?string $code;
     private int $shopId;
     private string $shopType;
     private int $userId;
@@ -54,6 +57,7 @@ class Product
 
     public const RECORDABLE_PARAMS = [
         self::PARAM_PRODUCT_ID,
+        self::PARAM_CODE,
         'shop_type',
         self::PARAM_USER_ID,
         self::PARAM_TITLE,

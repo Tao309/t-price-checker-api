@@ -178,6 +178,10 @@ class tPdo implements tPdoInterface {
             ->where('p.product_id IN ('.implode(",", $productIds).')')
         ;
 
+        if ($this->type === Storage::TYPE_WILDBERRIES) {
+            $query->where('p.code IS NOT NULL');
+        }
+
         if ($this->userId !== 2) {
             $query->limit(100);
         }
@@ -326,17 +330,42 @@ class tPdo implements tPdoInterface {
         $dates = $data[Product::PARAM_PRICE_DATES] ?? [];
         $flags = $data['flags'] ?? [];
 
+//        if ($this->type !== Storage::TYPE_WILDBERRIES) {
+//            return;
+//        }
+
+        /*
+         * "Магниты для холодильника доски флипчарта 10 шт 20 мм белые, Dine Trin"
+         *
+         * id = 286884626
+         * 1c = 172939544
+         */
+//        if ($data[Product::PARAM_PRODUCT_ID] != '353354736') {
+//            throw new \Exception('Skip');
+//        }
+
         $positionId = null;
         $positionPrice = null;
         $positionQty = null;
-        $positionData = $this->getPositionData($data['product_id'], $this->getShopIdByType($data['shop_type']));
+        $positionData = $this->getPositionData($data[Product::PARAM_PRODUCT_ID], $this->getShopIdByType($data['shop_type']));
 
 //        var_dump(end($dates)['price']);exit;
 
         if ($positionData) {
-            $positionId = $positionData['id'];
+            $positionId = $positionData[Entity::PARAM_ID];
             $positionPrice = $positionData['price'];
             $positionQty = $positionData['qty'];
+        }
+
+        $toChangeId = isset($flags[Product::FLAG_TO_CHANGE_ID]) && $this->type === Storage::TYPE_WILDBERRIES;
+
+        // Если находит товар с не пустым code, значит уже заменён product_id
+        if ($toChangeId && !$positionId) {
+            $positionId = $this->tryToChangeId($data);
+
+            if ($positionId) {
+                return;
+            }
         }
 
         if (isset($flags[Product::FLAG_TO_LINK_BOOK])) {
@@ -409,11 +438,12 @@ class tPdo implements tPdoInterface {
         }
 
         if(!isset($productData['title'])) {
-            $productData['title'] = 'Title not exists';
+            $productData['title'] = 'Empty Title';
         }
 
         $result = [
             'product_id' => $productData['product_id'],
+            'code' => $productData['code'] ?? null,
             'shop_id' => $this->getShopIdByType($productData['shop_type']),
             'user_id' => $this->getCurrentUserId(),
             'title' => QueryPdo::escapeString($productData['title']),
@@ -644,6 +674,7 @@ class tPdo implements tPdoInterface {
         $query = (new QueryPdo())
             ->insert('products', [
                 'product_id' => ':product_id',
+                'code' => ':code',
                 'shop_id' => ':shop_id',
                 'user_id' => ':user_id',
                 'title' => ':title',
@@ -777,7 +808,61 @@ class tPdo implements tPdoInterface {
         return $this->shopTypes[$shopType];
     }
 
-    private function getPositionData($productId, int $shopId)
+    /**
+     * Для товаров заменяем product_id, который раньше был как код 1С на id товара и записываем в code код 1С.
+     *
+     * @param string $code      Код 1С.
+     * @param string $productId ID продукта.
+     *
+     * @return int
+     */
+    private function changeId(int $positionId, string $productId, string $code): int
+    {
+        $query = (new QueryPdo())
+            ->update(
+                'products',
+                [
+                    'product_id' => $productId,
+                    'code' => $code
+                ],
+                'code is NULL AND id = :id AND shop_id = :shop_id AND user_id = :user_id'
+            );
+
+        $dbh = QueryPdo::getConnect();
+        $stmt = $dbh->prepare($query);
+
+        $stmt->execute([
+            'id' => $positionId,
+            'shop_id' => $this->getCurrentShopId(),
+            'user_id' => $this->getCurrentUserId(),
+        ]);
+
+        return $stmt->rowCount();
+    }
+
+    /**
+     * Запуск, если не нашёлся товар по product_id и с code, в wildberries.
+     *
+     * @param array $data
+     * @return int|null
+     * @throws Exception
+     */
+    private function tryToChangeId(array $data)
+    {
+        // По ид не найдёт, если товар без кода, в ид сейчас код установлен по старой схеме.
+        $tempPositionData = $this->getPositionData($data[Product::PARAM_CODE], $this->getShopIdByType($data['shop_type']), false);
+        if (!$tempPositionData) {
+            return null;
+        }
+
+        $positionId = $tempPositionData[Entity::PARAM_ID];
+
+        $affectedCount = $this->changeId($positionId, $data[Product::PARAM_PRODUCT_ID], $data[Product::PARAM_CODE]);
+
+        return $positionId;
+    }
+
+    private function getPositionData($productId, int $shopId, $withCode = true)
     {
         $priceDatesSubQuery = (new QueryPdo())
             ->select(['id', 'MIN(price) AS price'])
@@ -811,9 +896,17 @@ class tPdo implements tPdoInterface {
             ->where('p.user_id = :user_id')
             ->where('p.product_id = :product_id');
 
+        if ($this->type === Storage::TYPE_WILDBERRIES) {
+            if ($withCode) {
+                $query->where('p.code IS NOT NULL');
+            } else {
+                $query->where('p.code IS NULL');
+            }
+        }
+
         return $query->fetch([
             'shop_id' => $shopId,
-            'user_id' => $this->userId,
+            'user_id' => $this->getCurrentUserId(),
             'product_id' => $productId,
         ]);
     }

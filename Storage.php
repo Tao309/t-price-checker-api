@@ -95,21 +95,27 @@ class Storage {
         $productsData = $this->tPdo->getProducts($productIds);
         $ids = array_column($productsData, Entity::PARAM_ID);
 
-        $priceDatesData = $this->tPdo->getPriceDatesForProducts($ids);
-        $stocksData = $this->tPdo->getStocksForProducts($ids);
-        $sameProductData = $this->tPdo->getAllSameProductsByBook($ids);
+        $priceDatesData = $ids ? $this->tPdo->getPriceDatesForProducts($ids) : [];
+        $stocksData = $ids ? $this->tPdo->getStocksForProducts($ids) : [];
+        $sameProductData = $ids ? $this->tPdo->getAllSameProductsByBook($ids) : [];
 
         $result = [];
         foreach ($productsData as $productData) {
             $productBookId = $productData[Product::PARAM_BOOK_ID] ?? 0;
+            $productId = $productData[Entity::PARAM_ID];
 
-            $productData[Product::PARAM_PRICE_DATES] = $priceDatesData[$productData[Entity::PARAM_ID]] ?: [];
-            $productData[Product::PARAM_STOCKS] = $stocksData[$productData[Entity::PARAM_ID]] ?: [];
+            $productData[Product::PARAM_PRICE_DATES] = $priceDatesData[$productId] ?? [];
+            $productData[Product::PARAM_STOCKS] = $stocksData[$productId] ?? [];
             $productData[Product::PARAM_SAME_PRODUCTS] = ($productBookId && isset($sameProductData[$productBookId]))
                 ? $sameProductData[$productBookId]
                 : [];
 
-            $result[] = (new Product($productData))->toArray();
+
+            try {
+                $result[] = (new Product($productData))->toArray();
+            } catch(\Throwable $e) {
+                die($e->getMessage());
+            }
         }
 
         $this->tResponse->setSuccess(true);
@@ -155,29 +161,35 @@ class Storage {
             throw new \Exception('Не корректен передаваемый массив товаров для сохранения.');
         }
 
-        $count = 0;
-        $error = 0;
-        $errorMessage = [];
+        $productsCount = 0;
+        $errorsCount = 0;
+        $savedCount = 0;
+        $message = [];
 
         foreach ($productsData as $productData) {
-            $count++;
+            $productsCount++;
 
             try {
                 $this->tPdo->saveProduct($productData);
+                $savedCount++;
             } catch (\Throwable $e) {
-                $error++;
-                $errorMessage[] = $e->getMessage();
-                break;
+                $errorsCount++;
+                $message[] = $e->getMessage();
             }
         }
 
-        $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
-            'count' => $count,
-            'error' => $error,
-            'error_message' => implode(', ', $errorMessage),
+            'products_count' => $productsCount,
+            'errors_count' => $errorsCount,
+            'saved_count' => $savedCount
         ]);
-        $this->tResponse->setMessage('Products are saved');
+
+        if ($message) {
+            $this->tResponse->setMessage(implode('. ', array_unique($message)));
+        } else {
+            $this->tResponse->setMessage('Products are saved');
+            $this->tResponse->setSuccess(true);
+        }
     }
 
     /**
