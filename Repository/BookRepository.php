@@ -97,7 +97,9 @@ class BookRepository
 
         return $this->createBook($data);
     }
-
+    /**
+     * @return Book[]
+     */
     public function getBooksByTitle(string $title): array
     {
         $query = $this->getBookQuery()
@@ -107,6 +109,22 @@ class BookRepository
         $rows = $query->fetchAll([
             'title' => '%'.strtolower(trim($title)).'%'
         ]);
+
+        return array_map(function ($row) {
+            return new Book($row);
+        }, $rows);
+    }
+
+    /**
+     * @return Book[]
+     */
+    public function getBooks(): array
+    {
+        $query = $this->getBookQuery()
+            ->order('b.title')
+            ->limit(100);
+
+        $rows = $query->fetchAll();
 
         return array_map(function ($row) {
             return new Book($row);

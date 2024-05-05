@@ -23,3 +23,9 @@ a:hover {
     padding: 8px 10px;
     border: 1px solid #cdcdcd;
 }
+
+.table th.isbn {width: 150px;}
+.table th.binding_type {width: 150px;}
+.table th.size {width: 130px;}
+.table th.prices {width: 150px;}
+.table th.stocks {width: 140px;}

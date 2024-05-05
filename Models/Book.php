@@ -49,7 +49,7 @@ class Book extends Entity
     protected string $dateCreated;
 
     // Приватные свойства не попадают в обходе у родителя.
-    private array $bindingType = [];
+    protected array $bindingType = [];
 
     public const RECORDABLE_PARAMS = [
         self::PARAM_TITLE,
