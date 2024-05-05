@@ -1,0 +1,25 @@
+body {
+    font-size: 18px;
+    text-align: left;
+    cursor: default;
+}
+
+a {
+    color: #0070d3;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.table {
+    width: 100%;
+    border: 1px solid #cdcdcd;
+    border-collapse: collapse;
+}
+.table th,
+.table td {
+    padding: 8px 10px;
+    border: 1px solid #cdcdcd;
+}

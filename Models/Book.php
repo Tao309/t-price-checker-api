@@ -2,6 +2,27 @@
 
 namespace Models;
 
+/**
+ * @method int getTitle()
+ * @method string getAuthor()
+ * @method string getIsbn()
+ * @method int getPages()
+ * @method int getCirculation()
+ * @method int getSize()
+ * @method string getPublishYear()
+ * @method string getDateCreated()
+ * @method string getDateUpdated()
+ *
+ * @method array getBindingType()
+ *
+ * @method setTitle(string $value)
+ * @method setAuthor(string $value)
+ * @method setIsbn(string $value)
+ * @method setPages(int $value)
+ * @method setCirculation(int $value)
+ * @method setSize(int $value)
+ * @method setPublishYear(int $value)
+ */
 class Book extends Entity
 {
     public const PARAM_TITLE = 'title';

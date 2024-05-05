@@ -2,35 +2,28 @@
 
 use Models\Book;
 use Models\Entity;
+use Repository\ProductRepository;
+use Repository\BookRepository;
+use Repository\StockRepository;
+use Repository\PriceDateRepository;
+use Repository\SameProductRepository;
 
 class Storage {
-    const TYPE_OZON = 'ozon';//www.ozon.ru
-    const TYPE_WILDBERRIES = 'wildberries';//www.wildberries.ru
-    const TYPE_CHITAI_GOROD = 'chitai-gorod';//www.chitai-gorod.ru
-    const TYPE_FFAN = 'ffan';//ffan.ru
-    const TYPE_KNIGOFAN = 'knigofan';//knigofan.ru
-
-    const AVAILABLES_TYPES = [
-        self::TYPE_OZON,
-        self::TYPE_WILDBERRIES,
-        self::TYPE_CHITAI_GOROD,
-        self::TYPE_FFAN,
-        self::TYPE_KNIGOFAN,
-    ];
-
-    /** @var string Тип хранилища по маркетплейсу. */
-    private string $currentShopType;
-
-    private int $userId = 2;// tao309.
-
-    private tPdo $tPdo;
+    private ProductRepository $productRepository;
+    private BookRepository $bookRepository;
+    private StockRepository $stockRepository;
+    private PriceDateRepository $priceDateRepository;
+    private SameProductRepository $sameProductRepository;
     private tResponse $tResponse;
 
-    public function __construct(string $type, tResponse $tResponse)
+    public function __construct(tResponse $tResponse)
     {
-        $this->checkShopTypeAndApply($type);
+        $this->productRepository = new ProductRepository();
+        $this->bookRepository = new BookRepository();
+        $this->stockRepository = new StockRepository();
+        $this->priceDateRepository = new PriceDateRepository();
+        $this->sameProductRepository = new SameProductRepository();
 
-        $this->tPdo = new tPdo($type, $this->userId);
         $this->tResponse = $tResponse;
     }
 
@@ -41,16 +34,14 @@ class Storage {
             throw new \Exception('Not found title');
         }
 
-        $result = [];
-
-        $rows = $this->tPdo->getBooks($data['title']);
-
-        foreach ($rows as $row) {
-            $result[] = (new Book($row))->toArray();
-        }
+        $result = $this->bookRepository->getBooksByTitle($data['title']);
 
         $this->tResponse->setSuccess(true);
-        $this->tResponse->setData($result);
+        $this->tResponse->setData(
+            array_map(function (Book $book) {
+                return $book->toArray();
+            }, $result)
+        );
     }
 
     // api call
@@ -60,7 +51,7 @@ class Storage {
             throw new \Exception('Not found product_id');
         }
 
-        $this->tPdo->deleteByProductId($data['product_id']);
+        $this->productRepository->removeByProductId($data['product_id']);
         $this->tResponse->setSuccess(true);
         $this->tResponse->setMessage('Product is removed');
     }
@@ -68,13 +59,13 @@ class Storage {
     // api call
     public function removeStock(array $stockData): void
     {
-        $foundStock = $this->tPdo->getStock($stockData);
+        $foundStock = $this->stockRepository->getStock($stockData);
 
         if (!$foundStock) {
             throw new \Exception('Stock is not found');
         }
 
-        $countRemoved = $this->tPdo->removeStock($stockData);
+        $countRemoved = $this->stockRepository->deleteStock($stockData);
         $this->tResponse->setSuccess(true);
         $this->tResponse->setMessage('Stock is removed, affected: '. $countRemoved);
     }
@@ -92,44 +83,28 @@ class Storage {
             throw new \Exception('Не корректен передаваемый массив ID товаров.');
         }
 
-        $productsData = $this->tPdo->getProducts($productIds);
-        $ids = array_column($productsData, Entity::PARAM_ID);
-
-        $priceDatesData = $ids ? $this->tPdo->getPriceDatesForProducts($ids) : [];
-        $stocksData = $ids ? $this->tPdo->getStocksForProducts($ids) : [];
-        $sameProductData = $ids ? $this->tPdo->getAllSameProductsByBook($ids) : [];
-
-        $result = [];
-        foreach ($productsData as $productData) {
-            $productBookId = $productData[Product::PARAM_BOOK_ID] ?? 0;
-            $productId = $productData[Entity::PARAM_ID];
-
-            $productData[Product::PARAM_PRICE_DATES] = $priceDatesData[$productId] ?? [];
-            $productData[Product::PARAM_STOCKS] = $stocksData[$productId] ?? [];
-            $productData[Product::PARAM_SAME_PRODUCTS] = ($productBookId && isset($sameProductData[$productBookId]))
-                ? $sameProductData[$productBookId]
-                : [];
-
-
-            try {
-                $result[] = (new Product($productData))->toArray();
-            } catch(\Throwable $e) {
-                die($e->getMessage());
-            }
-        }
+        $products = $this->productRepository->getProductsByProductIds($productIds);
 
         $this->tResponse->setSuccess(true);
-        $this->tResponse->setData($result);
+        $this->tResponse->setData(array_map(function ($product) {
+            return $product->toArray();
+        }, $products));
     }
 
     // api call
     public function saveBook(array $bookData): void
     {
-        $entityId = $this->tPdo->saveBook($bookData);
+        $entityId = $this->bookRepository->saveBook($bookData);
+
+        $book = $this->bookRepository->getBook($entityId);
+
+        if (!$book) {
+            throw new \Exception('Not found book by id '. $entityId);
+        }
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
-            'entity' => (new Book($this->tPdo->getBookData($entityId)))->toArray()
+            'entity' => $book->toArray()
         ]);
         $this->tResponse->setMessage('Book is saved');
     }
@@ -137,7 +112,7 @@ class Storage {
     // api call
     public function saveProduct(array $productData): void
     {
-        $this->tPdo->saveProduct($productData);
+        $this->productRepository->saveProduct($productData);
         $this->tResponse->setSuccess(true);
         $this->tResponse->setMessage('Product is saved');
     }
@@ -170,7 +145,7 @@ class Storage {
             $productsCount++;
 
             try {
-                $this->tPdo->saveProduct($productData);
+                $this->productRepository->saveProduct($productData);
                 $savedCount++;
             } catch (\Throwable $e) {
                 $errorsCount++;
@@ -190,22 +165,6 @@ class Storage {
             $this->tResponse->setMessage('Products are saved');
             $this->tResponse->setSuccess(true);
         }
-    }
-
-    /**
-     * Проверка корректности типа и применение его в свойства класса.
-     *
-     * @param string $type Тип хранилища.
-     * @return void
-     * @throws Exception
-     */
-    private function checkShopTypeAndApply(string $type)
-    {
-        if (!in_array($type, self::AVAILABLES_TYPES)) {
-            throw new \Exception('Type ' . $type . ' is not available for storage.');
-        }
-
-        $this->currentShopType = $type;
     }
 
 }

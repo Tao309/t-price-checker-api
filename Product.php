@@ -3,7 +3,40 @@
 use Models\Book;
 use Models\Entity;
 use Models\SameProduct;
+use Core\Config;
 
+/**
+ * @method int getId()
+ * @method string getProductId()
+ * @method string getCode()
+ * @method int|null getBookId()
+ * @method string getShopType()
+ * @method int getUserId()
+ * @method int getTitle()
+ * @method bool getAvailable()
+ * @method string getNotAvailableDateFrom()
+ * @method string getAvailableDateFrom()
+ * @method int getListenPriceValue()
+ * @method int getListenQtyValue()
+ * @method string getReleaseDate()
+ * @method string getDateCreated()
+ * @method string getDateUpdated()
+ * @method int getMinPrice()
+ * @method int getLastQty()
+ *
+ * @method array getStocks()
+ * @method array getPriceDates()
+ * @method Book|null getBook()
+ * @method SameProduct[] getSameProducts()
+ *
+ * @method setTitle(string $value)
+ * @method setAvailable(bool $value)
+ * @method setNotAvailableDateFrom(string $value)
+ * @method setAvailableDateFrom(string $value)
+ * @method setListenPriceValue(int $value)
+ * @method setListenQtyValue(int $value)
+ * @method setReleaseDate(string $value)
+ */
 class Product
 {
     public const PARAM_ID = 'id';
@@ -11,6 +44,7 @@ class Product
     public const PARAM_CODE = 'code';
     public const PARAM_BOOK_ID = 'book_id';
     public const PARAM_SHOP_ID = 'shop_id';
+    public const PARAM_SHOP_TYPE = 'shop_type';
     public const PARAM_USER_ID = 'user_id';
     public const PARAM_TITLE = 'title';
     public const PARAM_AVAILABLE = 'available';
@@ -23,6 +57,9 @@ class Product
     public const PARAM_RELEASE_DATE = 'release_date';
     public const PARAM_DATE_CREATED = 'date_created';
     public const PARAM_DATE_UPDATED = 'date_updated';
+
+    public const PARAM_MIN_PRICE = 'min_price';
+    public const PARAM_LAST_QTY = 'last_qty';
 
     public const PARAM_BOOK = 'book';
     public const PARAM_SAME_PRODUCTS = 'same_products';
@@ -46,23 +83,28 @@ class Product
     private string $availableDateFrom;
     private ?int $listenPriceValue;
     private string $releaseDate;
-    private ?array $stocks;
-    private ?array $priceDates;
+    private ?array $stocks = [];
+    private ?array $priceDates = [];
     private string $dateCreated;
     private string $dateUpdated;
 
+    private ?int $minPrice = null;
+    private ?int $lastQty = null;
+
     private ?Book $book = null;
     /** @var SameProduct[] */
-    private array $sameProducts = [];
+    private ?array $sameProducts = [];
 
     public const RECORDABLE_PARAMS = [
         self::PARAM_PRODUCT_ID,
         self::PARAM_CODE,
-        'shop_type',
+        self::PARAM_SHOP_TYPE,
         self::PARAM_USER_ID,
         self::PARAM_TITLE,
         self::PARAM_LISTEN_PRICE_VALUE,
         self::PARAM_LISTEN_QTY_VALUE,
+        self::PARAM_MIN_PRICE,
+        self::PARAM_LAST_QTY,
     ];
 
     public const RECORDABLE_BOOLEAN_PARAMS = [
@@ -103,12 +145,18 @@ class Product
         }
 
         if (isset($data[Product::PARAM_PRICE_DATES])) {
+            $price = [];
+
             foreach ($data[Product::PARAM_PRICE_DATES] as $priceDateData) {
                 $this->priceDates[] = [
                     'date' => $this->formatDateToZeroTimezone($priceDateData['date']),
                     'price' => (int) $priceDateData['price'] ?? '---',
                 ];
+
+                $price[] = (int) $priceDateData['price'] ?? 0;
             }
+
+            $this->minPrice = $price ? min($price) : null;
         }
 
         if (isset($data[Product::PARAM_STOCKS])) {
@@ -119,6 +167,8 @@ class Product
                     'log' => $stockData['log'],
                 ];
             }
+
+            $this->lastQty = end($this->stocks)['qty'];
         }
 
         if (isset($data['book.id'])) {
@@ -145,6 +195,29 @@ class Product
         }
     }
 
+    public function __call($methodName, $arguments)
+    {
+        $methodPrefix = substr($methodName, 0, 3);
+        $prop = self::toCamelCase(substr($methodName, 3));
+
+        if (!property_exists($this, $prop)) {
+            throw new \Exception('Property ' . $prop . ' is not exists.');
+        }
+
+        if ($methodPrefix === 'set' && count($arguments) == 1) {
+            $value = $arguments[0];
+            $this->{$prop} = $value;
+
+            return $this;
+        }
+
+        if ($methodPrefix === 'get') {
+            return $this->{$prop};
+        }
+
+        throw new \Exception('Method ' . $methodPrefix . ' is not defined.');
+    }
+
     public function toArray(): array
     {
         $vars = get_object_vars($this);
@@ -169,6 +242,39 @@ class Product
         }
 
         return $m;
+    }
+
+    public function getUrl(): string|null
+    {
+        switch($this->getShopType()) {
+            case Config::TYPE_KNIGOFAN:
+                return 'https://knigofan.ru/catalog/horus-heresy/primarkhi/929/';
+            case Config::TYPE_WILDBERRIES:
+                if ($this->getCode()) {
+                    return 'https://www.wildberries.ru/catalog/' . $this->getCode() . '/detail.aspx?size=' . $this->getProductId();
+                }
+
+                return 'https://www.wildberries.ru/catalog/' . $this->getProductId() . '/detail.aspx';
+            case Config::TYPE_OZON:
+                return 'https://www.ozon.ru/product/' . $this->getProductId() . '/';
+            case Config::TYPE_FFAN:
+                return 'https://ffan.ru/catalog/product/' . $this->getProductId() . '/';
+            case Config::TYPE_CHITAI_GOROD:
+                return 'https://www.chitai-gorod.ru/product/-' . $this->getProductId();
+            default:
+                return null;
+        }
+    }
+
+    public static function toCamelCase($str, array $noStrip = array()): string
+    {
+        $str = preg_replace('/[^a-z0-9' . implode("", $noStrip) . ']+/i', ' ', $str);
+        $str = trim($str);
+        $str = ucwords($str);
+        $str = str_replace(" ", "", $str);
+        $str = lcfirst($str);
+
+        return $str;
     }
 
     private function getCamelCaseParam(string $snakeCaseParam): string

@@ -2,6 +2,9 @@
 
 namespace Models;
 
+/**
+ * @method int getId()
+ */
 abstract class Entity
 {
     public const PARAM_ID = 'id';
@@ -37,6 +40,40 @@ abstract class Entity
                 continue;
             }
         }
+    }
+
+    public function __call($methodName, $arguments)
+    {
+        $methodPrefix = substr($methodName, 0, 3);
+        $prop = self::toCamelCase(substr($methodName, 3));
+
+        if (!property_exists($this, $prop)) {
+            throw new \Exception('Property ' . $prop . ' is not exists.');
+        }
+
+        if ($methodPrefix === 'set' && count($arguments) == 1) {
+            $value = $arguments[0];
+            $this->{$prop} = $value;
+
+            return $this;
+        }
+
+        if ($methodPrefix === 'get') {
+            return $this->{$prop};
+        }
+
+        throw new \Exception('Method ' . $methodPrefix . ' is not defined.');
+    }
+
+    public static function toCamelCase($str, array $noStrip = array()): string
+    {
+        $str = preg_replace('/[^a-z0-9' . implode("", $noStrip) . ']+/i', ' ', $str);
+        $str = trim($str);
+        $str = ucwords($str);
+        $str = str_replace(" ", "", $str);
+        $str = lcfirst($str);
+
+        return $str;
     }
 
     public function toArray(): array

@@ -21,3 +21,26 @@ spl_autoload_register(function($class) {
 
     require_once($file);
 });
+
+function expect($condition, $message, $code = 0) {
+    if (!$condition) {
+        throw new \Exception\ResponseException($message, $code);
+    }
+}
+
+function processPdoException(string $type, array $variables, array $data, PDOStatement $stmt, \Exception $e): void
+{
+    echo "\n".$type.":\n";
+    if ($e->getMessage()) {
+        echo $e->getMessage() . "\n";
+    }
+
+    echo $stmt->queryString . "\n";
+    print_r($stmt->errorInfo());
+    if ($data) {
+        print_r($data);
+    }
+    echo "Variables:\n";
+    print_r($variables);
+    exit;
+}
