@@ -81,13 +81,31 @@ abstract class Entity
         $vars = get_object_vars($this);
 
         $m = [];
-        foreach ($vars as $key => $value) {
-            $m[$this->getSnakeCaseParam($key)] = $value;
+        foreach ($vars as $key => $varData) {
+            if ($varData instanceof Entity) {
+                $varData = $varData->toArray();
+            } elseif (is_array($varData)) {
+                $varData = array_values(array_map(function ($oneVarData) {
+                    if ($oneVarData instanceof Entity) {
+                        return $oneVarData->toArray();
+                    }
+
+                    return $oneVarData;
+                }, $varData));
+            }
+
+            $m[$this->getSnakeCaseParam($key)] = $varData;
         }
 
-        unset($m['user_id'], $m['shop_id']);
-
         return $m;
+    }
+
+    protected function formatDateToZeroTimezone(string $dateString): string
+    {
+        $date = new \DateTime($dateString);
+        $date->modify('+3 hours');
+
+        return $date->format('Y-m-d H:i:s');
     }
 
     private function getCamelCaseParam(string $snakeCaseParam): string
@@ -100,13 +118,5 @@ abstract class Entity
     private function getSnakeCaseParam(string $param): string
     {
         return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $param));
-    }
-
-    private function formatDateToZeroTimezone(string $dateString): string
-    {
-        $date = new \DateTime($dateString);
-        $date->modify('+3 hours');
-
-        return $date->format('Y-m-d H:i:s');
     }
 }

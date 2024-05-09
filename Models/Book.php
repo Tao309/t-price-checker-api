@@ -13,7 +13,7 @@ namespace Models;
  * @method string getDateCreated()
  * @method string getDateUpdated()
  *
- * @method array getBindingType()
+ * @method BindingType getBindingType()
  *
  * @method setTitle(string $value)
  * @method setAuthor(string $value)
@@ -43,13 +43,12 @@ class Book extends Entity
     protected ?string $isbn;
     protected ?int $pages;
     protected ?int $circulation;
-//    protected ?int $bindingType;
     protected ?int $publishYear;
     protected string $releaseDate;
     protected string $dateCreated;
 
-    // Приватные свойства не попадают в обходе у родителя.
-    protected array $bindingType = [];
+    // Приватные свойства не попадают в обходе у родителя. __call в родителе.
+    protected ?BindingType $bindingType = null;
 
     public const RECORDABLE_PARAMS = [
         self::PARAM_TITLE,
@@ -58,7 +57,6 @@ class Book extends Entity
         self::PARAM_PAGES,
         self::PARAM_CIRCULATION,
         self::PARAM_SIZE,
-//        self::PARAM_BINDING_TYPE,
         self::PARAM_PUBLISH_YEAR,
     ];
 
@@ -72,21 +70,10 @@ class Book extends Entity
         parent::__construct($data);
 
         if (isset($data[self::PARAM_BINDING_TYPE_ID])) {
-            $this->bindingType = [
+            $this->bindingType = new BindingType([
                 'id' => $data[self::PARAM_BINDING_TYPE_ID],
                 'label' => $data[self::PARAM_BINDING_TYPE_LABEL]
-            ];
+            ]);
         }
-    }
-
-    public function toArray(): array
-    {
-        $m = parent::toArray();
-
-        if ($this->bindingType) {
-            $m[Book::PARAM_BINDING_TYPE] = $this->bindingType;
-        }
-
-        return $m;
     }
 }

@@ -4,19 +4,21 @@ namespace Repository;
 
 use Core\Config;
 use Models\Book;
-use QueryPdo;
-use Product;
 use Models\Entity;
+use Models\Product;
 use PDOException;
+use QueryPdo;
 
 class ProductRepository
 {
+    private BookRepository $bookRepository;
     private StockRepository $stockRepository;
     private PriceDateRepository $priceDateRepository;
     private SameProductRepository $sameProductRepository;
 
     public function __construct()
     {
+        $this->bookRepository = new BookRepository();
         $this->stockRepository = new StockRepository();
         $this->priceDateRepository = new PriceDateRepository();
         $this->sameProductRepository = new SameProductRepository();
@@ -26,15 +28,11 @@ class ProductRepository
     {
         //die('Saving products is temporary unavailable.');
         //var_dump($data);exit;
-        //return;
+        return;
 
         $stocks = $data[Product::PARAM_STOCKS] ?? [];
         $dates = $data[Product::PARAM_PRICE_DATES] ?? [];
         $flags = $data['flags'] ?? [];
-
-//        if (Config::getShopType() !== Storage::TYPE_WILDBERRIES) {
-//            return;
-//        }
 
         $positionId = null;
         $positionPrice = null;
@@ -185,16 +183,19 @@ class ProductRepository
 
         $priceDatesData = $ids ? $this->priceDateRepository->getPriceDatesForProducts($ids) : [];
         $stocksData = $ids ? $this->stockRepository->getStocksForProducts($ids) : [];
-        $sameProductData = $ids ? $this->sameProductRepository->getAllSameProductsByBook($ids) : [];
+        $sameProductDataRows = $ids ? $this->sameProductRepository->getAllSameProductsByBook($ids) : [];
 
-        return array_map(function ($productData) use ($priceDatesData, $stocksData, $sameProductData) {
+        return array_map(function ($productData) use ($priceDatesData, $stocksData, $sameProductDataRows) {
             $productBookId = $productData[Product::PARAM_BOOK_ID] ?? 0;
             $productId = $productData[Entity::PARAM_ID];
 
             $productData[Product::PARAM_PRICE_DATES] = $priceDatesData[$productId] ?? [];
             $productData[Product::PARAM_STOCKS] = $stocksData[$productId] ?? [];
-            $productData[Product::PARAM_SAME_PRODUCTS] = ($productBookId && isset($sameProductData[$productBookId]))
-                ? $sameProductData[$productBookId]
+            $productData[Product::PARAM_SAME_PRODUCTS] = ($productBookId && isset($sameProductDataRows[$productBookId]))
+                ? $this->sameProductRepository->prepareSameProducts(
+                    $productData,
+                    $sameProductDataRows[$productBookId]
+                )
                 : [];
 
             return new Product($productData);

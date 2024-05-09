@@ -129,7 +129,7 @@ if ($bookId) {
             $page .= '<td>' . $book->getPages(). '</td>';
             $page .= '<td>' . $book->getCirculation(). '</td>';
             $page .= '<td>' . $book->getSize(). '</td>';
-            $page .= '<td>' . ($book->getBindingType() ? $book->getBindingType()['label'] : '') . '</td>';
+            $page .= '<td>' . ($book->getBindingType() ? $book->getBindingType()->getLabel() : '') . '</td>';
             $page .= '<td>' . $book->getPublishYear(). '</td>';
             $page .= '<td>' . cutDate($book->getDateCreated()). '</td>';
         }

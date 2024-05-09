@@ -1,8 +1,11 @@
 <?php
 
+use Models\Entity;
+
 class tResponse {
     public const PARAM_SUCCESS = 'success';
     public const PARAM_MESSAGE = 'message';
+    public const PARAM_TRACE = 'trace';
     public const PARAM_DATA = 'data';
 
     public const MESSAGE_ACCESS_LIMITED = 'Access limited';
@@ -20,20 +23,19 @@ class tResponse {
 
     private bool $success = false;
     private ?string $message = null;
+    private ?string $trace = null;
     private array $data = [];
-
-    public function __construct()
-    {
-
-    }
 
     public function __toString()
     {
-        return json_encode([
-            self::PARAM_SUCCESS => $this->isSuccess(),
-            self::PARAM_MESSAGE => $this->getMessage(),
-            self::PARAM_DATA => $this->getData()
-        ], true);
+        $vars = get_object_vars($this);
+
+        $m = [];
+        foreach ($vars as $key => $varData) {
+            $m[Entity::toCamelCase($key)] = $varData;
+        }
+
+        return json_encode($m, true);
     }
 
     public function checkPostData(array $post = []): void
@@ -78,6 +80,22 @@ class tResponse {
     public function setMessage(?string $message): void
     {
         $this->message = $message;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getTrace(): ?string
+    {
+        return $this->trace;
+    }
+
+    /**
+     * @param string|null $trace
+     */
+    public function setTrace(?string $trace): void
+    {
+        $this->trace = $trace;
     }
 
     /**

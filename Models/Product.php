@@ -1,12 +1,10 @@
 <?php
 
-use Models\Book;
-use Models\Entity;
-use Models\SameProduct;
+namespace Models;
+
 use Core\Config;
 
 /**
- * @method int getId()
  * @method string getProductId()
  * @method string getCode()
  * @method int|null getBookId()
@@ -37,9 +35,8 @@ use Core\Config;
  * @method setListenQtyValue(int $value)
  * @method setReleaseDate(string $value)
  */
-class Product
+class Product extends Entity
 {
-    public const PARAM_ID = 'id';
     public const PARAM_PRODUCT_ID = 'product_id';
     public const PARAM_CODE = 'code';
     public const PARAM_BOOK_ID = 'book_id';
@@ -71,29 +68,29 @@ class Product
     public const FLAG_TO_UNLINK_BOOK = 'flag_to_unlink_book';
     public const FLAG_TO_CHANGE_ID = 'flag_to_change_id';
 
-    private int $id;
-    private int $productId;
-    private ?string $code;
-    private int $shopId;
-    private string $shopType;
-    private int $userId;
-    private string $title;
-    private bool $available;
-    private string $notAvailableDateFrom;
-    private string $availableDateFrom;
-    private ?int $listenPriceValue;
-    private string $releaseDate;
-    private ?array $stocks = [];
-    private ?array $priceDates = [];
-    private string $dateCreated;
-    private string $dateUpdated;
+    protected int $productId;
+    protected ?string $code;
+//    protected int $shopId;
+    protected string $shopType;
+//    protected int $userId;
+    protected string $title;
+    protected bool $available;
+    protected string $notAvailableDateFrom;
+    protected string $availableDateFrom;
+    protected ?int $listenPriceValue;
+    protected string $releaseDate;
+    protected string $dateCreated;
+    protected string $dateUpdated;
 
-    private ?int $minPrice = null;
-    private ?int $lastQty = null;
-
-    private ?Book $book = null;
+    protected ?Book $book = null;
     /** @var SameProduct[] */
-    private ?array $sameProducts = [];
+    protected array $sameProducts = [];
+    /** @var Stock[] */
+    protected array $stocks = [];
+    /** @var PriceDate[] */
+    protected array $priceDates = [];
+    protected ?int $minPrice = null;
+    protected ?int $lastQty = null;
 
     public const RECORDABLE_PARAMS = [
         self::PARAM_PRODUCT_ID,
@@ -121,57 +118,36 @@ class Product
 
     public function __construct(array $data)
     {
-        foreach ($data as $param => $value) {
-            $camelCaseParam = $this->getCamelCaseParam($param);
+        parent::__construct($data);
 
-            if ($camelCaseParam === self::PARAM_ID) {
-                $this->$camelCaseParam = $value;
-            }
-
-            if (in_array($param, self::RECORDABLE_PARAMS)) {
-                $this->$camelCaseParam = $value;
-                continue;
-            }
-
-            if (in_array($param, self::RECORDABLE_BOOLEAN_PARAMS)) {
-                $this->$camelCaseParam = (bool)$value;
-                continue;
-            }
-
-            if (!empty($value) && in_array($param, self::RECORDABLE_DATETIME_PARAMS)) {
-                $this->$camelCaseParam = $this->formatDateToZeroTimezone($value);
-                continue;
-            }
-        }
-
-        if (isset($data[Product::PARAM_PRICE_DATES])) {
+        if (!empty($data[Product::PARAM_PRICE_DATES])) {
             $price = [];
 
-            foreach ($data[Product::PARAM_PRICE_DATES] as $priceDateData) {
-                $this->priceDates[] = [
-                    'date' => $this->formatDateToZeroTimezone($priceDateData['date']),
-                    'price' => (int) $priceDateData['price'] ?? '---',
-                ];
+            $this->priceDates = array_map(function ($priceDateData) use (&$price) {
+                $price[] = (int)$priceDateData[PriceDate::PARAM_PRICE] ?? 0;
 
-                $price[] = (int) $priceDateData['price'] ?? 0;
-            }
+                return new PriceDate([
+                    PriceDate::PARAM_DATE => $this->formatDateToZeroTimezone($priceDateData[PriceDate::PARAM_DATE]),
+                    PriceDate::PARAM_PRICE => (int)$priceDateData[PriceDate::PARAM_PRICE] ?? '---',
+                ]);
+            }, $data[self::PARAM_PRICE_DATES]);
 
             $this->minPrice = $price ? min($price) : null;
         }
 
-        if (isset($data[Product::PARAM_STOCKS])) {
-            foreach ($data[Product::PARAM_STOCKS] as $stockData) {
-                $this->stocks[] =  [
-                    'date' => $this->formatDateToZeroTimezone($stockData['date']),
-                    'qty' => (int) $stockData['qty'] ?? '---',
-                    'log' => $stockData['log'],
-                ];
-            }
+        if (!empty($data[Product::PARAM_STOCKS])) {
+            $this->stocks = array_map(function ($stockData) {
+                return new Stock([
+                    Stock::PARAM_DATE => $this->formatDateToZeroTimezone($stockData[Stock::PARAM_DATE]),
+                    Stock::PARAM_QTY => (int)$stockData[Stock::PARAM_QTY] ?? '---',
+                    Stock::PARAM_LOG => $stockData[Stock::PARAM_LOG],
+                ]);
+            }, $data[self::PARAM_STOCKS]);
 
-            $this->lastQty = end($this->stocks)['qty'];
+            $this->lastQty = end($this->stocks)->getQty();
         }
 
-        if (isset($data['book.id'])) {
+        if (!empty($data['book.id'])) {
             $this->book = new Book([
                 Entity::PARAM_ID => $data['book.id'],
                 Book::PARAM_TITLE => $data['book.title'],
@@ -188,65 +164,46 @@ class Product
             ]);
         }
 
-        if (isset($data[self::PARAM_SAME_PRODUCTS])) {
-            foreach ($data[self::PARAM_SAME_PRODUCTS] as $sameProductData) {
-                $this->sameProducts[] = new SameProduct($sameProductData);
-            }
+        if (!empty($data[self::PARAM_SAME_PRODUCTS])) {
+            $this->sameProducts = array_map(function ($sameProductData) {
+                return new SameProduct($sameProductData);
+            }, $data[self::PARAM_SAME_PRODUCTS]);
         }
     }
 
-    public function __call($methodName, $arguments)
-    {
-        $methodPrefix = substr($methodName, 0, 3);
-        $prop = self::toCamelCase(substr($methodName, 3));
+//    public function toArray(): array
+//    {
+//        $m = parent::toArray();
+//        unset($m[self::PARAM_USER_ID], $m[self::PARAM_SHOP_ID]);
 
-        if (!property_exists($this, $prop)) {
-            throw new \Exception('Property ' . $prop . ' is not exists.');
-        }
+//        if ($this->getPriceDates()) {
+//            $m[self::PARAM_PRICE_DATES] = array_map(function ($priceDate) {
+//                return $priceDate->toArray();
+//            }, $this->getPriceDates());
+//        }
 
-        if ($methodPrefix === 'set' && count($arguments) == 1) {
-            $value = $arguments[0];
-            $this->{$prop} = $value;
+//        if ($this->getStocks()) {
+//            $m[self::PARAM_STOCKS] = array_map(function ($stock) {
+//                return $stock->toArray();
+//            }, $this->getStocks());
+//        }
 
-            return $this;
-        }
+//        if ($this->getBook()) {
+//            $m[self::PARAM_BOOK] =  $this->getBook()->toArray();
+//        }
 
-        if ($methodPrefix === 'get') {
-            return $this->{$prop};
-        }
+//        if ($this->getSameProducts()) {
+//            $m[self::PARAM_SAME_PRODUCTS] = array_map(function ($sameProduct) {
+//                return $sameProduct->toArray();
+//            }, $this->getSameProducts());
+//        }
 
-        throw new \Exception('Method ' . $methodPrefix . ' is not defined.');
-    }
-
-    public function toArray(): array
-    {
-        $vars = get_object_vars($this);
-
-        $m = [];
-        foreach ($vars as $key => $value ) {
-            $m[$this->getSnakeCaseParam($key)] = $value;
-        }
-
-        unset($m['user_id'], $m['shop_id'], $m['book']);
-
-        if ($this->book) {
-            $m['book'] =  $this->book->toArray();
-        }
-
-        if ($this->sameProducts) {
-            $m[self::PARAM_SAME_PRODUCTS] = [];
-
-            foreach ($this->sameProducts as $sameProduct) {
-                $m[self::PARAM_SAME_PRODUCTS][] = $sameProduct->toArray();
-            }
-        }
-
-        return $m;
-    }
+//        return $m;
+//    }
 
     public function getUrl(): string|null
     {
-        switch($this->getShopType()) {
+        switch ($this->getShopType()) {
             case Config::TYPE_KNIGOFAN:
                 return 'https://knigofan.ru/catalog/horus-heresy/primarkhi/929/';
             case Config::TYPE_WILDBERRIES:
@@ -265,36 +222,4 @@ class Product
                 return null;
         }
     }
-
-    public static function toCamelCase($str, array $noStrip = array()): string
-    {
-        $str = preg_replace('/[^a-z0-9' . implode("", $noStrip) . ']+/i', ' ', $str);
-        $str = trim($str);
-        $str = ucwords($str);
-        $str = str_replace(" ", "", $str);
-        $str = lcfirst($str);
-
-        return $str;
-    }
-
-    private function getCamelCaseParam(string $snakeCaseParam): string
-    {
-        $snakeCaseParam = mb_convert_case($snakeCaseParam, MB_CASE_TITLE, "UTF-8");
-
-        return lcfirst(str_replace('_', '', $snakeCaseParam));
-    }
-
-    private function getSnakeCaseParam(string $param): string
-    {
-        return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $param));
-    }
-
-    private function formatDateToZeroTimezone(string $dateString): string
-    {
-        $date = new DateTime($dateString);
-        $date->modify('+3 hours');
-
-        return $date->format('Y-m-d H:i:s');
-    }
-
 }

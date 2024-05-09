@@ -33,6 +33,8 @@ try {
 } catch(\Throwable $e) {
     $tResponse->setSuccess(false);
     $tResponse->setMessage($e->getMessage());
+    $tResponse->setTrace($e->getTraceAsString());
+    $tResponse->setTrace($e->getPrevious()->getTraceAsString());
 }
 
 echo $tResponse;
