@@ -15,11 +15,11 @@ use DateTime;
  * @method bool getAvailable()
  * @method ?DateTime getNotAvailableDateFrom()
  * @method ?DateTime getAvailableDateFrom()
- * @method int getListenPriceValue()
- * @method int getListenQtyValue()
+ * @method ?int getListenPriceValue()
+ * @method ?int getListenQtyValue()
  * @method ?DateTime getReleaseDate()
- * @method DateTime getDateCreated()
  * @method DateTime getDateUpdated()
+ * @method DateTime getDateCreated()
  *
  * @method Book|null getBook()
  * @method int getMinPrice()
@@ -53,8 +53,8 @@ class Product extends Entity
     public const PARAM_LISTEN_PRICE_VALUE = 'listen_price_value';
     public const PARAM_LISTEN_QTY_VALUE = 'listen_qty_value';
     public const PARAM_RELEASE_DATE = 'release_date';
-    public const PARAM_DATE_CREATED = 'date_created';
     public const PARAM_DATE_UPDATED = 'date_updated';
+    public const PARAM_DATE_CREATED = 'date_created';
 
     public const PARAM_MIN_PRICE = 'min_price';
     public const PARAM_LAST_QTY = 'last_qty';

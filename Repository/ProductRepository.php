@@ -28,7 +28,7 @@ class ProductRepository
     {
         //die('Saving products is temporary unavailable.');
         //var_dump($data);exit;
-        return;
+        //return;
 
         $stocks = $data[Product::PARAM_STOCKS] ?? [];
         $dates = $data[Product::PARAM_PRICE_DATES] ?? [];
@@ -224,6 +224,8 @@ class ProductRepository
                     'b.size AS \'book.size\'',
                     'b.release_date AS \'book.release_date\'',
                     'b.publish_year AS \'book.publish_year\'',
+                    'b.listen_price_value AS \'book.listen_price_value\'',
+                    'b.date_updated AS \'book.date_updated\'',
                     'b.date_created AS \'book.date_created\''
                 ]
             )

@@ -159,13 +159,15 @@ class BookRepository
                     Book::PARAM_CIRCULATION,
                     Book::PARAM_SIZE,
                     Book::PARAM_PUBLISH_YEAR,
-                    Book::PARAM_RELEASE_DATE
+                    Book::PARAM_RELEASE_DATE,
+                    Book::PARAM_LISTEN_PRICE_VALUE
                 ] as $param) {
             $result[$param] = $bookData[$param] ?: null;
         }
 
         if (isset($bookData[Book::PARAM_BINDING_TYPE])) {
-            $result[Book::PARAM_BINDING_TYPE] = $bookData[Book::PARAM_BINDING_TYPE]['id'];
+            $result[Book::PARAM_BINDING_TYPE_ID] = $bookData[Book::PARAM_BINDING_TYPE][Entity::PARAM_ID];
+            unset($bookData[Book::PARAM_BINDING_TYPE]);
         }
 
         return $result;
@@ -210,7 +212,8 @@ class BookRepository
                     Book::PARAM_CIRCULATION,
                     Book::PARAM_SIZE,
                     Book::PARAM_PUBLISH_YEAR,
-                    Book::PARAM_RELEASE_DATE
+                    Book::PARAM_RELEASE_DATE,
+                    Book::PARAM_LISTEN_PRICE_VALUE
                 ] as $param) {
             $arrayValues[$param] = ':' . $param;
         }
