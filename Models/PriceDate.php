@@ -2,8 +2,10 @@
 
 namespace Models;
 
+use DateTime;
+
 /**
- * @method string getDate()
+ * @method DateTime getDate()
  * @method int getPrice()
  */
 class PriceDate extends Entity
@@ -11,12 +13,6 @@ class PriceDate extends Entity
     public const PARAM_DATE = 'date';
     public const PARAM_PRICE = 'price';
 
-    public const RECORDABLE_PARAMS = [
-        self::PARAM_DATE,
-        self::PARAM_PRICE,
-    ];
-
-    protected string $date;
+    protected DateTime $date;
     protected string $price;
-
 }

@@ -44,3 +44,11 @@ function processPdoException(string $type, array $variables, array $data, PDOSta
     print_r($variables);
     exit;
 }
+
+function logMe($data)
+{
+    echo '<pre>';
+
+    print_r($data);
+    echo '</pre>';
+}

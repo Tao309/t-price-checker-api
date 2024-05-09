@@ -2,6 +2,8 @@
 
 namespace Models;
 
+use DateTime;
+
 /**
  * @method int getTitle()
  * @method string getAuthor()
@@ -10,8 +12,8 @@ namespace Models;
  * @method int getCirculation()
  * @method int getSize()
  * @method string getPublishYear()
- * @method string getDateCreated()
- * @method string getDateUpdated()
+ * @method DateTime getDateCreated()
+ * @method DateTime getDateUpdated()
  *
  * @method BindingType getBindingType()
  *
@@ -31,49 +33,26 @@ class Book extends Entity
     public const PARAM_PAGES = 'pages';
     public const PARAM_CIRCULATION = 'circulation'; // тираж.
     public const PARAM_SIZE = 'size'; // Размер.
-    public const PARAM_BINDING_TYPE = 'binding_type';
-    public const PARAM_BINDING_TYPE_ID = 'book.binding_type.id';
-    public const PARAM_BINDING_TYPE_LABEL = 'book.binding_type.label';
     public const PARAM_PUBLISH_YEAR = 'publish_year';
     public const PARAM_RELEASE_DATE = 'release_date';
     public const PARAM_DATE_CREATED = 'date_created';
+
+    public const PARAM_BINDING_TYPE = 'binding_type';
 
     protected string $title;
     protected ?string $author;
     protected ?string $isbn;
     protected ?int $pages;
     protected ?int $circulation;
+    protected ?string $size;
     protected ?int $publishYear;
-    protected string $releaseDate;
-    protected string $dateCreated;
+    protected DateTime $releaseDate;
+    protected DateTime $dateCreated;
 
     // Приватные свойства не попадают в обходе у родителя. __call в родителе.
     protected ?BindingType $bindingType = null;
 
-    public const RECORDABLE_PARAMS = [
-        self::PARAM_TITLE,
-        self::PARAM_AUTHOR,
-        self::PARAM_ISBN,
-        self::PARAM_PAGES,
-        self::PARAM_CIRCULATION,
-        self::PARAM_SIZE,
-        self::PARAM_PUBLISH_YEAR,
+    protected array $relationToOne = [
+        self::PARAM_BINDING_TYPE => BindingType::class
     ];
-
-    public const RECORDABLE_DATETIME_PARAMS = [
-        self::PARAM_RELEASE_DATE,
-        self::PARAM_DATE_CREATED
-    ];
-
-    public function __construct(array $data)
-    {
-        parent::__construct($data);
-
-        if (isset($data[self::PARAM_BINDING_TYPE_ID])) {
-            $this->bindingType = new BindingType([
-                'id' => $data[self::PARAM_BINDING_TYPE_ID],
-                'label' => $data[self::PARAM_BINDING_TYPE_LABEL]
-            ]);
-        }
-    }
 }

@@ -3,6 +3,7 @@
 namespace Models;
 
 use Core\Config;
+use DateTime;
 
 /**
  * @method string getProductId()
@@ -12,19 +13,19 @@ use Core\Config;
  * @method int getUserId()
  * @method int getTitle()
  * @method bool getAvailable()
- * @method string getNotAvailableDateFrom()
- * @method string getAvailableDateFrom()
+ * @method ?DateTime getNotAvailableDateFrom()
+ * @method ?DateTime getAvailableDateFrom()
  * @method int getListenPriceValue()
  * @method int getListenQtyValue()
- * @method string getReleaseDate()
- * @method string getDateCreated()
- * @method string getDateUpdated()
+ * @method ?DateTime getReleaseDate()
+ * @method DateTime getDateCreated()
+ * @method DateTime getDateUpdated()
+ *
+ * @method Book|null getBook()
  * @method int getMinPrice()
  * @method int getLastQty()
- *
- * @method array getStocks()
- * @method array getPriceDates()
- * @method Book|null getBook()
+ * @method PriceDate[] getPriceDates()
+ * @method Stock[] getStocks()
  * @method SameProduct[] getSameProducts()
  *
  * @method setTitle(string $value)
@@ -58,6 +59,7 @@ class Product extends Entity
     public const PARAM_MIN_PRICE = 'min_price';
     public const PARAM_LAST_QTY = 'last_qty';
 
+    public const PARAM_FLAGS = 'flags';
     public const PARAM_BOOK = 'book';
     public const PARAM_SAME_PRODUCTS = 'same_products';
 
@@ -75,131 +77,50 @@ class Product extends Entity
 //    protected int $userId;
     protected string $title;
     protected bool $available;
-    protected string $notAvailableDateFrom;
-    protected string $availableDateFrom;
+    protected ?DateTime $notAvailableDateFrom;
+    protected ?DateTime $availableDateFrom;
     protected ?int $listenPriceValue;
-    protected string $releaseDate;
-    protected string $dateCreated;
-    protected string $dateUpdated;
+    protected ?DateTime $releaseDate;
+    protected DateTime $dateCreated;
+    protected DateTime $dateUpdated;
 
-    protected ?Book $book = null;
-    /** @var SameProduct[] */
-    protected array $sameProducts = [];
-    /** @var Stock[] */
-    protected array $stocks = [];
-    /** @var PriceDate[] */
-    protected array $priceDates = [];
     protected ?int $minPrice = null;
     protected ?int $lastQty = null;
+    protected ?Book $book = null;
+    /** @var PriceDate[] */
+    protected array $priceDates = [];
+    /** @var Stock[] */
+    protected array $stocks = [];
+    /** @var SameProduct[] */
+    protected array $sameProducts = [];
 
-    public const RECORDABLE_PARAMS = [
-        self::PARAM_PRODUCT_ID,
-        self::PARAM_CODE,
-        self::PARAM_SHOP_TYPE,
-        self::PARAM_USER_ID,
-        self::PARAM_TITLE,
-        self::PARAM_LISTEN_PRICE_VALUE,
-        self::PARAM_LISTEN_QTY_VALUE,
-        self::PARAM_MIN_PRICE,
-        self::PARAM_LAST_QTY,
+    protected array $relationToOne = [
+        self::PARAM_BOOK => Book::class
     ];
 
-    public const RECORDABLE_BOOLEAN_PARAMS = [
-        self::PARAM_AVAILABLE,
-    ];
-
-    public const RECORDABLE_DATETIME_PARAMS = [
-        self::PARAM_NOT_AVAILABLE_DATE_FROM,
-        self::PARAM_AVAILABLE_DATE_FROM,
-        self::PARAM_RELEASE_DATE,
-        self::PARAM_DATE_CREATED,
-        self::PARAM_DATE_UPDATED,
+    protected array $relationToMany = [
+        self::PARAM_PRICE_DATES => PriceDate::class,
+        self::PARAM_STOCKS => Stock::class,
+        self::PARAM_SAME_PRODUCTS => SameProduct::class
     ];
 
     public function __construct(array $data)
     {
         parent::__construct($data);
 
-        if (!empty($data[Product::PARAM_PRICE_DATES])) {
-            $price = [];
-
-            $this->priceDates = array_map(function ($priceDateData) use (&$price) {
-                $price[] = (int)$priceDateData[PriceDate::PARAM_PRICE] ?? 0;
-
-                return new PriceDate([
-                    PriceDate::PARAM_DATE => $this->formatDateToZeroTimezone($priceDateData[PriceDate::PARAM_DATE]),
-                    PriceDate::PARAM_PRICE => (int)$priceDateData[PriceDate::PARAM_PRICE] ?? '---',
-                ]);
-            }, $data[self::PARAM_PRICE_DATES]);
-
-            $this->minPrice = $price ? min($price) : null;
+        if ($this->getPriceDates()) {
+            $this->minPrice = min(
+                array_map(function($priceDate) {
+                    return $priceDate->getPrice();
+                }, $this->getPriceDates())
+            );
         }
 
-        if (!empty($data[Product::PARAM_STOCKS])) {
-            $this->stocks = array_map(function ($stockData) {
-                return new Stock([
-                    Stock::PARAM_DATE => $this->formatDateToZeroTimezone($stockData[Stock::PARAM_DATE]),
-                    Stock::PARAM_QTY => (int)$stockData[Stock::PARAM_QTY] ?? '---',
-                    Stock::PARAM_LOG => $stockData[Stock::PARAM_LOG],
-                ]);
-            }, $data[self::PARAM_STOCKS]);
-
-            $this->lastQty = end($this->stocks)->getQty();
-        }
-
-        if (!empty($data['book.id'])) {
-            $this->book = new Book([
-                Entity::PARAM_ID => $data['book.id'],
-                Book::PARAM_TITLE => $data['book.title'],
-                Book::PARAM_AUTHOR => $data['book.author'],
-                Book::PARAM_ISBN => $data['book.isbn'],
-                Book::PARAM_PAGES => $data['book.pages'],
-                Book::PARAM_CIRCULATION => $data['book.circulation'],
-                Book::PARAM_SIZE => $data['book.size'],
-                Book::PARAM_BINDING_TYPE_ID => $data['book.binding_type.id'],
-                Book::PARAM_BINDING_TYPE_LABEL => $data['book.binding_type.label'],
-                Book::PARAM_RELEASE_DATE => $data['book.release_date'],
-                Book::PARAM_PUBLISH_YEAR => $data['book.publish_year'],
-                Book::PARAM_DATE_CREATED => $data['book.date_created'],
-            ]);
-        }
-
-        if (!empty($data[self::PARAM_SAME_PRODUCTS])) {
-            $this->sameProducts = array_map(function ($sameProductData) {
-                return new SameProduct($sameProductData);
-            }, $data[self::PARAM_SAME_PRODUCTS]);
+        if ($this->getStocks()) {
+            $stocks = $this->getStocks();
+            $this->lastQty = end($stocks)->getQty();
         }
     }
-
-//    public function toArray(): array
-//    {
-//        $m = parent::toArray();
-//        unset($m[self::PARAM_USER_ID], $m[self::PARAM_SHOP_ID]);
-
-//        if ($this->getPriceDates()) {
-//            $m[self::PARAM_PRICE_DATES] = array_map(function ($priceDate) {
-//                return $priceDate->toArray();
-//            }, $this->getPriceDates());
-//        }
-
-//        if ($this->getStocks()) {
-//            $m[self::PARAM_STOCKS] = array_map(function ($stock) {
-//                return $stock->toArray();
-//            }, $this->getStocks());
-//        }
-
-//        if ($this->getBook()) {
-//            $m[self::PARAM_BOOK] =  $this->getBook()->toArray();
-//        }
-
-//        if ($this->getSameProducts()) {
-//            $m[self::PARAM_SAME_PRODUCTS] = array_map(function ($sameProduct) {
-//                return $sameProduct->toArray();
-//            }, $this->getSameProducts());
-//        }
-
-//        return $m;
-//    }
 
     public function getUrl(): string|null
     {

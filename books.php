@@ -36,7 +36,9 @@ if ($bookId) {
 
         $products = $productRepository->getProductsByBookId($bookId);
     } catch(\Throwable $e) {
-        die($e->getMessage());
+        echo $e->getMessage();
+        echo $e->getTraceAsString();
+        exit;
     }
 
     $page .= '<br/>';
@@ -73,11 +75,11 @@ if ($bookId) {
             $stocks = [];
 
             foreach ($product->getPriceDates() as $priceDate) {
-                $datePrices[] = '<div class="price-date">'.cutDate($priceDate['date']).': '.$priceDate['price'].'</div>';
+                $datePrices[] = '<div class="price-date">'.$priceDate->getDate()->format('d.m.Y').': '.$priceDate->getPrice().'</div>';
             }
 
             foreach ($product->getStocks() as $stock) {
-                $stocks[] = '<div class="stock">'.cutDate($stock['date']).': '.$stock['qty'].'</div>';
+                $stocks[] = '<div class="stock">'.$stock->getDate()->format('d.m.Y').': '.$stock->getQty().'</div>';
             }
 
             $page .= '<tr class="row">';
@@ -90,12 +92,14 @@ if ($bookId) {
             $page .= '<td class="date_prices">' . implode('', $datePrices) . '</td>';
             $page .= '<td class="stocks">' . implode('', $stocks) . '</td>';
             $page .= '<td class="available">' . ($product->getAvailable() ? 'Да' : 'Нет') . '</td>';
-            $page .= '<td class="date date_created">' . cutDate($product->getDateCreated()) . '</td>';
-            $page .= '<td class="date date_updated">' . cutDate($product->getDateUpdated()) . '</td>';
+            $page .= '<td class="date date_created">' . $product->getDateCreated()->format('d.m.Y') . '</td>';
+            $page .= '<td class="date date_updated">' . $product->getDateUpdated()->format('d.m.Y') . '</td>';
             $page .= '</tr>';
         }
     } catch (\Throwable $e) {
-        die($e->getMessage());
+        echo $e->getMessage();
+        echo $e->getTraceAsString();
+        exit;
     }
 
     $page .= '</table>';
@@ -131,10 +135,12 @@ if ($bookId) {
             $page .= '<td>' . $book->getSize(). '</td>';
             $page .= '<td>' . ($book->getBindingType() ? $book->getBindingType()->getLabel() : '') . '</td>';
             $page .= '<td>' . $book->getPublishYear(). '</td>';
-            $page .= '<td>' . cutDate($book->getDateCreated()). '</td>';
+            $page .= '<td>' . $book->getDateCreated()->format('d.m.Y'). '</td>';
         }
     } catch(\Throwable $e) {
-        die($e->getMessage());
+        echo $e->getMessage();
+        echo $e->getTraceAsString();
+        exit;
     }
 }
 

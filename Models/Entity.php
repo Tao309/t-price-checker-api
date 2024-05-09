@@ -2,6 +2,8 @@
 
 namespace Models;
 
+use DateTime;
+
 /**
  * @method int getId()
  */
@@ -9,37 +11,19 @@ abstract class Entity
 {
     public const PARAM_ID = 'id';
 
-    public const RECORDABLE_PARAMS = [];
-    public const RECORDABLE_BOOLEAN_PARAMS = [];
-    public const RECORDABLE_DATETIME_PARAMS = [];
-
     protected int $id;
+
+    // Связь к одному.
+    protected array $relationToOne = [];
+
+    // Связь ко многим.
+    protected array $relationToMany = [];
 
     public function __construct(array $data)
     {
-        foreach ($data as $param => $value) {
-            $camelCaseParam = $this->getCamelCaseParam($param);
+        $this->prepareDataToModel($data);
 
-            if ($param === 'id') {
-                $this->id = $value;
-                continue;
-            }
-
-            if (in_array($param, static::RECORDABLE_PARAMS)) {
-                $this->$camelCaseParam = $value;
-                continue;
-            }
-
-            if (in_array($param, static::RECORDABLE_BOOLEAN_PARAMS)) {
-                $this->$camelCaseParam = (bool)$value;
-                continue;
-            }
-
-            if (!empty($value) && in_array($param, static::RECORDABLE_DATETIME_PARAMS)) {
-                $this->$camelCaseParam = $this->formatDateToZeroTimezone($value);
-                continue;
-            }
-        }
+        $this->setDataToProperties($data);
     }
 
     public function __call($methodName, $arguments)
@@ -84,6 +68,8 @@ abstract class Entity
         foreach ($vars as $key => $varData) {
             if ($varData instanceof Entity) {
                 $varData = $varData->toArray();
+            } elseif ($varData instanceof DateTime) {
+                $varData = $this->formatDateToZeroTimezone($varData);
             } elseif (is_array($varData)) {
                 $varData = array_values(array_map(function ($oneVarData) {
                     if ($oneVarData instanceof Entity) {
@@ -97,15 +83,115 @@ abstract class Entity
             $m[$this->getSnakeCaseParam($key)] = $varData;
         }
 
+        unset(
+            $m['relation_to_one'],
+            $m['relation_to_many']
+        );
+
         return $m;
     }
 
-    protected function formatDateToZeroTimezone(string $dateString): string
+    protected function formatDateToZeroTimezone(DateTime $date): string
     {
-        $date = new \DateTime($dateString);
+//        $date = new DateTime($dateString);
         $date->modify('+3 hours');
 
         return $date->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * Обходим по массиву данных и обрабатываем индексы с точками.
+     *
+     * @param array $data Входные данные.
+     *
+     * @return void
+     */
+    protected function prepareDataToModel(array &$data): void
+    {
+        foreach ($data as $index => $value) {
+            $path = explode('.', $index);
+            if (count($path) < 2) {
+                continue;
+            }
+
+            unset($data[$index]);
+
+            if (is_null($value)) {
+                continue;
+            }
+
+            $firstPath = $path[0];
+            $secondPath = $path[1];
+
+            if (!isset($data[$firstPath])) {
+                $data[$firstPath] = [];
+            }
+
+            if (count($path) < 3) {
+                $data[$firstPath][$secondPath] = $value;
+                continue;
+            }
+
+            array_shift($path);
+
+            $key = implode('.', $path);
+            $data[$firstPath][$key] = $value;
+
+            $this->prepareDataToModel($data[$firstPath]);
+        }
+    }
+
+    /**
+     * Установка значений в свойства модели.
+     *
+     * @param array $data Входящие данные.
+     *
+     * @return void
+     *
+     * @throws \Exception
+     */
+    private function setDataToProperties(array $data): void
+    {
+        $class = new \ReflectionClass($this);
+
+        foreach ($data as $param => $value) {
+            $camelCaseParam = $this->getCamelCaseParam($param);
+
+            if ($class->hasProperty($camelCaseParam)) {
+                $property = $class->getProperty($camelCaseParam);
+                $propertyType = $property->getType()->getName();
+                //echo $camelCaseParam . ': '. $propertyType . ' | ';
+
+                switch ($propertyType) {
+                    case 'bool':
+                    case 'string':
+                    case 'int':
+                        $this->$camelCaseParam = $value;
+                        break;
+                    case 'DateTime':
+                        if (!is_null($value)) {
+                            $this->$camelCaseParam = new DateTime($value);
+                        }
+                        break;
+                    case 'array':
+                        if (isset($this->relationToMany[$param])) {
+                            $propertyClassName = $this->relationToMany[$param];
+
+                            $this->$camelCaseParam = array_map(function ($relationData) use ($propertyClassName) {
+                                return new $propertyClassName($relationData);
+                            }, $value);
+                        } else {
+                            $this->$camelCaseParam = $value;
+                        }
+                        break;
+                    default:
+                        if (isset($this->relationToOne[$param])) {
+                            $propertyClassName = $this->relationToOne[$param];
+                            $this->$camelCaseParam = new $propertyClassName($value);
+                        }
+                }
+            }
+        }
     }
 
     private function getCamelCaseParam(string $snakeCaseParam): string
@@ -119,4 +205,5 @@ abstract class Entity
     {
         return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $param));
     }
+
 }

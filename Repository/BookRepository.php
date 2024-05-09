@@ -140,10 +140,10 @@ class BookRepository
             ->from(['b' => 'books'])
             ->leftJoin(
                 ['bbt' => 'book_binding_type'],
-                'bbt.id = b.binding_type',
+                'bbt.id = b.binding_type_id',
                 [
-                    'bbt.id AS \''.Book::PARAM_BINDING_TYPE_ID.'\'',
-                    'bbt.label AS \''.Book::PARAM_BINDING_TYPE_LABEL.'\''
+                    'bbt.id AS \'binding_type.id\'',
+                    'bbt.label AS \'binding_type.label\''
                 ]
             );
     }
@@ -151,11 +151,18 @@ class BookRepository
     private function getPreparedBookData(array $bookData): array
     {
         $result = [];
-        foreach(Book::RECORDABLE_PARAMS as $param) {
+        foreach([
+                    Book::PARAM_TITLE,
+                    Book::PARAM_AUTHOR,
+                    Book::PARAM_ISBN,
+                    Book::PARAM_PAGES,
+                    Book::PARAM_CIRCULATION,
+                    Book::PARAM_SIZE,
+                    Book::PARAM_PUBLISH_YEAR,
+                    Book::PARAM_RELEASE_DATE
+                ] as $param) {
             $result[$param] = $bookData[$param] ?: null;
         }
-
-        $result[Book::PARAM_RELEASE_DATE] = $bookData[Book::PARAM_RELEASE_DATE] ?: null;
 
         if (isset($bookData[Book::PARAM_BINDING_TYPE])) {
             $result[Book::PARAM_BINDING_TYPE] = $bookData[Book::PARAM_BINDING_TYPE]['id'];
@@ -195,11 +202,18 @@ class BookRepository
     private function createBook(array $bookData): int
     {
         $arrayValues = [];
-        foreach(Book::RECORDABLE_PARAMS as $param) {
+        foreach([
+                    Book::PARAM_TITLE,
+                    Book::PARAM_AUTHOR,
+                    Book::PARAM_ISBN,
+                    Book::PARAM_PAGES,
+                    Book::PARAM_CIRCULATION,
+                    Book::PARAM_SIZE,
+                    Book::PARAM_PUBLISH_YEAR,
+                    Book::PARAM_RELEASE_DATE
+                ] as $param) {
             $arrayValues[$param] = ':' . $param;
         }
-
-        $arrayValues[Book::PARAM_RELEASE_DATE] = ':' . Book::PARAM_RELEASE_DATE;
 
         if (isset($bookData[Book::PARAM_BINDING_TYPE])) {
             $arrayValues[Book::PARAM_BINDING_TYPE] = ':binding_type';

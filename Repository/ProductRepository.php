@@ -32,15 +32,12 @@ class ProductRepository
 
         $stocks = $data[Product::PARAM_STOCKS] ?? [];
         $dates = $data[Product::PARAM_PRICE_DATES] ?? [];
-        $flags = $data['flags'] ?? [];
+        $flags = $data[Product::PARAM_FLAGS] ?? [];
 
         $positionId = null;
         $positionPrice = null;
         $positionQty = null;
-//        $positionData = $this->getPositionData($data[Product::PARAM_PRODUCT_ID], $data['shop_type']);
         $product = $this->getProduct($data[Product::PARAM_PRODUCT_ID], $data[Product::PARAM_SHOP_TYPE]);
-
-//        var_dump(end($dates)['price']);exit;
 
         if ($product) {
             $positionId = $product->getId();
@@ -232,10 +229,10 @@ class ProductRepository
             )
             ->leftJoin(
                 ['bbt' => 'book_binding_type'],
-                'bbt.id = b.binding_type',
+                'bbt.id = b.binding_type_id',
                 [
-                    'bbt.id AS \''.Book::PARAM_BINDING_TYPE_ID.'\'',
-                    'bbt.label AS \''.Book::PARAM_BINDING_TYPE_LABEL.'\''
+                    'bbt.id AS \'book.binding_type.id\'',
+                    'bbt.label AS \'book.binding_type.label\''
                 ]
             )
             ->where('p.user_id = :user_id')
