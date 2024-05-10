@@ -64,8 +64,8 @@ class StockRepository extends Repository
         $query = $this->getListQueryNew();
 
         $query
-            ->where(Stock::TABLE_PREFIX . '.id IN ('.implode(",", $ids).')')
-            ->order(Stock::TABLE_PREFIX . '.date');
+            ->where('id', $ids)
+            ->order('date');
 
         $result = [];
 
@@ -83,9 +83,9 @@ class StockRepository extends Repository
     public function getStock(array $stockData)
     {
         $query = $this->getListQueryNew()
-            ->where(Stock::TABLE_PREFIX . '.id = :id')
-            ->where(Stock::TABLE_PREFIX . '.qty = :qty')
-            ->where(Stock::TABLE_PREFIX . '.date = :date');
+            ->where('id', ':id')
+            ->where('qty', ':qty')
+            ->where('date', ':date');
 
         return $query->fetch([
             Stock::PARAM_ID => $stockData[Stock::PARAM_ID],

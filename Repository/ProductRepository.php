@@ -33,7 +33,7 @@ class ProductRepository extends Repository
     {
         //die('Saving products is temporary unavailable.');
         //var_dump($data);exit;
-        //return;
+        return;
 
         $stocks = $data[Product::PARAM_STOCKS] ?? [];
         $dates = $data[Product::PARAM_PRICE_DATES] ?? [];
@@ -133,16 +133,16 @@ class ProductRepository extends Repository
     {
         $query = $this->getListQueryNew();
 
-        $query->where(Product::TABLE_PREFIX . '.user_id = :user_id');
-        $query->where(Product::TABLE_PREFIX . '.product_id IN ('.implode(",", $productIds).')');
-        $query->where(Product::TABLE_PREFIX . '.shop_id = :shop_id');
+        $query->where('user_id', ':user_id');
+        $query->where('product_id', $productIds);
+        $query->where('shop_id', ':shop_id');
 
         if (Config::getCurrentUserid() !== 2) {
             $query->limit(100);
         }
 
         if (Config::isWildberriesShopType()) {
-            $query->where(Product::TABLE_PREFIX . '.code IS NOT NULL');
+            $query->where('code', QueryPdo::EXPR_IS_NOT_NULL);
         }
 
         if (Config::getCurrentUserid() !== 2) {
@@ -169,11 +169,11 @@ class ProductRepository extends Repository
         $query = $this->getListQueryNew();
 
         if (Config::isWildberriesShopType()) {
-            $query->where(Product::TABLE_PREFIX . '.code IS NOT NULL');
+            $query->where('code', QueryPdo::EXPR_IS_NOT_NULL);
         }
 
-        $query->where(Product::TABLE_PREFIX . '.book_id = :book_id');
-        $query->where(Product::TABLE_PREFIX . '.shop_id IS NOT NULL');
+        $query->where('book_id', ':book_id');
+        $query->where('shop_id', QueryPdo::EXPR_IS_NOT_NULL);
 
         $rows = $query->fetchAll([Product::PARAM_BOOK_ID => $bookId]);
 
@@ -422,16 +422,16 @@ class ProductRepository extends Repository
             ]
         );
 
-        $query->where(Product::TABLE_PREFIX.'.shop_id = :shop_id');
-        $query->where(Product::TABLE_PREFIX.'.product_id = :product_id');
-        $query->where(Product::TABLE_PREFIX . '.user_id = :user_id');
+        $query->where('shop_id', ':shop_id');
+        $query->where('product_id', ':product_id');
+        $query->where('user_id', ':user_id');
         $query->limit(1);
 
         if (Config::isWildberriesShopType()) {
             if ($withCode) {
-                $query->where(Product::TABLE_PREFIX.'.code IS NOT NULL');
+                $query->where('code', QueryPdo::EXPR_IS_NOT_NULL);
             } else {
-                $query->where(Product::TABLE_PREFIX.'.code IS NULL');
+                $query->where('code', QueryPdo::EXPR_IS_NULL);
             }
         }
 

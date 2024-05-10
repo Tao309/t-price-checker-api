@@ -2,6 +2,9 @@
 
 class QueryPdo
 {
+    public const EXPR_IS_NULL = 'is_null';
+    public const EXPR_IS_NOT_NULL = 'is_not_null';
+
     static $connect;
 
     private $fields = [];
@@ -56,16 +59,43 @@ class QueryPdo
 
     public function from($fromTable): self
     {
-        $this->fromTable = is_array($fromTable) ? $fromTable : [$fromTable];
+        $this->fromTable = $this->getJoinTable($fromTable);
 
         return $this;
+    }
+
+    private function getJoinTable($joinTable): array
+    {
+        if (is_array($joinTable)) {
+            $key = array_key_first($joinTable);
+            if (is_int($key)) {
+                throw new \Exception('QueryPdo: fromTable prefix can not be a integer.');
+            }
+
+            return $joinTable;
+        }
+
+        if (is_int($joinTable)) {
+            throw new \Exception('QueryPdo: fromTable prefix auto can not be a integer.');
+        }
+
+        return [$joinTable => $joinTable];
+    }
+
+    protected function getFromTablePrefix(): string
+    {
+        if (empty($this->fromTable)) {
+            throw new \Exception('QueryPdo: fromTable is empty');
+        }
+
+        return array_key_first($this->fromTable);
     }
 
     public function leftJoin($joinTable, $condition, $fields = null): self
     {
         $this->joins[] = [
             'type' => 'LEFT JOIN',
-            'table' => is_array($joinTable) ? $joinTable : [$joinTable],
+            'table' => $this->getJoinTable($joinTable),
             'condition' => $condition,
         ];
 
@@ -84,7 +114,7 @@ class QueryPdo
     {
         $this->joins[] = [
             'type' => 'RIGHT JOIN',
-            'table' => is_array($joinTable) ? $joinTable : [$joinTable],
+            'table' => $this->getJoinTable($joinTable),
             'condition' => $condition,
         ];
 
@@ -99,18 +129,48 @@ class QueryPdo
         return $this;
     }
 
-    public function where(string $condition): self
+    public function where(string $name, $value = ''): self
     {
-        $this->where[] = ['AND', $condition];
+        if (!empty($value)) {
+            $this->where[] = ['AND', $this->processWhereCondition($name, $value)];
+        } else {
+            $this->where[] = ['AND', $name];
+        }
 
         return $this;
     }
 
-    public function orWhere(string $condition): self
+    public function orWhere(string $name): self
     {
-        $this->where[] = ['OR', $condition];
+        if (!empty($value)) {
+            $this->where[] = ['OR', $this->processWhereCondition($name, $value)];
+        } else {
+            $this->where[] = ['OR', $name];
+        }
 
         return $this;
+    }
+
+    private function processWhereCondition($name, $value = ''): string
+    {
+        $nameSplit = explode('.', $name);
+        if (count($nameSplit) < 2) {
+            $name = $this->getFromTablePrefix() . '.' . $name;
+        }
+
+        if ($value instanceof QueryPdo) {
+            return $name . ' IN (' . $value->assemble() . ')';
+        }
+
+        if (is_array($value)) {
+            return $name . ' IN (' . implode(",", array_values($value)) . ')';
+        }
+
+        return match ($value) {
+            self::EXPR_IS_NULL => $name . ' IS NULL',
+            self::EXPR_IS_NOT_NULL => $name . ' IS NOT NULL',
+            default => $name . ' = ' . trim($value),
+        };
     }
 
     public function group(string $groupValue): self
@@ -134,6 +194,11 @@ class QueryPdo
 
     public function order($column, $dir = 'ASC'): self
     {
+        $columnSplit = explode('.', $column);
+        if (count($columnSplit) < 2) {
+            $column = $this->getFromTablePrefix() . '.' . $column;
+        }
+
         $this->order[] = $column . ' ' . $dir;
         return $this;
     }

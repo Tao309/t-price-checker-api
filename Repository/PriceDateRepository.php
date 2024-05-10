@@ -62,8 +62,8 @@ class PriceDateRepository extends Repository
     {
         $query = $this->getListQueryNew();
         $query
-            ->where(PriceDate::TABLE_PREFIX . '.id IN ('.implode(",", $ids).')')
-            ->order(PriceDate::TABLE_PREFIX . '.date');
+            ->where('id', $ids)
+            ->order('date');
 
         $result = [];
 

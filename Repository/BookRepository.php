@@ -74,7 +74,7 @@ class BookRepository extends Repository
     public function getBook(int $id): Book|null
     {
         $query = $this->getListQueryNew();
-        $query->where(Book::TABLE_PREFIX.'.id = :id');
+        $query->where('id', ':id');
 
         $data = $query->fetch([
             Product::PARAM_ID => $id

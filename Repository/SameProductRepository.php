@@ -34,7 +34,7 @@ class SameProductRepository extends Repository
         $bookSubQuery = (new QueryPdo())
             ->select(['DISTINCT book_id'])
             ->from(Product::TABLE_NAME)
-            ->where('id IN ('.implode(",", $ids).')')
+            ->where('id', $ids)
         ;
 
         $query = $this->getListQueryNew();
@@ -46,9 +46,8 @@ class SameProductRepository extends Repository
                     'pd.price AS ' . Product::PARAM_MIN_PRICE
                 ]
             )
-//            ->where('p.shop_id != :shop_id')
-            ->where(SameProduct::TABLE_PREFIX . '.user_id = :user_id')
-            ->where(SameProduct::TABLE_PREFIX . '.book_id IN ('.$bookSubQuery->assemble().')')
+            ->where('user_id', ':user_id')
+            ->where('book_id', $bookSubQuery)
             ->order('pd.price');
 
         $rows = $query->fetchAll([
