@@ -63,8 +63,10 @@ class QueryBuilder
                 ->select([join(', ', $selectValues)])
                 ->from([$tablePrefix => $tableName]);
         } else {
+            $joinType = isset($relData['foreign']) && $relData['foreign'] ? 'rightJoin' : 'leftJoin';
+
             $this->getQueryPdo()
-                ->leftJoin(
+                ->$joinType(
                     [$tablePrefix => $tableName],
                     sprintf(
                         '%s.%s = %s.%s',

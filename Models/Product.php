@@ -63,12 +63,13 @@ class Product extends Entity
         self::PARAM_BOOK => [
             'parent_id' => self::PARAM_BOOK_ID,
             'relation_entity' => Book::class,
-            'relation_id' => Entity::PARAM_ID,
+            'relation_id' => Entity::PARAM_ID
         ],
         self::PARAM_SHOP => [
             'parent_id' => self::PARAM_SHOP_ID,
             'relation_entity' => Shop::class,
             'relation_id' => Entity::PARAM_ID,
+            'foreign' => true,
         ],
     ];
 
