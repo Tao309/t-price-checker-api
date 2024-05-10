@@ -2,14 +2,17 @@
 
 namespace Repository;
 
+use Models\Stock;
 use QueryPdo;
 use Models\Entity;
 
-class StockRepository
+class StockRepository extends Repository
 {
+    protected string $entityModel = Stock::class;
+
     public function __construct()
     {
-
+        parent::__construct();
     }
 
     public function saveStocks(int $positionId, array $stocks = []): void
@@ -18,15 +21,17 @@ class StockRepository
             return;
         }
 
+        $arrayValues = $this->assembleInsertValues([
+            Stock::PARAM_ID,
+            Stock::PARAM_QTY,
+            Stock::PARAM_DATE,
+            Stock::PARAM_LOG,
+        ]);
+
         $query = (new QueryPdo())
             ->insert(
-                'products_stocks',
-                [
-                    'id' => ':position_id',
-                    'qty' => ':qty',
-                    'date' => ':date',
-                    'log' => ':log',
-                ],
+                Stock::TABLE_NAME,
+                $arrayValues,
                 'qty = VALUES(qty), log = VALUES(log)'
             );
 
@@ -36,10 +41,10 @@ class StockRepository
         try {
             foreach($stocks as $stock) {
                 $stmt->execute([
-                    'position_id' => $positionId,
-                    'qty' => $stock['qty'],
-                    'date' => $stock['date'],
-                    'log' => isset($stock['log']) ? json_encode($stock['log']) : null
+                    Stock::PARAM_ID => $positionId,
+                    Stock::PARAM_QTY => $stock[Stock::PARAM_QTY],
+                    Stock::PARAM_DATE => $stock[Stock::PARAM_DATE],
+                    Stock::PARAM_LOG => isset($stock[Stock::PARAM_LOG]) ? json_encode($stock[Stock::PARAM_LOG]) : null
                 ]);
             }
         } catch(\PDOException $e) {
@@ -56,11 +61,11 @@ class StockRepository
      */
     public function getStocksForProducts(array $ids = []): array
     {
-        $query = (new QueryPdo())
-            ->select('*')
-            ->from('products_stocks')
-            ->where('id IN ('.implode(",", $ids).')')
-            ->order('date');
+        $query = $this->getListQueryNew();
+
+        $query
+            ->where(Stock::TABLE_PREFIX . '.id IN ('.implode(",", $ids).')')
+            ->order(Stock::TABLE_PREFIX . '.date');
 
         $result = [];
 
@@ -77,43 +82,45 @@ class StockRepository
 
     public function getStock(array $stockData)
     {
-        $query = (new QueryPdo())
-            ->select(['*'])
-            ->from(['products_stocks'])
-            ->where('id = :id')
-            ->where('qty = :qty')
-            ->where('date = :date');
+        $query = $this->getListQueryNew()
+            ->where(Stock::TABLE_PREFIX . '.id = :id')
+            ->where(Stock::TABLE_PREFIX . '.qty = :qty')
+            ->where(Stock::TABLE_PREFIX . '.date = :date');
 
         return $query->fetch([
-            'id' => $stockData['id'],
-            'qty' => $stockData['qty'],
-            'date' => $stockData['date']
+            Stock::PARAM_ID => $stockData[Stock::PARAM_ID],
+            Stock::PARAM_QTY => $stockData[Stock::PARAM_QTY],
+            Stock::PARAM_DATE => $stockData[Stock::PARAM_DATE]
         ]);
     }
 
     public function deleteStock(array $stockData): int
     {
-        if (empty($stockData['id']) || empty($stockData['qty']) || empty($stockData['date'])) {
+        if (empty($stockData[Stock::PARAM_ID])
+            || empty($stockData[Stock::PARAM_QTY])
+            || empty($stockData[Stock::PARAM_DATE])
+        ) {
             throw new \Exception('Не все поля заполнены для удаления');
         }
+        $arrayValues = $this->assembleInsertValues([
+            Stock::PARAM_ID,
+            Stock::PARAM_QTY,
+            Stock::PARAM_DATE,
+        ]);
 
         $query = (new QueryPdo())
             ->delete(
-                'products_stocks',
-                [
-                    'id' => ':id',
-                    'qty' => ':qty',
-                    'date' => ':date'
-                ]
+                Stock::TABLE_NAME,
+                $arrayValues
             );
 
         $dbh = QueryPdo::getConnect();
         $stmt = $dbh->prepare($query);
 
         $stmt->execute([
-            'id' => $stockData['id'],
-            'qty' => $stockData['qty'],
-            'date' => $stockData['date']
+            Stock::PARAM_ID => $stockData[Stock::PARAM_ID],
+            Stock::PARAM_QTY => $stockData[Stock::PARAM_QTY],
+            Stock::PARAM_DATE => $stockData[Stock::PARAM_DATE]
         ]);
 
         if (!$stmt->rowCount()) {

@@ -9,7 +9,6 @@ use DateTime;
  * @method string getProductId()
  * @method string getCode()
  * @method int|null getBookId()
- * @method string getShopType()
  * @method int getUserId()
  * @method int getTitle()
  * @method bool getAvailable()
@@ -21,6 +20,7 @@ use DateTime;
  * @method DateTime getDateUpdated()
  * @method DateTime getDateCreated()
  *
+ * @method Shop getShop()
  * @method Book|null getBook()
  * @method int getMinPrice()
  * @method int getLastQty()
@@ -38,6 +38,53 @@ use DateTime;
  */
 class Product extends Entity
 {
+    public const TABLE_PREFIX = 'p';
+    public const TABLE_NAME = 'products';
+
+    protected const PROPERTIES = [
+        self::PARAM_ID => 'ID',
+        self::PARAM_PRODUCT_ID => 'ID товара',
+        self::PARAM_CODE => 'Код 1С',
+        self::PARAM_BOOK_ID => 'ID книги',
+        self::PARAM_TITLE => 'Название',
+        self::PARAM_AVAILABLE => 'Доступен',
+        self::PARAM_NOT_AVAILABLE_DATE_FROM => 'Недоступен с',
+        self::PARAM_AVAILABLE_DATE_FROM => 'Доступен с',
+        self::PARAM_LISTEN_PRICE_VALUE => 'Отслеживание цены',
+        self::PARAM_LISTEN_QTY_VALUE => 'Отслеживание количества',
+        self::PARAM_RELEASE_DATE => 'Дата выпуска',
+        self::PARAM_DATE_UPDATED => 'Дата обновления',
+        self::PARAM_DATE_CREATED => 'Дата создания',
+    ];
+
+    protected const RELATION_TO_ONE = [
+        self::PARAM_BOOK => [
+            'parent_id' => self::PARAM_BOOK_ID,
+            'relation_entity' => Book::class,
+            'relation_id' => Entity::PARAM_ID,
+        ],
+        self::PARAM_SHOP => [
+            'parent_id' => self::PARAM_SHOP_ID,
+            'relation_entity' => Shop::class,
+            'relation_id' => Entity::PARAM_ID,
+        ],
+    ];
+
+    protected const RELATION_TO_MANY = [
+        self::PARAM_PRICE_DATES => [
+            'parent_id' => Entity::PARAM_ID,
+            'relation_entity' => PriceDate::class
+        ],
+        self::PARAM_STOCKS => [
+            'parent_id' => Entity::PARAM_ID,
+            'relation_entity' => Stock::class
+        ],
+        self::PARAM_SAME_PRODUCTS => [
+            'parent_id' => Entity::PARAM_ID,
+            'relation_entity' => SameProduct::class
+        ]
+    ];
+
     public const PARAM_PRODUCT_ID = 'product_id';
     public const PARAM_CODE = 'code';
     public const PARAM_BOOK_ID = 'book_id';
@@ -61,6 +108,7 @@ class Product extends Entity
 
     public const PARAM_FLAGS = 'flags';
     public const PARAM_BOOK = 'book';
+    public const PARAM_SHOP = 'shop';
     public const PARAM_SAME_PRODUCTS = 'same_products';
 
     public const FLAG_TO_SAVE_PRODUCT = 'flag_to_save_product';
@@ -73,8 +121,9 @@ class Product extends Entity
     protected int $productId;
     protected ?string $code;
 //    protected int $shopId;
-    protected string $shopType;
+//    protected string $shopType;
 //    protected int $userId;
+    protected ?int $bookId;
     protected string $title;
     protected bool $available;
     protected ?DateTime $notAvailableDateFrom;
@@ -84,25 +133,16 @@ class Product extends Entity
     protected DateTime $dateCreated;
     protected DateTime $dateUpdated;
 
+    protected Shop $shop;
+    protected ?Book $book = null;
     protected ?int $minPrice = null;
     protected ?int $lastQty = null;
-    protected ?Book $book = null;
     /** @var PriceDate[] */
     protected array $priceDates = [];
     /** @var Stock[] */
     protected array $stocks = [];
     /** @var SameProduct[] */
     protected array $sameProducts = [];
-
-    protected array $relationToOne = [
-        self::PARAM_BOOK => Book::class
-    ];
-
-    protected array $relationToMany = [
-        self::PARAM_PRICE_DATES => PriceDate::class,
-        self::PARAM_STOCKS => Stock::class,
-        self::PARAM_SAME_PRODUCTS => SameProduct::class
-    ];
 
     public function __construct(array $data)
     {
@@ -122,9 +162,22 @@ class Product extends Entity
         }
     }
 
+    public function toArray(): array
+    {
+        $m = parent::toArray();
+
+        $m[self::PARAM_SHOP_TYPE] = $this->getShop()->getType();
+
+        unset(
+            $m[self::PARAM_SHOP]
+        );
+
+        return $m;
+    }
+
     public function getUrl(): string|null
     {
-        switch ($this->getShopType()) {
+        switch ($this->getShop()?->getType()) {
             case Config::TYPE_KNIGOFAN:
                 return 'https://knigofan.ru/catalog/horus-heresy/primarkhi/929/';
             case Config::TYPE_WILDBERRIES:

@@ -3,26 +3,29 @@
 namespace Repository;
 
 use Models\Book;
+use Models\Product;
 use QueryPdo;
 use Models\Entity;
 use PDOException;
 
-class BookRepository
+class BookRepository extends Repository
 {
+    protected string $entityModel = Book::class;
+
     public function __construct()
     {
-
+        parent::__construct();
     }
 
     public function linkBookToProduct(int $positionId, int $bookId): void
     {
         $query = (new QueryPdo())
             ->update(
-                'products',
+                Product::TABLE_NAME,
                 [
-                    'book_id' => $bookId
+                    Product::PARAM_BOOK_ID => $bookId
                 ],
-                'id = :position_id'
+                Product::PARAM_ID . ' = :position_id'
             );
 
         $dbh = QueryPdo::getConnect();
@@ -45,11 +48,11 @@ class BookRepository
     {
         $query = (new QueryPdo())
             ->update(
-                'products',
+                Product::TABLE_NAME,
                 [
-                    'book_id' => null
+                    Product::PARAM_BOOK_ID => null
                 ],
-                'id = :position_id'
+                Product::PARAM_ID . ' = :position_id'
             );
 
         $dbh = QueryPdo::getConnect();
@@ -70,8 +73,8 @@ class BookRepository
 
     public function getBook(int $id): Book|null
     {
-        $query = $this->getBookQuery()
-            ->where('b.id = :id');
+        $query = $this->getListQueryNew();
+        $query->where(Book::TABLE_PREFIX.'.id = :id');
 
         $data = $query->fetch([
             'id' => $id
@@ -102,8 +105,10 @@ class BookRepository
      */
     public function getBooksByTitle(string $title): array
     {
-        $query = $this->getBookQuery()
-            ->where('LOWER(b.title) LIKE :title')
+        $query = $this->getListQueryNew();
+
+        $query
+            ->where('LOWER('.Book::TABLE_PREFIX.'.title) LIKE :title')
             ->limit(7);
 
         $rows = $query->fetchAll([
@@ -120,8 +125,9 @@ class BookRepository
      */
     public function getBooks(): array
     {
-        $query = $this->getBookQuery()
-            ->order('b.title')
+        $query = $this->getListQueryNew();
+
+        $query->order(Book::TABLE_PREFIX . '.title')
             ->limit(100);
 
         $rows = $query->fetchAll();
@@ -129,23 +135,6 @@ class BookRepository
         return array_map(function ($row) {
             return new Book($row);
         }, $rows);
-    }
-
-    private function getBookQuery(): QueryPdo
-    {
-        return (new QueryPdo())
-            ->select([
-                'b.*'
-            ])
-            ->from(['b' => 'books'])
-            ->leftJoin(
-                ['bbt' => 'book_binding_type'],
-                'bbt.id = b.binding_type_id',
-                [
-                    'bbt.id AS \'binding_type.id\'',
-                    'bbt.label AS \'binding_type.label\''
-                ]
-            );
     }
 
     private function getPreparedBookData(array $bookData): array
@@ -203,20 +192,17 @@ class BookRepository
 
     private function createBook(array $bookData): int
     {
-        $arrayValues = [];
-        foreach([
-                    Book::PARAM_TITLE,
-                    Book::PARAM_AUTHOR,
-                    Book::PARAM_ISBN,
-                    Book::PARAM_PAGES,
-                    Book::PARAM_CIRCULATION,
-                    Book::PARAM_SIZE,
-                    Book::PARAM_PUBLISH_YEAR,
-                    Book::PARAM_RELEASE_DATE,
-                    Book::PARAM_LISTEN_PRICE_VALUE
-                ] as $param) {
-            $arrayValues[$param] = ':' . $param;
-        }
+        $arrayValues = $this->assembleInsertValues([
+            Book::PARAM_TITLE,
+            Book::PARAM_AUTHOR,
+            Book::PARAM_ISBN,
+            Book::PARAM_PAGES,
+            Book::PARAM_CIRCULATION,
+            Book::PARAM_SIZE,
+            Book::PARAM_PUBLISH_YEAR,
+            Book::PARAM_RELEASE_DATE,
+            Book::PARAM_LISTEN_PRICE_VALUE
+        ]);
 
         if (isset($bookData[Book::PARAM_BINDING_TYPE])) {
             $arrayValues[Book::PARAM_BINDING_TYPE] = ':binding_type';

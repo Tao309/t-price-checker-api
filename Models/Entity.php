@@ -9,15 +9,23 @@ use DateTime;
  */
 abstract class Entity
 {
+    public const TABLE_PREFIX = null;
+    public const TABLE_NAME = null;
+
+    // Свойства модели с бд, их описание.
+    protected const PROPERTIES = [];
+
+    // Связь к одному.
+    protected const RELATION_TO_ONE = [];
+
+    // Связь ко многим.
+    protected const RELATION_TO_MANY = [];
+
+
     public const PARAM_ID = 'id';
 
     protected int $id;
 
-    // Связь к одному.
-    protected array $relationToOne = [];
-
-    // Связь ко многим.
-    protected array $relationToMany = [];
 
     public function __construct(array $data)
     {
@@ -80,7 +88,7 @@ abstract class Entity
                 }, $varData));
             }
 
-            $m[$this->getSnakeCaseParam($key)] = $varData;
+            $m[self::toSnakeCase($key)] = $varData;
         }
 
         unset(
@@ -174,20 +182,20 @@ abstract class Entity
                         }
                         break;
                     case 'array':
-                        if (isset($this->relationToMany[$param])) {
-                            $propertyClassName = $this->relationToMany[$param];
+                        if (isset(static::RELATION_TO_MANY[$param])) {
+                            $relationClassName = static::RELATION_TO_MANY[$param]['relation_entity'];
 
-                            $this->$camelCaseParam = array_map(function ($relationData) use ($propertyClassName) {
-                                return new $propertyClassName($relationData);
+                            $this->$camelCaseParam = array_map(function ($relationData) use ($relationClassName) {
+                                return new $relationClassName($relationData);
                             }, $value);
                         } else {
                             $this->$camelCaseParam = $value;
                         }
                         break;
                     default:
-                        if (isset($this->relationToOne[$param])) {
-                            $propertyClassName = $this->relationToOne[$param];
-                            $this->$camelCaseParam = new $propertyClassName($value);
+                        if (isset(static::RELATION_TO_ONE[$param])) {
+                            $relationClassName = static::RELATION_TO_ONE[$param]['relation_entity'];
+                            $this->$camelCaseParam = new $relationClassName($value);
                         }
                 }
             }
@@ -201,7 +209,7 @@ abstract class Entity
         return lcfirst(str_replace('_', '', $snakeCaseParam));
     }
 
-    private function getSnakeCaseParam(string $param): string
+    public static function toSnakeCase(string $param): string
     {
         return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $param));
     }

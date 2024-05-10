@@ -3,14 +3,15 @@
 namespace Repository;
 
 use Core\Config;
-use Models\Book;
 use Models\Entity;
 use Models\Product;
 use PDOException;
 use QueryPdo;
 
-class ProductRepository
+class ProductRepository extends Repository
 {
+    protected string $entityModel = Product::class;
+
     private BookRepository $bookRepository;
     private StockRepository $stockRepository;
     private PriceDateRepository $priceDateRepository;
@@ -18,6 +19,8 @@ class ProductRepository
 
     public function __construct()
     {
+        parent::__construct();
+
         $this->bookRepository = new BookRepository();
         $this->stockRepository = new StockRepository();
         $this->priceDateRepository = new PriceDateRepository();
@@ -28,7 +31,7 @@ class ProductRepository
     {
         //die('Saving products is temporary unavailable.');
         //var_dump($data);exit;
-        //return;
+        return;
 
         $stocks = $data[Product::PARAM_STOCKS] ?? [];
         $dates = $data[Product::PARAM_PRICE_DATES] ?? [];
@@ -126,17 +129,18 @@ class ProductRepository
      */
     public function getProductsByProductIds(array $productIds): array
     {
-        $query = $this->getListQuery();
+        $query = $this->getListQueryNew();
+
+        $query->where(Product::TABLE_PREFIX . '.user_id = :user_id');
+        $query->where(Product::TABLE_PREFIX . '.product_id IN ('.implode(",", $productIds).')');
+        $query->where(Product::TABLE_PREFIX . '.shop_id = :shop_id');
 
         if (Config::getCurrentUserid() !== 2) {
             $query->limit(100);
         }
 
-        $query->where('p.product_id IN ('.implode(",", $productIds).')');
-        $query->where('p.shop_id = :shop_id');
-
         if (Config::isWildberriesShopType()) {
-            $query->where('p.code IS NOT NULL');
+            $query->where(Product::TABLE_PREFIX . '.code IS NOT NULL');
         }
 
         if (Config::getCurrentUserid() !== 2) {
@@ -149,23 +153,25 @@ class ProductRepository
     }
 
     /**
+     * Получение списка продуктов по книге, используется в общем показе для всех.
+     * Поиск по user_id не требуется.
+     *
      * @param int $bookId
+     *
      * @return Product[]
      */
     public function getProductsByBookId(int $bookId): array
     {
-        $query = $this->getListQuery();
+        $query = $this->getListQueryNew();
 
         if (Config::isWildberriesShopType()) {
-            $query->where('p.code IS NOT NULL');
+            $query->where(Product::TABLE_PREFIX . '.code IS NOT NULL');
         }
 
-        $query->where('p.book_id = :book_id');
-        $query->where('p.shop_id IS NOT NULL');
+        $query->where(Product::TABLE_PREFIX . '.book_id = :book_id');
+        $query->where(Product::TABLE_PREFIX . '.shop_id IS NOT NULL');
 
-        $vars = $this->getListQueryVariables(['book_id' => $bookId]);
-
-        $rows = $query->fetchAll($vars);
+        $rows = $query->fetchAll(['book_id' => $bookId]);
 
         return $this->assembleQueryToModels($rows);
     }
@@ -199,51 +205,6 @@ class ProductRepository
         }, $rows);
     }
 
-    private function getListQuery(): QueryPdo
-    {
-        $query = (new QueryPdo())
-            ->select([
-                'p.*'
-            ])
-            ->from(['p' => 'products'])
-            ->rightJoin(
-                ['s' => 'shops'],
-                'p.shop_id = s.id',
-                's.type AS shop_type'
-            )
-            ->leftJoin(
-                ['b' => 'books'],
-                'p.book_id = b.id',
-                [
-                    'b.id AS \'book.id\'',
-                    'b.title AS \'book.title\'',
-                    'b.author AS \'book.author\'',
-                    'b.isbn AS \'book.isbn\'',
-                    'b.pages AS \'book.pages\'',
-                    'b.circulation AS \'book.circulation\'',
-                    'b.size AS \'book.size\'',
-                    'b.release_date AS \'book.release_date\'',
-                    'b.publish_year AS \'book.publish_year\'',
-                    'b.listen_price_value AS \'book.listen_price_value\'',
-                    'b.date_updated AS \'book.date_updated\'',
-                    'b.date_created AS \'book.date_created\''
-                ]
-            )
-            ->leftJoin(
-                ['bbt' => 'book_binding_type'],
-                'bbt.id = b.binding_type_id',
-                [
-                    'bbt.id AS \'book.binding_type.id\'',
-                    'bbt.label AS \'book.binding_type.label\''
-                ]
-            )
-            ->where('p.user_id = :user_id')
-//            ->where('is_archive IS FALSE')
-        ;
-
-        return $query;
-    }
-
     private function getListQueryVariables(array $newVariables = []): array
     {
         $variables = [
@@ -269,19 +230,19 @@ class ProductRepository
         }
 
         $result = [
-            'product_id' => $productData['product_id'],
-            'code' => $productData['code'] ?? null,
-            'shop_id' => Config::getShopIdByType($productData['shop_type']),
-            'user_id' => Config::getCurrentUserid(),
-            'title' => QueryPdo::escapeString($productData['title']),
-            'available' => (bool)$productData['available'],
-            'not_available_date_from' => $productData['not_available_date_from'] ?? null,
-            'available_date_from' => $productData['available_date_from'] ?? null,
-            'listen_price_value' => $productData['listen_price_value'] ?? null,
-            'listen_qty_value' => $productData['listen_qty_value'] ?? null,
-            'release_date' => $productData['release_date'] ?? null,
-            'date_created' => $productData['date_created'] ?? date('Y-m-d H:i:s'),
-            'date_updated' => $productData['date_updated'] ?? date('Y-m-d H:i:s')
+            Product::PARAM_PRODUCT_ID => $productData['product_id'],
+            Product::PARAM_CODE => $productData['code'] ?? null,
+            Product::PARAM_SHOP_ID => Config::getShopIdByType($productData['shop_type']),
+            Product::PARAM_USER_ID => Config::getCurrentUserid(),
+            Product::PARAM_TITLE => QueryPdo::escapeString($productData['title']),
+            Product::PARAM_AVAILABLE => (bool)$productData['available'],
+            Product::PARAM_NOT_AVAILABLE_DATE_FROM => $productData['not_available_date_from'] ?? null,
+            Product::PARAM_AVAILABLE_DATE_FROM => $productData['available_date_from'] ?? null,
+            Product::PARAM_LISTEN_PRICE_VALUE => $productData['listen_price_value'] ?? null,
+            Product::PARAM_LISTEN_QTY_VALUE => $productData['listen_qty_value'] ?? null,
+            Product::PARAM_RELEASE_DATE => $productData['release_date'] ?? null,
+            Product::PARAM_DATE_UPDATED => $productData['date_updated'] ?? date('Y-m-d H:i:s'),
+            Product::PARAM_DATE_CREATED => $productData['date_created'] ?? date('Y-m-d H:i:s'),
         ];
 
         if (isset($productData[Product::PARAM_BOOK])) {
@@ -334,22 +295,24 @@ class ProductRepository
 
     private function createPosition(array $productData): int|null
     {
+        $arrayValues = $this->assembleInsertValues([
+            Product::PARAM_PRODUCT_ID,
+            Product::PARAM_CODE,
+            Product::PARAM_SHOP_ID,
+            Product::PARAM_USER_ID,
+            Product::PARAM_TITLE,
+            Product::PARAM_AVAILABLE,
+            Product::PARAM_NOT_AVAILABLE_DATE_FROM,
+            Product::PARAM_AVAILABLE_DATE_FROM,
+            Product::PARAM_LISTEN_PRICE_VALUE,
+            Product::PARAM_LISTEN_QTY_VALUE,
+            Product::PARAM_RELEASE_DATE,
+            Product::PARAM_DATE_UPDATED,
+            Product::PARAM_DATE_CREATED,
+        ]);
+
         $query = (new QueryPdo())
-            ->insert('products', [
-                'product_id' => ':product_id',
-                'code' => ':code',
-                'shop_id' => ':shop_id',
-                'user_id' => ':user_id',
-                'title' => ':title',
-                'available' => ':available',
-                'not_available_date_from' => ':not_available_date_from',
-                'available_date_from' => ':available_date_from',
-                'listen_price_value' => ':listen_price_value',
-                'listen_qty_value' => ':listen_qty_value',
-                'release_date' => ':release_date',
-                'date_created' => ':date_created',
-                'date_updated' => ':date_updated',
-            ]);
+            ->insert('products', $arrayValues);
 
         $dbh = QueryPdo::getConnect();
         $stmt = $dbh->prepare($query);
@@ -425,7 +388,7 @@ class ProductRepository
     {
         $shopId = Config::getShopIdByType($shopType);
 
-        $query = $this->getListQuery();
+        $query = $this->getListQueryNew();
 
         $priceDatesSubQuery = (new QueryPdo())
             ->select(['id', 'MIN(price) AS price'])
@@ -440,28 +403,29 @@ class ProductRepository
 
         $query->leftJoin(
             ['pd' => '('.$priceDatesSubQuery->assemble().')'],
-            'pd.id = p.id',
+            'pd.id = '.Product::TABLE_PREFIX.'.id',
             [
                 'pd.price AS min_price'
             ]
         )
         ->leftJoin(
             ['ps' => '('.$stockSubQuery->assemble().')'],
-            'ps.id = p.id',
+            'ps.id = '.Product::TABLE_PREFIX.'.id',
             [
                 'ps.qty AS last_qty'
             ]
         );
 
-        $query->where('p.shop_id = :shop_id');
-        $query->where('p.product_id = :product_id');
+        $query->where(Product::TABLE_PREFIX.'.shop_id = :shop_id');
+        $query->where(Product::TABLE_PREFIX.'.product_id = :product_id');
+        $query->where(Product::TABLE_PREFIX . '.user_id = :user_id');
         $query->limit(1);
 
         if (Config::isWildberriesShopType()) {
             if ($withCode) {
-                $query->where('p.code IS NOT NULL');
+                $query->where(Product::TABLE_PREFIX.'.code IS NOT NULL');
             } else {
-                $query->where('p.code IS NULL');
+                $query->where(Product::TABLE_PREFIX.'.code IS NULL');
             }
         }
 
@@ -480,56 +444,5 @@ class ProductRepository
         }
 
         return new Product($data);
-    }
-
-    private function getPositionData($productId, string $shopType, $withCode = true)
-    {
-        $shopId = Config::getShopIdByType($shopType);
-
-        $priceDatesSubQuery = (new QueryPdo())
-            ->select(['id', 'MIN(price) AS price'])
-            ->from('products_dates')
-            ->group('id');
-
-        $stockSubQuery = (new QueryPdo())
-            ->select(['id', 'qty'])
-            ->from('products_stocks')
-            ->order('id', 'DESC')
-            ->group('id');
-
-        $query = (new QueryPdo())
-            ->select('p.id')
-            ->from(['p' => 'products'])
-            ->leftJoin(
-                ['pd' => '('.$priceDatesSubQuery->assemble().')'],
-                'pd.id = p.id',
-                [
-                    'pd.price'
-                ]
-            )
-            ->leftJoin(
-                ['ps' => '('.$stockSubQuery->assemble().')'],
-                'ps.id = p.id',
-                [
-                    'ps.qty'
-                ]
-            )
-            ->where('p.shop_id = :shop_id')
-            ->where('p.user_id = :user_id')
-            ->where('p.product_id = :product_id');
-
-        if (Config::isWildberriesShopType()) {
-            if ($withCode) {
-                $query->where('p.code IS NOT NULL');
-            } else {
-                $query->where('p.code IS NULL');
-            }
-        }
-
-        return $query->fetch([
-            'shop_id' => $shopId,
-            'user_id' => Config::getCurrentUserid(),
-            'product_id' => $productId,
-        ]);
     }
 }

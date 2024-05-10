@@ -28,6 +28,32 @@ use DateTime;
  */
 class Book extends Entity
 {
+    public const TABLE_PREFIX = 'b';
+    public const TABLE_NAME = 'books';
+
+    protected const PROPERTIES = [
+        self::PARAM_ID => 'ID',
+        self::PARAM_TITLE => 'Название',
+        self::PARAM_AUTHOR => 'Автор',
+        self::PARAM_ISBN => 'ISBN',
+        self::PARAM_PAGES => 'Количество страниц',
+        self::PARAM_CIRCULATION => 'Тираж',
+        self::PARAM_SIZE => 'Размер',
+        self::PARAM_PUBLISH_YEAR => 'Год публикации',
+        self::PARAM_RELEASE_DATE => 'Дата выпуска',
+        self::PARAM_LISTEN_PRICE_VALUE => 'Отслеживание цены',
+        self::PARAM_DATE_UPDATED => 'Дата обновления',
+        self::PARAM_DATE_CREATED => 'Дата создания',
+    ];
+
+    protected const RELATION_TO_ONE = [
+        self::PARAM_BINDING_TYPE => [
+            'parent_id' => self::PARAM_BINDING_TYPE_ID,
+            'relation_entity' => BindingType::class,
+            'relation_id' => Entity::PARAM_ID,
+        ],
+    ];
+
     public const PARAM_TITLE = 'title';
     public const PARAM_AUTHOR = 'author';
     public const PARAM_ISBN = 'isbn';
@@ -57,8 +83,4 @@ class Book extends Entity
 
     // Приватные свойства не попадают в обходе у родителя. __call в родителе.
     protected ?BindingType $bindingType = null;
-
-    protected array $relationToOne = [
-        self::PARAM_BINDING_TYPE => BindingType::class
-    ];
 }

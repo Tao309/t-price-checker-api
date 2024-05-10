@@ -2,16 +2,18 @@
 
 namespace Repository;
 
-use http\Params;
 use Models\Product;
+use Models\SameProduct;
 use QueryPdo;
 use Core\Config;
 
-class SameProductRepository
+class SameProductRepository extends Repository
 {
+    protected string $entityModel = SameProduct::class;
+
     public function __construct()
     {
-
+        parent::__construct();
     }
 
     /**
@@ -34,30 +36,32 @@ class SameProductRepository
             ->where('id IN ('.implode(",", $ids).')')
         ;
 
-        $query = (new QueryPdo())
-            ->select([
-                'p.id',
-                'p.product_id',
-                'p.code',
-                'p.book_id',
-                'p.available'
-            ])
-            ->from(['p' => 'products'])
-            ->rightJoin(
-                ['s' => 'shops'],
-                'p.shop_id = s.id',
-                's.type AS shop_type'
-            )
-            ->leftJoin(
+        $query = $this->getListQueryNew();
+
+//        $query = (new QueryPdo())
+//            ->select([
+//                'p.id',
+//                'p.product_id',
+//                'p.code',
+//                'p.book_id',
+//                'p.available'
+//            ])
+//            ->from(['p' => 'products'])
+//            ->rightJoin(
+//                ['s' => 'shops'],
+//                'p.shop_id = s.id',
+//                's.type AS shop_type'
+//            )
+        $query->leftJoin(
                 ['pd' => '('.$priceDatesSubQuery->assemble().')'],
-                'pd.id = p.id',
+                'pd.id = '.SameProduct::TABLE_PREFIX.'.id',
                 [
                     'pd.price AS min_price'
                 ]
             )
 //            ->where('p.shop_id != :shop_id')
-            ->where('p.user_id = :user_id')
-            ->where('p.book_id IN ('.$bookSubQuery->assemble().')')
+            ->where(SameProduct::TABLE_PREFIX . '.user_id = :user_id')
+            ->where(SameProduct::TABLE_PREFIX . '.book_id IN ('.$bookSubQuery->assemble().')')
             ->order('pd.price');
 
         $rows = $query->fetchAll([
@@ -95,7 +99,7 @@ class SameProductRepository
 
             if ($sameProductsRow[Product::PARAM_PRODUCT_ID] === $productData[Product::PARAM_PRODUCT_ID]) {
                 $toUnlink = true;
-            } else if ($sameProductsRow[Product::PARAM_SHOP_TYPE] === $productData[Product::PARAM_SHOP_TYPE]) {
+            } else if ($sameProductsRow['shop.type'] === $productData['shop.type']) {
                 if (!$sameProductByShop) {
                     $sameProductByShop = $sameProductsRow;
                 }

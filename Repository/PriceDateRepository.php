@@ -2,14 +2,18 @@
 
 namespace Repository;
 
+use Models\PriceDate;
+use Models\Product;
 use QueryPdo;
 use Models\Entity;
 
-class PriceDateRepository
+class PriceDateRepository extends Repository
 {
+    protected string $entityModel = PriceDate::class;
+
     public function __construct()
     {
-
+        parent::__construct();
     }
 
     public function savePriceDates(int $positionId, array $priceDates = []): void
@@ -18,14 +22,16 @@ class PriceDateRepository
             return;
         }
 
+        $arrayValues = $this->assembleInsertValues([
+            PriceDate::PARAM_PRICE,
+            PriceDate::PARAM_DATE,
+        ]);
+        $arrayValues['id'] = ':position_id';
+
         $query = (new QueryPdo())
             ->insert(
-                'products_dates',
-                [
-                    'id' => ':position_id',
-                    'price' => ':price',
-                    'date' => ':date',
-                ],
+                PriceDate::TABLE_NAME,
+                $arrayValues,
                 'price = VALUES(price)'
             );
 
@@ -54,11 +60,10 @@ class PriceDateRepository
      */
     public function getPriceDatesForProducts(array $ids = []): array
     {
-        $query = (new QueryPdo())
-            ->select('*')
-            ->from('products_dates')
-            ->where('id IN ('.implode(",", $ids).')')
-            ->order('date');
+        $query = $this->getListQueryNew();
+        $query
+            ->where(PriceDate::TABLE_PREFIX . '.id IN ('.implode(",", $ids).')')
+            ->order(PriceDate::TABLE_PREFIX . '.date');
 
         $result = [];
 

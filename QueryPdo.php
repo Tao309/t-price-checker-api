@@ -291,6 +291,7 @@ class QueryPdo
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch(\Throwable $e) {
             echo "\nfetchAll:\n";
+            echo $e->getMessage() . "\n";
             echo $stmt->queryString . "\n";
             print_r($stmt->errorInfo());
             exit;
@@ -304,6 +305,7 @@ class QueryPdo
             return $stmt->fetchColumn();
         } catch(\Throwable $e) {
             echo "\nfetchColumn:\n";
+            echo $e->getMessage() . "\n";
             echo $stmt->queryString . "\n";
             print_r($stmt->errorInfo());
             exit;
@@ -330,6 +332,7 @@ class QueryPdo
             return $stmt;
         } catch(\Throwable $e) {
             echo "\prepareFetch:\n";
+            echo $e->getMessage() . "\n";
             echo $stmt->queryString . "\n";
             print_r($stmt->errorInfo());
             exit;
