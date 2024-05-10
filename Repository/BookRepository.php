@@ -205,7 +205,7 @@ class BookRepository extends Repository
         ]);
 
         if (isset($bookData[Book::PARAM_BINDING_TYPE])) {
-            $arrayValues[Book::PARAM_BINDING_TYPE] = ':binding_type';
+            $arrayValues[Book::PARAM_BINDING_TYPE_ID] = ':binding_type_id';
         }
 
         $query = (new QueryPdo())

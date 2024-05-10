@@ -105,7 +105,7 @@ abstract class Entity
         return $m;
     }
 
-    public function getLabel(string $prop)
+    public function getLabelName(string $prop)
     {
         return static::PROPERTIES[$prop] ?? null;
     }

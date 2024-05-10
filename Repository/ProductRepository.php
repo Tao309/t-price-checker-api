@@ -33,7 +33,7 @@ class ProductRepository extends Repository
     {
         //die('Saving products is temporary unavailable.');
         //var_dump($data);exit;
-        return;
+        //return;
 
         $stocks = $data[Product::PARAM_STOCKS] ?? [];
         $dates = $data[Product::PARAM_PRICE_DATES] ?? [];

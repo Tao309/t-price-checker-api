@@ -133,6 +133,7 @@ class Product extends Entity
     protected ?DateTime $notAvailableDateFrom;
     protected ?DateTime $availableDateFrom;
     protected ?int $listenPriceValue;
+    protected ?int $listenQtyValue;
     protected ?DateTime $releaseDate;
     protected bool $isArchive;
     protected DateTime $dateCreated;

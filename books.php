@@ -54,10 +54,14 @@ if ($bookId) {
 
     $page .= $title;
     $page .= '</h1>';
-    $page .= '<br/><br/>';
+    $page .= '<p>';
+    $page .= 'Товаров: ' . count($products);
+    $page .= '</p>';
+    $page .= '<br/>';
 
     $page .= '<table class="table sortable asc">';
     $page .= '<thead class="head">';
+    $page .= '<th>#</th>';
     $page .= '<th>Наименование</th>';
     $page .= '<th>Маркетплейс</th>';
     $page .= '<th>Мин. цена</th>';
@@ -70,6 +74,8 @@ if ($bookId) {
     $page .= '</thead>';
 
     try {
+        $i = 0;
+
         foreach ($products as $product) {
             $datePrices = [];
             $stocks = [];
@@ -83,6 +89,7 @@ if ($bookId) {
             }
 
             $page .= '<tr class="row">';
+            $page .= '<td>' . ++$i. '</td>';
             $page .= '<td class="title">';
             $page .= '<a href="'.$product->getUrl().'" target="_blank">' . $product->getTitle() . '</a>';
             $page .= '</td>';
