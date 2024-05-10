@@ -25,14 +25,14 @@ class BookRepository extends Repository
                 [
                     Product::PARAM_BOOK_ID => $bookId
                 ],
-                Product::PARAM_ID . ' = :position_id'
+                Product::PARAM_ID . ' = :id'
             );
 
         $dbh = QueryPdo::getConnect();
         $stmt = $dbh->prepare($query);
 
         $variables = [
-            'position_id' => $positionId
+            Product::PARAM_ID => $positionId
         ];
 
         try {
@@ -52,14 +52,14 @@ class BookRepository extends Repository
                 [
                     Product::PARAM_BOOK_ID => null
                 ],
-                Product::PARAM_ID . ' = :position_id'
+                Product::PARAM_ID . ' = :id'
             );
 
         $dbh = QueryPdo::getConnect();
         $stmt = $dbh->prepare($query);
 
         $variables = [
-            'position_id' => $positionId
+            Product::PARAM_ID => $positionId
         ];
 
         try {
@@ -77,7 +77,7 @@ class BookRepository extends Repository
         $query->where(Book::TABLE_PREFIX.'.id = :id');
 
         $data = $query->fetch([
-            'id' => $id
+            Product::PARAM_ID => $id
         ]);
 
         if (!$data) {
@@ -112,7 +112,7 @@ class BookRepository extends Repository
             ->limit(7);
 
         $rows = $query->fetchAll([
-            'title' => '%'.strtolower(trim($title)).'%'
+            Product::PARAM_TITLE => '%'.strtolower(trim($title)).'%'
         ]);
 
         return array_map(function ($row) {
@@ -169,7 +169,7 @@ class BookRepository extends Repository
 
         $query = (new QueryPdo())
             ->update(
-                'books',
+                Book::TABLE_NAME,
                 $data,
                 'id = :book_id'
             );
@@ -178,7 +178,7 @@ class BookRepository extends Repository
         $stmt = $dbh->prepare($query);
 
         $variables = [
-            'book_id' => $bookId
+            Product::PARAM_BOOK_ID => $bookId
         ];
 
         try {
@@ -209,7 +209,7 @@ class BookRepository extends Repository
         }
 
         $query = (new QueryPdo())
-            ->insert('books', $arrayValues);
+            ->insert(Book::TABLE_NAME, $arrayValues);
 
         $dbh = QueryPdo::getConnect();
         $stmt = $dbh->prepare($query);

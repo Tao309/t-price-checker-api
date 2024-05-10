@@ -23,10 +23,10 @@ class PriceDateRepository extends Repository
         }
 
         $arrayValues = $this->assembleInsertValues([
+            PriceDate::PARAM_ID,
             PriceDate::PARAM_PRICE,
             PriceDate::PARAM_DATE,
         ]);
-        $arrayValues['id'] = ':position_id';
 
         $query = (new QueryPdo())
             ->insert(
@@ -41,9 +41,9 @@ class PriceDateRepository extends Repository
         try {
             foreach($priceDates as $priceDate) {
                 $stmt->execute([
-                    'position_id' => $positionId,
-                    'price' => $priceDate['price'],
-                    'date' => $priceDate['date']
+                    PriceDate::PARAM_ID => $positionId,
+                    PriceDate::PARAM_PRICE => $priceDate[PriceDate::PARAM_PRICE],
+                    PriceDate::PARAM_DATE => $priceDate[PriceDate::PARAM_DATE]
                 ]);
             }
         } catch(\PDOException $e) {

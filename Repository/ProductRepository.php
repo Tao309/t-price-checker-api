@@ -4,7 +4,9 @@ namespace Repository;
 
 use Core\Config;
 use Models\Entity;
+use Models\PriceDate;
 use Models\Product;
+use Models\Stock;
 use PDOException;
 use QueryPdo;
 
@@ -31,7 +33,7 @@ class ProductRepository extends Repository
     {
         //die('Saving products is temporary unavailable.');
         //var_dump($data);exit;
-        return;
+        //return;
 
         $stocks = $data[Product::PARAM_STOCKS] ?? [];
         $dates = $data[Product::PARAM_PRICE_DATES] ?? [];
@@ -106,8 +108,8 @@ class ProductRepository extends Repository
     {
         $query = (new QueryPdo())
             ->update(
-                'products',
-                ['is_archive' => TRUE],
+                Product::TABLE_NAME,
+                [Product::PARAM_IS_ARCHIVE => TRUE],
                 'product_id = :product_id AND shop_id = :shop_id AND user_id = :user_id'
             );
 
@@ -115,9 +117,9 @@ class ProductRepository extends Repository
         $stmt = $dbh->prepare($query);
 
         $stmt->execute([
-            'product_id' => $productId,
-            'shop_id' => Config::getCurrentShopId(),
-            'user_id' => Config::getCurrentUserid(),
+            Product::PARAM_PRODUCT_ID => $productId,
+            Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
+            Product::PARAM_USER_ID => Config::getCurrentUserid(),
         ]);
 
         return true;
@@ -148,7 +150,9 @@ class ProductRepository extends Repository
         }
 
         return $this->assembleQueryToModels(
-            $query->fetchAll($this->getListQueryVariables(['shop_id' => Config::getCurrentShopId()]))
+            $query->fetchAll($this->getListQueryVariables(
+                [Product::PARAM_SHOP_ID => Config::getCurrentShopId()]
+            ))
         );
     }
 
@@ -171,7 +175,7 @@ class ProductRepository extends Repository
         $query->where(Product::TABLE_PREFIX . '.book_id = :book_id');
         $query->where(Product::TABLE_PREFIX . '.shop_id IS NOT NULL');
 
-        $rows = $query->fetchAll(['book_id' => $bookId]);
+        $rows = $query->fetchAll([Product::PARAM_BOOK_ID => $bookId]);
 
         return $this->assembleQueryToModels($rows);
     }
@@ -209,7 +213,7 @@ class ProductRepository extends Repository
     {
         $variables = [
 //            'shop_id' => Config::getCurrentShopId(),
-            'user_id' => Config::getCurrentUserid(),
+            Product::PARAM_USER_ID => Config::getCurrentUserid(),
         ];
 
         return array_merge($variables, $newVariables);
@@ -217,16 +221,18 @@ class ProductRepository extends Repository
 
     private function getPreparedProductData(array $productData): array
     {
-        if (empty($productData['not_available_date_from']) || $productData['not_available_date_from'] === '1970-01-01T00:00:00.000Z') {
-            $productData['not_available_date_from'] = null;
+        if (empty($productData[Product::PARAM_NOT_AVAILABLE_DATE_FROM])
+            || $productData[Product::PARAM_NOT_AVAILABLE_DATE_FROM] === '1970-01-01T00:00:00.000Z') {
+            $productData[Product::PARAM_NOT_AVAILABLE_DATE_FROM] = null;
         }
 
-        if (empty($productData['available_date_from']) || $productData['available_date_from'] === '1970-01-01T00:00:00.000Z') {
-            $productData['available_date_from'] = null;
+        if (empty($productData[Product::PARAM_AVAILABLE_DATE_FROM])
+            || $productData[Product::PARAM_AVAILABLE_DATE_FROM] === '1970-01-01T00:00:00.000Z') {
+            $productData[Product::PARAM_AVAILABLE_DATE_FROM] = null;
         }
 
-        if(!isset($productData['title'])) {
-            $productData['title'] = 'Empty Title';
+        if(!isset($productData[Product::PARAM_TITLE])) {
+            $productData[Product::PARAM_TITLE] = 'Empty Title';
         }
 
         $result = [
@@ -255,20 +261,20 @@ class ProductRepository extends Repository
     private function updatePosition(array $productData): void
     {
         $data = $this->getPreparedProductData($productData);
-        $shopId = $data['shop_id'];
+        $shopId = $data[Product::PARAM_SHOP_ID];
 
         unset(
-            $data['product_id'],
-            $data['shop_id'],
-            $data['user_id'],
-            $data['date_created'],
-            $data['date_updated'],
-            $data['book'],
+            $data[Product::PARAM_PRODUCT_ID],
+            $data[Product::PARAM_SHOP_ID],
+            $data[Product::PARAM_USER_ID],
+            $data[Product::PARAM_DATE_UPDATED],
+            $data[Product::PARAM_DATE_CREATED],
+            $data[Product::PARAM_BOOK],
         );
 
         $query = (new QueryPdo())
             ->update(
-                'products',
+                Product::TABLE_NAME,
                 $data,
                 'product_id = :product_id AND shop_id = :shop_id AND user_id = :user_id'
             );
@@ -277,9 +283,9 @@ class ProductRepository extends Repository
         $stmt = $dbh->prepare($query);
 
         $variables = [
-            'shop_id' => $shopId,
-            'user_id' => Config::getCurrentUserid(),
-            'product_id' => $productData['product_id'],
+            Product::PARAM_SHOP_ID => $shopId,
+            Product::PARAM_USER_ID => Config::getCurrentUserid(),
+            Product::PARAM_PRODUCT_ID => $productData[Product::PARAM_PRODUCT_ID],
         ];
 
         try {
@@ -312,13 +318,13 @@ class ProductRepository extends Repository
         ]);
 
         $query = (new QueryPdo())
-            ->insert('products', $arrayValues);
+            ->insert(Product::TABLE_NAME, $arrayValues);
 
         $dbh = QueryPdo::getConnect();
         $stmt = $dbh->prepare($query);
 
         $data = $this->getPreparedProductData($productData);
-        unset($data['book']);
+        unset($data[Product::PARAM_BOOK]);
 
         try {
             $stmt->execute($data);
@@ -343,10 +349,10 @@ class ProductRepository extends Repository
     {
         $query = (new QueryPdo())
             ->update(
-                'products',
+                Product::TABLE_NAME,
                 [
-                    'product_id' => $productId,
-                    'code' => $code
+                    Product::PARAM_PRODUCT_ID => $productId,
+                    Product::PARAM_CODE => $code
                 ],
                 'code is NULL AND id = :id AND shop_id = :shop_id AND user_id = :user_id'
             );
@@ -355,9 +361,9 @@ class ProductRepository extends Repository
         $stmt = $dbh->prepare($query);
 
         $stmt->execute([
-            'id' => $positionId,
-            'shop_id' => Config::getCurrentShopId(),
-            'user_id' => Config::getCurrentUserid(),
+            Product::PARAM_ID => $positionId,
+            Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
+            Product::PARAM_USER_ID => Config::getCurrentUserid(),
         ]);
 
         return $stmt->rowCount();
@@ -391,28 +397,28 @@ class ProductRepository extends Repository
         $query = $this->getListQueryNew();
 
         $priceDatesSubQuery = (new QueryPdo())
-            ->select(['id', 'MIN(price) AS price'])
-            ->from('products_dates')
-            ->group('id');
+            ->select([PriceDate::PARAM_ID, 'MIN('.PriceDate::PARAM_PRICE.') AS price'])
+            ->from(PriceDate::TABLE_NAME)
+            ->group(Stock::PARAM_ID);
 
         $stockSubQuery = (new QueryPdo())
-            ->select(['id', 'qty'])
-            ->from('products_stocks')
-            ->order('id', 'DESC')
-            ->group('id');
+            ->select([Stock::PARAM_ID, Stock::PARAM_QTY])
+            ->from(Stock::TABLE_NAME)
+            ->order(Stock::PARAM_ID, 'DESC')
+            ->group(Stock::PARAM_ID);
 
         $query->leftJoin(
             ['pd' => '('.$priceDatesSubQuery->assemble().')'],
             'pd.id = '.Product::TABLE_PREFIX.'.id',
             [
-                'pd.price AS min_price'
+                'pd.price AS ' . Product::PARAM_MIN_PRICE
             ]
         )
         ->leftJoin(
             ['ps' => '('.$stockSubQuery->assemble().')'],
             'ps.id = '.Product::TABLE_PREFIX.'.id',
             [
-                'ps.qty AS last_qty'
+                'ps.qty AS ' . Product::PARAM_LAST_QTY
             ]
         );
 
@@ -432,8 +438,8 @@ class ProductRepository extends Repository
         $data = $query->fetch(
             $this->getListQueryVariables(
                 [
-                    'product_id' => $productId,
-                    'shop_id' => $shopId,
+                    Product::PARAM_PRODUCT_ID => $productId,
+                    Product::PARAM_SHOP_ID => $shopId,
                 ]
             )
         );

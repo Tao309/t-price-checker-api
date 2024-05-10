@@ -2,6 +2,7 @@
 
 namespace Repository;
 
+use Models\PriceDate;
 use Models\Product;
 use Models\SameProduct;
 use QueryPdo;
@@ -26,37 +27,23 @@ class SameProductRepository extends Repository
     public function getAllSameProductsByBook(array $ids): array
     {
         $priceDatesSubQuery = (new QueryPdo())
-            ->select(['id', 'MIN(price) AS price'])
-            ->from('products_dates')
-            ->group('id');
+            ->select([PriceDate::PARAM_ID, 'MIN('.PriceDate::PARAM_PRICE.') AS price'])
+            ->from(PriceDate::TABLE_NAME)
+            ->group(PriceDate::PARAM_ID);
 
         $bookSubQuery = (new QueryPdo())
             ->select(['DISTINCT book_id'])
-            ->from('products')
+            ->from(Product::TABLE_NAME)
             ->where('id IN ('.implode(",", $ids).')')
         ;
 
         $query = $this->getListQueryNew();
 
-//        $query = (new QueryPdo())
-//            ->select([
-//                'p.id',
-//                'p.product_id',
-//                'p.code',
-//                'p.book_id',
-//                'p.available'
-//            ])
-//            ->from(['p' => 'products'])
-//            ->rightJoin(
-//                ['s' => 'shops'],
-//                'p.shop_id = s.id',
-//                's.type AS shop_type'
-//            )
         $query->leftJoin(
                 ['pd' => '('.$priceDatesSubQuery->assemble().')'],
                 'pd.id = '.SameProduct::TABLE_PREFIX.'.id',
                 [
-                    'pd.price AS min_price'
+                    'pd.price AS ' . Product::PARAM_MIN_PRICE
                 ]
             )
 //            ->where('p.shop_id != :shop_id')
@@ -66,7 +53,7 @@ class SameProductRepository extends Repository
 
         $rows = $query->fetchAll([
 //            'shop_id' => Config::getCurrentShopId(),
-            'user_id' => Config::getCurrentUserid(),
+            Product::PARAM_USER_ID => Config::getCurrentUserid(),
         ]);
 
         $result = [];
