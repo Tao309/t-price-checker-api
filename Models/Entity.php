@@ -21,11 +21,10 @@ abstract class Entity
     // Связь ко многим.
     protected const RELATION_TO_MANY = [];
 
-
     public const PARAM_ID = 'id';
+    public const PARAM_LABELS = 'labels';
 
     protected int $id;
-
 
     public function __construct(array $data)
     {
@@ -68,6 +67,11 @@ abstract class Entity
         return $str;
     }
 
+    public static function toSnakeCase(string $param): string
+    {
+        return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $param));
+    }
+
     public function toArray(): array
     {
         $vars = get_object_vars($this);
@@ -96,7 +100,14 @@ abstract class Entity
             $m['relation_to_many']
         );
 
+        $m[self::PARAM_LABELS] = static::PROPERTIES;
+
         return $m;
+    }
+
+    public function getLabel(string $prop)
+    {
+        return static::PROPERTIES[$prop] ?? null;
     }
 
     protected function formatDateToZeroTimezone(DateTime $date): string
@@ -207,11 +218,6 @@ abstract class Entity
         $snakeCaseParam = mb_convert_case($snakeCaseParam, MB_CASE_TITLE, "UTF-8");
 
         return lcfirst(str_replace('_', '', $snakeCaseParam));
-    }
-
-    public static function toSnakeCase(string $param): string
-    {
-        return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $param));
     }
 
 }
