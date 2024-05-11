@@ -102,20 +102,17 @@ class StockRepository extends Repository
         ) {
             throw new \Exception('Не все поля заполнены для удаления');
         }
-        $arrayValues = $this->assembleInsertValues([
-            Stock::PARAM_ID,
-            Stock::PARAM_QTY,
-            Stock::PARAM_DATE,
-        ]);
 
         $query = (new QueryPdo())
             ->delete(
-                Stock::TABLE_NAME,
-                $arrayValues
-            );
+                Stock::TABLE_NAME
+            )
+            ->where(Stock::PARAM_ID, ':' . Stock::PARAM_ID)
+            ->where(Stock::PARAM_QTY, ':' . Stock::PARAM_QTY)
+            ->where(Stock::PARAM_DATE, ':' . Stock::PARAM_DATE);
 
         $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query);
+        $stmt = $dbh->prepare($query->assemble());
 
         $stmt->execute([
             Stock::PARAM_ID => $stockData[Stock::PARAM_ID],

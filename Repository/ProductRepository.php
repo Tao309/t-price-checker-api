@@ -111,12 +111,14 @@ class ProductRepository extends Repository
         $query = (new QueryPdo())
             ->update(
                 Product::TABLE_NAME,
-                [Product::PARAM_IS_ARCHIVE => TRUE],
-                'product_id = :product_id AND shop_id = :shop_id AND user_id = :user_id'
-            );
+                [Product::PARAM_IS_ARCHIVE => TRUE]
+            )
+            ->where(Product::PARAM_PRODUCT_ID, ':product_id')
+            ->where(Product::PARAM_SHOP_ID, ':shop_id')
+            ->where(Product::PARAM_USER_ID, ':user_id');
 
         $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query);
+        $stmt = $dbh->prepare($query->assemble());
 
         $stmt->execute([
             Product::PARAM_PRODUCT_ID => $productId,
@@ -239,12 +241,14 @@ class ProductRepository extends Repository
         $query = (new QueryPdo())
             ->update(
                 Product::TABLE_NAME,
-                $entityDataBuilder->getQueryPreparedData(),
-                'product_id = :product_id AND shop_id = :shop_id AND user_id = :user_id'
-            );
+                $entityDataBuilder->getQueryPreparedData()
+            )
+            ->where(Product::PARAM_PRODUCT_ID, ':product_id')
+            ->where(Product::PARAM_SHOP_ID, ':shop_id')
+            ->where(Product::PARAM_USER_ID, ':user_id');
 
         $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query);
+        $stmt = $dbh->prepare($query->assemble());
 
         $variables = [
             Product::PARAM_SHOP_ID => $entityDataBuilder->getPreparedData(Product::PARAM_SHOP_ID),
@@ -306,12 +310,15 @@ class ProductRepository extends Repository
                 [
                     Product::PARAM_PRODUCT_ID => $productId,
                     Product::PARAM_CODE => $code
-                ],
-                'code is NULL AND id = :id AND shop_id = :shop_id AND user_id = :user_id'
-            );
+                ]
+            )
+            ->where(Product::PARAM_CODE, QueryPdo::EXPR_IS_NULL)
+            ->where(Product::PARAM_ID, ':id')
+            ->where(Product::PARAM_SHOP_ID, ':shop_id')
+            ->where(Product::PARAM_USER_ID, ':user_id');
 
         $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query);
+        $stmt = $dbh->prepare($query->assemble());
 
         $stmt->execute([
             Product::PARAM_ID => $positionId,

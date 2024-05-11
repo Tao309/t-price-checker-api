@@ -15,7 +15,7 @@ class QueryPdo
     private ?string $tableName = null;
     private ?string $queryType = null;
     private ?string $onDuplicateKeyUpdate = null;
-    private array $queryPreparedData;
+    private array $preparedData;
 
     private $fields = [];
     private $fromTable = [];
@@ -71,10 +71,15 @@ class QueryPdo
 
     public function from($fromTable): self
     {
-        $this->fromTable = $this->getJoinTable($fromTable);
-        $this->tableName = $this->fromTable[array_key_first($this->fromTable)];
+        $this->setTable($fromTable);
 
         return $this;
+    }
+
+    private function setTable($fromTable): void
+    {
+        $this->fromTable = $this->getJoinTable($fromTable);
+        $this->tableName = $this->fromTable[array_key_first($this->fromTable)];
     }
 
     private function getJoinTable($joinTable): array
@@ -231,19 +236,20 @@ class QueryPdo
                 return $this->assembleSelectQuery();
             case self::QUERY_TYPE_INSERT:
                 return $this->assembleInsertQuery();
+            case self::QUERY_TYPE_UPDATE:
+                return $this->assembleUpdateQuery();
+            case self::QUERY_TYPE_DELETE:
+                return $this->assembleDeleteQuery();
         }
 
         throw new \Exception('Assemble is not support for query type ' . $this->queryType);
     }
 
-    public function update(string $table, array $values, string $condition): string
+    public function update(string $tableName, array $values): self
     {
         $this->queryType = self::QUERY_TYPE_UPDATE;
-        $this->tableName = $table;
+        $this->setTable($tableName);
 
-        $query = 'UPDATE ' . $table . ' SET ';
-
-        $queryValues = [];
         foreach ($values as $index => $value) {
             if (is_string($value)) {
                 $value = '"' . $value . '"';
@@ -255,40 +261,24 @@ class QueryPdo
                 $value = 'TRUE';
             }
 
-            $queryValues[] = $index . ' = '.$value;
+            $this->preparedData[$index] = $index . ' = '.$value;
         }
 
-        $query .= implode(', ', $queryValues);
-        $query .= ' WHERE ' . $condition;
-
-        return $query;
+        return $this;
     }
 
-    public function delete(string $table, array $conditions)
+    public function delete(string $tableName): self
     {
         $this->queryType = self::QUERY_TYPE_DELETE;
-        $this->tableName = $table;
+        $this->setTable($tableName);
 
-        if (empty($conditions)) {
-            throw new \Exception('Нет условий для удаления');
-        }
-
-        $query = 'DELETE FROM ' . $table;
-
-        $where = [];
-        foreach ($conditions as $index => $condition) {
-            $where[] = $index . ' = ' . $condition;
-        }
-
-        $query .= ' WHERE ' . implode(' AND ', $where);
-
-        return $query;
+        return $this;
     }
 
     public function insert(string $tableName, array $preparedData, string $onDuplicateKeyUpdate = null): self
     {
         $this->queryType = self::QUERY_TYPE_INSERT;
-        $this->tableName = $tableName;
+        $this->setTable($tableName);
         $this->onDuplicateKeyUpdate = $onDuplicateKeyUpdate;
 
         foreach ($preparedData as $index => $preparedValue) {
@@ -308,7 +298,7 @@ class QueryPdo
                 $preparedValue = 'true';
             }
 
-            $this->queryPreparedData[$index] = $preparedValue;
+            $this->preparedData[$index] = $preparedValue;
         }
 
         return $this;
@@ -353,11 +343,11 @@ class QueryPdo
 
     public function getPreparedData(): array
     {
-        if (empty($this->queryPreparedData)) {
+        if (empty($this->preparedData)) {
             throw new \Exception('queryPreparedData is empty');
         }
 
-        return $this->queryPreparedData;
+        return $this->preparedData;
     }
 
     /**
@@ -412,19 +402,7 @@ class QueryPdo
             $query .= ' ON (' . $join['condition'] . ')';
         }
 
-        foreach ($this->where as $index => $where) {
-            if ($index === 0) {
-                $query .= $br;
-                $query .= 'WHERE ';
-            }
-
-            if ($index > 0) {
-                $query .= $br;
-                $query .= $where[0] . ' ';
-            }
-
-            $query .= $where[1];
-        }
+        $query .= $this->getWhereCondition(false);
 
         if (!empty($this->group)) {
             $query .= $br;
@@ -451,6 +429,49 @@ class QueryPdo
 
         if ($this->onDuplicateKeyUpdate) {
             $query .= ' ON DUPLICATE KEY UPDATE ' . $this->onDuplicateKeyUpdate;
+        }
+
+        return $query;
+    }
+
+    private function assembleUpdateQuery(): string
+    {
+        $query = 'UPDATE ' . $this->tableName . ' SET ';
+        $query .= implode(', ', $this->getPreparedData());
+        $query .= $this->getWhereCondition();
+
+        return $query;
+    }
+
+    private function assembleDeleteQuery(): string
+    {
+        $query = 'DELETE FROM ' . $this->tableName;
+        $query .= $this->getWhereCondition();
+
+        return $query;
+    }
+
+    private function getWhereCondition($checkExists = true): string
+    {
+        if ($checkExists && empty($this->where)) {
+            throw new \Exception('Empty where condition for update query');
+        }
+
+        $br = '';
+        $query = '';
+
+        foreach ($this->where as $index => $where) {
+            if ($index === 0) {
+                $query .= $br;
+                $query .= ' WHERE ';
+            }
+
+            if ($index > 0) {
+                $query .= $br;
+                $query .= $where[0] . ' ';
+            }
+
+            $query .= $where[1];
         }
 
         return $query;

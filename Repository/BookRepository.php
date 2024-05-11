@@ -24,12 +24,12 @@ class BookRepository extends Repository
                 Product::TABLE_NAME,
                 [
                     Product::PARAM_BOOK_ID => $bookId
-                ],
-                Product::PARAM_ID . ' = :id'
-            );
+                ]
+            )
+            ->where(Product::PARAM_ID, ':id');
 
         $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query);
+        $stmt = $dbh->prepare($query->assemble());
 
         $variables = [
             Product::PARAM_ID => $positionId
@@ -51,12 +51,12 @@ class BookRepository extends Repository
                 Product::TABLE_NAME,
                 [
                     Product::PARAM_BOOK_ID => null
-                ],
-                Product::PARAM_ID . ' = :id'
-            );
+                ]
+            )
+            ->where(Product::PARAM_ID, ':id');
 
         $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query);
+        $stmt = $dbh->prepare($query->assemble());
 
         $variables = [
             Product::PARAM_ID => $positionId
@@ -170,21 +170,21 @@ class BookRepository extends Repository
         $query = (new QueryPdo())
             ->update(
                 Book::TABLE_NAME,
-                $entityDataBuilder->getQueryPreparedData(),
-                'id = :id'
-            );
+                $entityDataBuilder->getQueryPreparedData()
+            )
+            ->where(Book::PARAM_ID, ':id');
 
         $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query);
+        $stmt = $dbh->prepare($query->assemble());
 
         $variables = [
-            Product::PARAM_ID => $entityDataBuilder->getEntityData(Entity::PARAM_ID)
+            Book::PARAM_ID => $entityDataBuilder->getEntityData(Book::PARAM_ID)
         ];
 
         try {
             $stmt->execute($variables);
 
-            return $entityDataBuilder->getEntityData(Entity::PARAM_ID);
+            return $entityDataBuilder->getEntityData(Book::PARAM_ID);
         } catch(PDOException $e) {
             processPdoException('BookRepository.update', $variables, $entityDataBuilder->getQueryPreparedData(), $stmt, $e);
         }
