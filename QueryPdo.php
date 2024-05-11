@@ -289,17 +289,17 @@ class QueryPdo
         $this->setTable($tableName);
 
         foreach ($values as $index => $value) {
-            if (is_string($value)) {
-                $value = '"' . $value . '"';
-            } elseif ($value === null) {
+            if (is_null($value)) {
                 $value = 'NULL';
             } elseif ($value === false) {
                 $value = 'FALSE';
             } elseif ($value === true) {
                 $value = 'TRUE';
+            } elseif(is_string($value)) {
+                $value = '"' . $value . '"';
             }
 
-            $this->preparedData[$index] = $index . ' = '.$value;
+            $this->preparedData[$index] = $value;
         }
 
         return $this;
@@ -318,6 +318,7 @@ class QueryPdo
         $this->queryType = self::QUERY_TYPE_INSERT;
         $this->setTable($tableName);
         $this->onDuplicateKeyUpdate = $onDuplicateKeyUpdate;
+        $this->preparedData = $preparedData;
 
         foreach ($preparedData as $index => $preparedValue) {
             if (is_string($preparedValue)) {
@@ -336,7 +337,7 @@ class QueryPdo
                 $preparedValue = 'true';
             }
 
-            $this->preparedData[$index] = $preparedValue;
+//            $this->preparedData[$index] = $preparedValue;
         }
 
         $this->bindParams($this->preparedData);
@@ -477,7 +478,14 @@ class QueryPdo
     private function assembleUpdateQuery(): string
     {
         $query = 'UPDATE ' . $this->tableName . ' SET ';
-        $query .= implode(', ', $this->getPreparedData());
+
+        $values = [];
+        foreach ($this->getPreparedData() as $index => $value) {
+            $values[] = $index . ' = '. $value;
+        }
+
+        $query .= implode(', ', $values);
+
         $query .= $this->getWhereCondition();
 
         return $query;
