@@ -26,20 +26,16 @@ class BookRepository extends Repository
                     Product::PARAM_BOOK_ID => $bookId
                 ]
             )
-            ->where(Product::PARAM_ID, ':id');
-
-        $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query->assemble());
-
-        $variables = [
-            Product::PARAM_ID => $positionId
-        ];
+            ->where(Product::PARAM_ID, ':id')
+            ->bindParam(Product::PARAM_ID, $positionId);
 
         try {
-            $stmt->execute($variables);
+            $query->execute();
         } catch(PDOException $e) {
             processPdoException(
-                'linkBookToProduct', $variables, ['position_id' => $positionId, 'book_id' => $bookId], $stmt, $e
+                'BookRepository.linkBookToProduct',
+                $query->getBindParams(), [Product::PARAM_ID => $positionId, Product::PARAM_BOOK_ID => $bookId],
+                $query->getStmt(), $e
             );
         }
     }
@@ -53,20 +49,15 @@ class BookRepository extends Repository
                     Product::PARAM_BOOK_ID => null
                 ]
             )
-            ->where(Product::PARAM_ID, ':id');
-
-        $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query->assemble());
-
-        $variables = [
-            Product::PARAM_ID => $positionId
-        ];
+            ->where(Product::PARAM_ID, ':id')
+            ->bindParam(Product::PARAM_ID, $positionId);
 
         try {
-            $stmt->execute($variables);
+            $query->execute();
         } catch(PDOException $e) {
             processPdoException(
-                'unlinkBookFromProduct', $variables, ['position_id' => $positionId], $stmt, $e
+                'BookRepository.unlinkBookFromProduct', $query->getBindParams(), $query->getPreparedData(),
+                $query->getStmt(), $e
             );
         }
     }
@@ -172,21 +163,19 @@ class BookRepository extends Repository
                 Book::TABLE_NAME,
                 $entityDataBuilder->getQueryPreparedData()
             )
-            ->where(Book::PARAM_ID, ':id');
-
-        $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query->assemble());
-
-        $variables = [
-            Book::PARAM_ID => $entityDataBuilder->getEntityData(Book::PARAM_ID)
-        ];
+            ->where(Book::PARAM_ID, ':id')
+            ->bindParam(Book::PARAM_ID, $entityDataBuilder->getEntityData(Book::PARAM_ID));
 
         try {
-            $stmt->execute($variables);
+            $query->execute();
 
             return $entityDataBuilder->getEntityData(Book::PARAM_ID);
         } catch(PDOException $e) {
-            processPdoException('BookRepository.update', $variables, $entityDataBuilder->getQueryPreparedData(), $stmt, $e);
+            processPdoException(
+                'BookRepository.update',
+                $query->getBindParams(), $query->getPreparedData(),
+                $query->getStmt(), $e
+            );
         }
     }
 
@@ -197,17 +186,15 @@ class BookRepository extends Repository
         $query = (new QueryPdo())
             ->insert(Book::TABLE_NAME, $entityDataBuilder->getQueryPreparedData());
 
-        $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query->assemble());
-
-        $variables = $query->getPreparedData();
-
         try {
-            $stmt->execute($variables);
+            $query->execute();
 
-            return $dbh->lastInsertId();
+            return $query->getLastInsertId();
         } catch(PDOException $e) {
-            processPdoException('BookRepository.create', $variables, $entityData, $stmt, $e);
+            processPdoException(
+                'BookRepository.create', $query->getBindParams(), $entityData,
+                $query->getStmt(), $e
+            );
         }
     }
 

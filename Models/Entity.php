@@ -179,39 +179,40 @@ abstract class Entity
         foreach ($data as $param => $value) {
             $camelCaseParam = $this->getCamelCaseParam($param);
 
-            if ($class->hasProperty($camelCaseParam)) {
-                $property = $class->getProperty($camelCaseParam);
-                $propertyType = $property->getType()->getName();
-                //echo $camelCaseParam . ': '. $propertyType . ' | ';
+            if (!$class->hasProperty($camelCaseParam)) {
+                continue;
+            }
 
-                switch ($propertyType) {
-                    case 'bool':
-                    case 'string':
-                    case 'int':
+            $property = $class->getProperty($camelCaseParam);
+            $propertyType = $property->getType()->getName();
+
+            switch ($propertyType) {
+                case 'bool':
+                case 'string':
+                case 'int':
+                    $this->$camelCaseParam = $value;
+                    break;
+                case 'DateTime':
+                    if (!is_null($value)) {
+                        $this->$camelCaseParam = new DateTime($value);
+                    }
+                    break;
+                case 'array':
+                    if (isset(static::RELATION_TO_MANY[$param])) {
+                        $relationClassName = static::RELATION_TO_MANY[$param]['relation_entity'];
+
+                        $this->$camelCaseParam = array_map(function ($relationData) use ($relationClassName) {
+                            return new $relationClassName($relationData);
+                        }, $value);
+                    } else {
                         $this->$camelCaseParam = $value;
-                        break;
-                    case 'DateTime':
-                        if (!is_null($value)) {
-                            $this->$camelCaseParam = new DateTime($value);
-                        }
-                        break;
-                    case 'array':
-                        if (isset(static::RELATION_TO_MANY[$param])) {
-                            $relationClassName = static::RELATION_TO_MANY[$param]['relation_entity'];
-
-                            $this->$camelCaseParam = array_map(function ($relationData) use ($relationClassName) {
-                                return new $relationClassName($relationData);
-                            }, $value);
-                        } else {
-                            $this->$camelCaseParam = $value;
-                        }
-                        break;
-                    default:
-                        if (isset(static::RELATION_TO_ONE[$param])) {
-                            $relationClassName = static::RELATION_TO_ONE[$param]['relation_entity'];
-                            $this->$camelCaseParam = new $relationClassName($value);
-                        }
-                }
+                    }
+                    break;
+                default:
+                    if (isset(static::RELATION_TO_ONE[$param])) {
+                        $relationClassName = static::RELATION_TO_ONE[$param]['relation_entity'];
+                        $this->$camelCaseParam = new $relationClassName($value);
+                    }
             }
         }
     }

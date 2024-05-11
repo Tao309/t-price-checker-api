@@ -115,18 +115,24 @@ class ProductRepository extends Repository
             )
             ->where(Product::PARAM_PRODUCT_ID, ':product_id')
             ->where(Product::PARAM_SHOP_ID, ':shop_id')
-            ->where(Product::PARAM_USER_ID, ':user_id');
+            ->where(Product::PARAM_USER_ID, ':user_id')
+            ->bindParams([
+                Product::PARAM_PRODUCT_ID => $productId,
+                Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
+                Product::PARAM_USER_ID => Config::getCurrentUserid(),
+            ]);
 
-        $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query->assemble());
+        try {
+            $query->execute();
 
-        $stmt->execute([
-            Product::PARAM_PRODUCT_ID => $productId,
-            Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
-            Product::PARAM_USER_ID => Config::getCurrentUserid(),
-        ]);
-
-        return true;
+            return true;
+        } catch(PDOException $e) {
+            processPdoException(
+                'ProductRepository.removeByProductId',
+                $query->getBindParams(), $query->getPreparedData(),
+                $query->getStmt(), $e
+            );
+        }
     }
 
     /**
@@ -245,25 +251,25 @@ class ProductRepository extends Repository
             )
             ->where(Product::PARAM_PRODUCT_ID, ':product_id')
             ->where(Product::PARAM_SHOP_ID, ':shop_id')
-            ->where(Product::PARAM_USER_ID, ':user_id');
-
-        $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query->assemble());
-
-        $variables = [
-            Product::PARAM_SHOP_ID => $entityDataBuilder->getPreparedData(Product::PARAM_SHOP_ID),
-            Product::PARAM_USER_ID => Config::getCurrentUserid(),
-            Product::PARAM_PRODUCT_ID => $entityDataBuilder->getEntityData(Product::PARAM_PRODUCT_ID),
-        ];
+            ->where(Product::PARAM_USER_ID, ':user_id')
+            ->bindParams([
+                Product::PARAM_SHOP_ID => $entityDataBuilder->getPreparedData(Product::PARAM_SHOP_ID),
+                Product::PARAM_USER_ID => Config::getCurrentUserid(),
+                Product::PARAM_PRODUCT_ID => $entityDataBuilder->getEntityData(Product::PARAM_PRODUCT_ID),
+            ]);
 
         try {
-            $stmt->execute($variables);
+            $query->execute();
 
 //            if (!$stmt->rowCount()) {
 //                throw  new \Exception('Обновлено ' . $stmt->rowCount() . ' позиций');
 //            }
         } catch(PDOException $e) {
-            processPdoException('ProductRepository.update', $variables, $data, $stmt, $e);
+            processPdoException(
+                'ProductRepository.update',
+                $query->getBindParams(), $query->getPreparedData(),
+                $query->getStmt(), $e
+            );
         }
     }
 
@@ -278,17 +284,16 @@ class ProductRepository extends Repository
         $query = (new QueryPdo())
             ->insert(Product::TABLE_NAME, $entityDataBuilder->getQueryPreparedData());
 
-        $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query->assemble());
-
         try {
-            $stmt->execute($query->getPreparedData());
+            $query->execute();
 
-            return $dbh->lastInsertId();
+            return $query->getLastInsertId();
         } catch(PDOException $e) {
-            processPdoException('ProductRepository.create',
-                $entityDataBuilder->getQueryKeysVariables(), $entityDataBuilder->getQueryPreparedData(),
-                $stmt, $e);
+            processPdoException(
+                'ProductRepository.create',
+                $query->getBindParams(), $query->getPreparedData(),
+                $query->getStmt(), $e
+            );
 
             return null;
         }
@@ -304,29 +309,33 @@ class ProductRepository extends Repository
      */
     private function changeId(int $positionId, string $productId, string $code): int
     {
-        $query = (new QueryPdo())
-            ->update(
-                Product::TABLE_NAME,
-                [
-                    Product::PARAM_PRODUCT_ID => $productId,
-                    Product::PARAM_CODE => $code
-                ]
-            )
-            ->where(Product::PARAM_CODE, QueryPdo::EXPR_IS_NULL)
-            ->where(Product::PARAM_ID, ':id')
-            ->where(Product::PARAM_SHOP_ID, ':shop_id')
-            ->where(Product::PARAM_USER_ID, ':user_id');
+        try {
+            $query = (new QueryPdo())
+                ->update(
+                    Product::TABLE_NAME,
+                    [
+                        Product::PARAM_PRODUCT_ID => $productId,
+                        Product::PARAM_CODE => $code
+                    ]
+                )
+                ->where(Product::PARAM_CODE, QueryPdo::EXPR_IS_NULL)
+                ->where(Product::PARAM_ID, ':id')
+                ->where(Product::PARAM_SHOP_ID, ':shop_id')
+                ->where(Product::PARAM_USER_ID, ':user_id')
+                ->bindParams([
+                    Product::PARAM_ID => $positionId,
+                    Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
+                    Product::PARAM_USER_ID => Config::getCurrentUserid(),
+                ]);
 
-        $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query->assemble());
+            $query->execute();
 
-        $stmt->execute([
-            Product::PARAM_ID => $positionId,
-            Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
-            Product::PARAM_USER_ID => Config::getCurrentUserid(),
-        ]);
-
-        return $stmt->rowCount();
+            return $query->getRowCount();
+        } catch(PDOException $e) {
+            processPdoException('ProductRepository.changeId',
+                $query->getBindParams(), $query->getPreparedData(),
+                $query->getStmt(), $e);
+        }
     }
 
     /**

@@ -35,20 +35,23 @@ class StockRepository extends Repository
                 'qty = VALUES(qty), log = VALUES(log)'
             );
 
-        $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query->assemble());
-
         try {
             foreach($stocks as $stock) {
-                $stmt->execute([
+                $query->bindParams([
                     Stock::PARAM_ID => $positionId,
                     Stock::PARAM_QTY => $stock[Stock::PARAM_QTY],
                     Stock::PARAM_DATE => $stock[Stock::PARAM_DATE],
                     Stock::PARAM_LOG => isset($stock[Stock::PARAM_LOG]) ? json_encode($stock[Stock::PARAM_LOG]) : null
                 ]);
+
+                $query->execute();
             }
         } catch(\PDOException $e) {
-            processPdoException('saveStocks', ['position_id' => $positionId], $stocks, $stmt, $e);
+            processPdoException(
+                'StockRepository.saveStocks',
+                ['position_id' => $positionId], $stocks,
+                $query->getStmt(), $e
+            );
         }
     }
 
@@ -109,21 +112,27 @@ class StockRepository extends Repository
             )
             ->where(Stock::PARAM_ID, ':' . Stock::PARAM_ID)
             ->where(Stock::PARAM_QTY, ':' . Stock::PARAM_QTY)
-            ->where(Stock::PARAM_DATE, ':' . Stock::PARAM_DATE);
+            ->where(Stock::PARAM_DATE, ':' . Stock::PARAM_DATE)
+            ->bindParams([
+                Stock::PARAM_ID => $stockData[Stock::PARAM_ID],
+                Stock::PARAM_QTY => $stockData[Stock::PARAM_QTY],
+                Stock::PARAM_DATE => $stockData[Stock::PARAM_DATE]
+            ]);
 
-        $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query->assemble());
+        try {
+            $query->execute();
 
-        $stmt->execute([
-            Stock::PARAM_ID => $stockData[Stock::PARAM_ID],
-            Stock::PARAM_QTY => $stockData[Stock::PARAM_QTY],
-            Stock::PARAM_DATE => $stockData[Stock::PARAM_DATE]
-        ]);
+            if (!$query->getRowCount()) {
+                throw new \Exception('Stock is not removed. Not row affected.');
+            }
 
-        if (!$stmt->rowCount()) {
-            throw new \Exception('Stock is not removed. Not row affected.');
+            return $query->getRowCount();
+        } catch(\PDOException $e) {
+            processPdoException(
+                'StockRepository.deleteStock',
+                $query->getBindParams(), $query->getPreparedData(),
+                $query->getStmt(), $e
+            );
         }
-
-        return $stmt->rowCount();
     }
 }

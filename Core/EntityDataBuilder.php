@@ -91,28 +91,30 @@ class EntityDataBuilder
         foreach ($this->entityData as $param => $value) {
             $camelCaseParam = Entity::toCamelCase($param);
 
-            if ($primaryClass->hasProperty($camelCaseParam)) {
-                $toData = false;
-                $currentParam = $param;
-                $property = $primaryClass->getProperty($camelCaseParam);
-                $propertyType = $property->getType()->getName();
+            if (!$primaryClass->hasProperty($camelCaseParam)) {
+                continue;
+            }
 
-                if (is_array($onlyReadProps) && in_array($param, $onlyReadProps)) {
-                    continue;
-                }
+            $toData = false;
+            $currentParam = $param;
+            $property = $primaryClass->getProperty($camelCaseParam);
+            $propertyType = $property->getType()->getName();
 
-                if (is_array($relToOne) && isset($relToOne[$currentParam])) {
-                    $toData = true;
-                    $param = $relToOne[$currentParam]['parent_id'];
-                    $value = $value[$relToOne[$currentParam]['relation_id']];
-                } elseif (in_array($propertyType, self::ALLOWABLE_PROPS_TYPES)) {
-                    $toData = true;
-                    $value = $this->prepareValue($propertyType, $value);
-                }
+            if (is_array($onlyReadProps) && in_array($param, $onlyReadProps)) {
+                continue;
+            }
 
-                if ($toData) {
-                    $preparedData[$param] = $value;
-                }
+            if (is_array($relToOne) && isset($relToOne[$currentParam])) {
+                $toData = true;
+                $param = $relToOne[$currentParam]['parent_id'];
+                $value = $value[$relToOne[$currentParam]['relation_id']];
+            } elseif (in_array($propertyType, self::ALLOWABLE_PROPS_TYPES)) {
+                $toData = true;
+                $value = $this->prepareValue($propertyType, $value);
+            }
+
+            if ($toData) {
+                $preparedData[$param] = $value;
             }
         }
 

@@ -16,6 +16,8 @@ class QueryPdo
     private ?string $queryType = null;
     private ?string $onDuplicateKeyUpdate = null;
     private array $preparedData;
+    private array $bindParams = [];
+    private ?PDOStatement $stmt;
 
     private $fields = [];
     private $fromTable = [];
@@ -27,15 +29,8 @@ class QueryPdo
 
     public function __construct()
     {
-
-    }
-
-    /**
-     * @return QueryPdo
-     */
-    public static function initQueryPdo(): QueryPdo
-    {
-        return new QueryPdo();
+        $this->preparedData = [];
+        $this->bindParams = [];
     }
 
     /**
@@ -53,6 +48,49 @@ class QueryPdo
         }
 
         return self::$connect;
+    }
+
+    public function execute(): PDOStatement
+    {
+        $dbh = self::getConnect();
+        $this->stmt = $dbh->prepare($this->assemble());
+        $this->stmt->execute($this->getBindParams() ?? null);
+
+        return $this->stmt;
+    }
+
+    public function getRowCount(): int
+    {
+        return $this->stmt->rowCount();
+    }
+
+    public function getLastInsertId(): int
+    {
+        return self::getConnect()->lastInsertId();
+    }
+
+    public function getStmt(): PDOStatement
+    {
+        return $this->stmt;
+    }
+
+    public function getBindParams(): array
+    {
+        return $this->bindParams;
+    }
+
+    public function bindParams(array $bindParams): self
+    {
+        $this->bindParams = $bindParams;
+
+        return $this;
+    }
+
+    public function bindParam(string $param, $value): self
+    {
+        $this->bindParams[$param] = $value;
+
+        return $this;
     }
 
     public static function escapeString(string $value): string
@@ -301,6 +339,8 @@ class QueryPdo
             $this->preparedData[$index] = $preparedValue;
         }
 
+        $this->bindParams($this->preparedData);
+
         return $this;
     }
 
@@ -457,7 +497,7 @@ class QueryPdo
             throw new \Exception('Empty where condition for update query');
         }
 
-        $br = '';
+        $br = ' ';
         $query = '';
 
         foreach ($this->where as $index => $where) {

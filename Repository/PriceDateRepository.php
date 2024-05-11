@@ -3,7 +3,6 @@
 namespace Repository;
 
 use Models\PriceDate;
-use Models\Product;
 use QueryPdo;
 use Models\Entity;
 
@@ -35,19 +34,22 @@ class PriceDateRepository extends Repository
                 'price = VALUES(price)'
             );
 
-        $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query->assemble());
-
         try {
             foreach($priceDates as $priceDate) {
-                $stmt->execute([
+                $query->bindParams([
                     PriceDate::PARAM_ID => $positionId,
                     PriceDate::PARAM_PRICE => $priceDate[PriceDate::PARAM_PRICE],
                     PriceDate::PARAM_DATE => $priceDate[PriceDate::PARAM_DATE]
                 ]);
+
+                $query->execute();
             }
         } catch(\PDOException $e) {
-            processPdoException('savePriceDates', ['position_id' => $positionId], $priceDates, $stmt, $e);
+            processPdoException(
+                'PriceDateRepository.savePriceDates',
+                ['position_id' => $positionId], $priceDates,
+                $query->getStmt(), $e
+            );
         }
     }
 
