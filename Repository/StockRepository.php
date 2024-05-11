@@ -36,7 +36,7 @@ class StockRepository extends Repository
             );
 
         $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query);
+        $stmt = $dbh->prepare($query->assemble());
 
         try {
             foreach($stocks as $stock) {

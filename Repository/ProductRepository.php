@@ -3,9 +3,11 @@
 namespace Repository;
 
 use Core\Config;
+use Core\EntityDataBuilder;
 use Models\Entity;
 use Models\PriceDate;
 use Models\Product;
+use Models\Shop;
 use Models\Stock;
 use PDOException;
 use QueryPdo;
@@ -29,7 +31,7 @@ class ProductRepository extends Repository
         $this->sameProductRepository = new SameProductRepository();
     }
 
-    public function saveProduct(array $data): void
+    public function save(array $data): void
     {
         //die('Saving products is temporary unavailable.');
         //var_dump($data);exit;
@@ -42,7 +44,7 @@ class ProductRepository extends Repository
         $positionId = null;
         $positionPrice = null;
         $positionQty = null;
-        $product = $this->getProduct($data[Product::PARAM_PRODUCT_ID], $data[Product::PARAM_SHOP_TYPE]);
+        $product = $this->get($data[Product::PARAM_PRODUCT_ID], $data[Product::PARAM_SHOP_TYPE]);
 
         if ($product) {
             $positionId = $product->getId();
@@ -82,9 +84,9 @@ class ProductRepository extends Repository
         }
 
         if (!$positionId) {
-            $positionId = $this->createPosition($data);
+            $positionId = $this->create($data);
         } elseif (isset($flags[Product::FLAG_TO_SAVE_PRODUCT])) {
-            $this->updatePosition($data);
+            $this->update($data);
         }
 
         if (!$positionId) {
@@ -219,63 +221,25 @@ class ProductRepository extends Repository
         return array_merge($variables, $newVariables);
     }
 
-    private function getPreparedProductData(array $productData): array
+    protected function getEntityDataBuilder(array $data): EntityDataBuilder
     {
-        if (empty($productData[Product::PARAM_NOT_AVAILABLE_DATE_FROM])
-            || $productData[Product::PARAM_NOT_AVAILABLE_DATE_FROM] === '1970-01-01T00:00:00.000Z') {
-            $productData[Product::PARAM_NOT_AVAILABLE_DATE_FROM] = null;
-        }
-
-        if (empty($productData[Product::PARAM_AVAILABLE_DATE_FROM])
-            || $productData[Product::PARAM_AVAILABLE_DATE_FROM] === '1970-01-01T00:00:00.000Z') {
-            $productData[Product::PARAM_AVAILABLE_DATE_FROM] = null;
-        }
-
-        if(!isset($productData[Product::PARAM_TITLE])) {
-            $productData[Product::PARAM_TITLE] = 'Empty Title';
-        }
-
-        $result = [
-            Product::PARAM_PRODUCT_ID => $productData['product_id'],
-            Product::PARAM_CODE => $productData['code'] ?? null,
-            Product::PARAM_SHOP_ID => Config::getShopIdByType($productData['shop_type']),
-            Product::PARAM_USER_ID => Config::getCurrentUserid(),
-            Product::PARAM_TITLE => QueryPdo::escapeString($productData['title']),
-            Product::PARAM_AVAILABLE => (bool)$productData['available'],
-            Product::PARAM_NOT_AVAILABLE_DATE_FROM => $productData['not_available_date_from'] ?? null,
-            Product::PARAM_AVAILABLE_DATE_FROM => $productData['available_date_from'] ?? null,
-            Product::PARAM_LISTEN_PRICE_VALUE => $productData['listen_price_value'] ?? null,
-            Product::PARAM_LISTEN_QTY_VALUE => $productData['listen_qty_value'] ?? null,
-            Product::PARAM_RELEASE_DATE => $productData['release_date'] ?? null,
-            Product::PARAM_DATE_UPDATED => $productData['date_updated'] ?? date('Y-m-d H:i:s'),
-            Product::PARAM_DATE_CREATED => $productData['date_created'] ?? date('Y-m-d H:i:s'),
+        $data[Product::PARAM_USER_ID] = Config::getCurrentUserid();
+        $data[Product::PARAM_SHOP] = [
+            Shop::PARAM_ID => Config::getShopIdByType($data['shop_type']),
+            Shop::PARAM_TYPE => $data['shop_type'],
         ];
 
-        if (isset($productData[Product::PARAM_BOOK])) {
-            $result[Product::PARAM_BOOK] = $productData[Product::PARAM_BOOK];
-        }
-
-        return $result;
+        return parent::getEntityDataBuilder($data);
     }
 
-    private function updatePosition(array $productData): void
+    private function update(array $productData): void
     {
-        $data = $this->getPreparedProductData($productData);
-        $shopId = $data[Product::PARAM_SHOP_ID];
-
-        unset(
-            $data[Product::PARAM_PRODUCT_ID],
-            $data[Product::PARAM_SHOP_ID],
-            $data[Product::PARAM_USER_ID],
-            $data[Product::PARAM_DATE_UPDATED],
-            $data[Product::PARAM_DATE_CREATED],
-            $data[Product::PARAM_BOOK],
-        );
+        $entityDataBuilder = $this->getEntityDataBuilder($productData);
 
         $query = (new QueryPdo())
             ->update(
                 Product::TABLE_NAME,
-                $data,
+                $entityDataBuilder->getQueryPreparedData(),
                 'product_id = :product_id AND shop_id = :shop_id AND user_id = :user_id'
             );
 
@@ -283,9 +247,9 @@ class ProductRepository extends Repository
         $stmt = $dbh->prepare($query);
 
         $variables = [
-            Product::PARAM_SHOP_ID => $shopId,
+            Product::PARAM_SHOP_ID => $entityDataBuilder->getPreparedData(Product::PARAM_SHOP_ID),
             Product::PARAM_USER_ID => Config::getCurrentUserid(),
-            Product::PARAM_PRODUCT_ID => $productData[Product::PARAM_PRODUCT_ID],
+            Product::PARAM_PRODUCT_ID => $entityDataBuilder->getEntityData(Product::PARAM_PRODUCT_ID),
         ];
 
         try {
@@ -295,43 +259,32 @@ class ProductRepository extends Repository
 //                throw  new \Exception('Обновлено ' . $stmt->rowCount() . ' позиций');
 //            }
         } catch(PDOException $e) {
-            processPdoException('updatePosition', $variables, $data, $stmt, $e);
+            processPdoException('ProductRepository.update', $variables, $data, $stmt, $e);
         }
     }
 
-    private function createPosition(array $productData): int|null
+    private function create(array $productData): int|null
     {
-        $arrayValues = $this->assembleInsertValues([
-            Product::PARAM_PRODUCT_ID,
-            Product::PARAM_CODE,
-            Product::PARAM_SHOP_ID,
-            Product::PARAM_USER_ID,
-            Product::PARAM_TITLE,
-            Product::PARAM_AVAILABLE,
-            Product::PARAM_NOT_AVAILABLE_DATE_FROM,
-            Product::PARAM_AVAILABLE_DATE_FROM,
-            Product::PARAM_LISTEN_PRICE_VALUE,
-            Product::PARAM_LISTEN_QTY_VALUE,
-            Product::PARAM_RELEASE_DATE,
-            Product::PARAM_DATE_UPDATED,
-            Product::PARAM_DATE_CREATED,
+        $entityDataBuilder = $this->getEntityDataBuilder($productData);
+        $entityDataBuilder->appendPreparedData([
+            Product::PARAM_USER_ID => Config::getCurrentUserid(),
+            Product::PARAM_PRODUCT_ID => $entityDataBuilder->getEntityData(Product::PARAM_PRODUCT_ID),
         ]);
 
         $query = (new QueryPdo())
-            ->insert(Product::TABLE_NAME, $arrayValues);
+            ->insert(Product::TABLE_NAME, $entityDataBuilder->getQueryPreparedData());
 
         $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query);
-
-        $data = $this->getPreparedProductData($productData);
-        unset($data[Product::PARAM_BOOK]);
+        $stmt = $dbh->prepare($query->assemble());
 
         try {
-            $stmt->execute($data);
+            $stmt->execute($query->getPreparedData());
 
             return $dbh->lastInsertId();
         } catch(PDOException $e) {
-            processPdoException('createPosition', $variables, $data, $stmt, $e);
+            processPdoException('ProductRepository.create',
+                $entityDataBuilder->getQueryKeysVariables(), $entityDataBuilder->getQueryPreparedData(),
+                $stmt, $e);
 
             return null;
         }
@@ -380,7 +333,7 @@ class ProductRepository extends Repository
     {
         // По ид не найдёт, если товар без кода, в ид сейчас код установлен по старой схеме.
 //        $tempPositionData = $this->getPositionData($data[Product::PARAM_CODE], $data['shop_type'], false);
-        $product = $this->getProduct($data[Product::PARAM_PRODUCT_ID], $data[Product::PARAM_SHOP_TYPE], false);
+        $product = $this->get($data[Product::PARAM_PRODUCT_ID], $data[Product::PARAM_SHOP_TYPE], false);
         if (!$product) {
             return null;
         }
@@ -390,7 +343,7 @@ class ProductRepository extends Repository
         return $product->getId();
     }
 
-    public function getProduct($productId, string $shopType, $withCode = true): Product|null
+    public function get($productId, string $shopType, $withCode = true): Product|null
     {
         $shopId = Config::getShopIdByType($shopType);
 

@@ -36,7 +36,7 @@ class PriceDateRepository extends Repository
             );
 
         $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query);
+        $stmt = $dbh->prepare($query->assemble());
 
         try {
             foreach($priceDates as $priceDate) {

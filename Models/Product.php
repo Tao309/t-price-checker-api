@@ -8,6 +8,7 @@ use DateTime;
 /**
  * @method string getProductId()
  * @method string getCode()
+ * @method int getShopId()
  * @method int|null getBookId()
  * @method int getUserId()
  * @method int getTitle()
@@ -57,6 +58,17 @@ class Product extends Entity
         self::PARAM_IS_ARCHIVE => 'В архиве',
         self::PARAM_DATE_UPDATED => 'Дата обновления',
         self::PARAM_DATE_CREATED => 'Дата создания',
+    ];
+
+    protected const ONLY_READ_PROPERTIES = [
+        self::PARAM_ID,
+        self::PARAM_PRODUCT_ID,
+        self::PARAM_SHOP_ID,
+        self::PARAM_USER_ID,
+        self::PARAM_NOT_AVAILABLE_DATE_FROM,
+        self::PARAM_AVAILABLE_DATE_FROM,
+        self::PARAM_DATE_UPDATED,
+        self::PARAM_DATE_CREATED,
     ];
 
     protected const RELATION_TO_ONE = [
@@ -124,7 +136,7 @@ class Product extends Entity
 
     protected int $productId;
     protected ?string $code;
-//    protected int $shopId;
+    protected int $shopId;
 //    protected string $shopType;
 //    protected int $userId;
     protected ?int $bookId;

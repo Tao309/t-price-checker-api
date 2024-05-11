@@ -1,19 +1,14 @@
 <?php
 
 use Models\Book;
-use Models\Entity;
 use Repository\ProductRepository;
 use Repository\BookRepository;
 use Repository\StockRepository;
-use Repository\PriceDateRepository;
-use Repository\SameProductRepository;
 
 class Storage {
     private ProductRepository $productRepository;
     private BookRepository $bookRepository;
     private StockRepository $stockRepository;
-    private PriceDateRepository $priceDateRepository;
-    private SameProductRepository $sameProductRepository;
     private tResponse $tResponse;
 
     public function __construct(tResponse $tResponse)
@@ -21,8 +16,6 @@ class Storage {
         $this->productRepository = new ProductRepository();
         $this->bookRepository = new BookRepository();
         $this->stockRepository = new StockRepository();
-        $this->priceDateRepository = new PriceDateRepository();
-        $this->sameProductRepository = new SameProductRepository();
 
         $this->tResponse = $tResponse;
     }
@@ -94,9 +87,9 @@ class Storage {
     // api call
     public function saveBook(array $bookData): void
     {
-        $entityId = $this->bookRepository->saveBook($bookData);
+        $entityId = $this->bookRepository->save($bookData);
 
-        $book = $this->bookRepository->getBook($entityId);
+        $book = $this->bookRepository->get($entityId);
 
         if (!$book) {
             throw new \Exception('Not found book by id '. $entityId);
@@ -112,7 +105,7 @@ class Storage {
     // api call
     public function saveProduct(array $productData): void
     {
-        $this->productRepository->saveProduct($productData);
+        $this->productRepository->save($productData);
         $this->tResponse->setSuccess(true);
         $this->tResponse->setMessage('Product is saved');
     }
@@ -145,7 +138,7 @@ class Storage {
             $productsCount++;
 
             try {
-                $this->productRepository->saveProduct($productData);
+                $this->productRepository->save($productData);
                 $savedCount++;
             } catch (\Throwable $e) {
                 $errorsCount++;

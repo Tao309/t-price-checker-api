@@ -15,6 +15,9 @@ abstract class Entity
     // Свойства модели с бд, их описание.
     protected const PROPERTIES = [];
 
+    // Свойства, только для чтения, нельзя перезаписывать.
+    protected const ONLY_READ_PROPERTIES = [];
+
     // Связь к одному.
     protected const RELATION_TO_ONE = [];
 

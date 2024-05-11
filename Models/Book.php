@@ -46,6 +46,12 @@ class Book extends Entity
         self::PARAM_DATE_CREATED => 'Дата создания',
     ];
 
+    protected const ONLY_READ_PROPERTIES = [
+        self::PARAM_ID,
+        self::PARAM_DATE_UPDATED,
+        self::PARAM_DATE_CREATED,
+    ];
+
     protected const RELATION_TO_ONE = [
         self::PARAM_BINDING_TYPE => [
             'parent_id' => self::PARAM_BINDING_TYPE_ID,

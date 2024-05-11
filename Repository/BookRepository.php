@@ -71,7 +71,7 @@ class BookRepository extends Repository
         }
     }
 
-    public function getBook(int $id): Book|null
+    public function get(int $id): Book|null
     {
         $query = $this->getListQueryNew();
         $query->where('id', ':id');
@@ -87,19 +87,6 @@ class BookRepository extends Repository
         return new Book($data);
     }
 
-    /**
-     * @param array $data
-     *
-     * @return int ID книги.
-     */
-    public function saveBook(array $data): int
-    {
-        if (isset($data[Entity::PARAM_ID])) {
-            return $this->updateBook($data);
-        }
-
-        return $this->createBook($data);
-    }
     /**
      * @return Book[]
      */
@@ -137,6 +124,20 @@ class BookRepository extends Repository
         }, $rows);
     }
 
+    /**
+     * @param array $data
+     *
+     * @return int ID книги.
+     */
+    public function save(array $data): int
+    {
+        if (isset($data[Entity::PARAM_ID])) {
+            return $this->update($data);
+        }
+
+        return $this->create($data);
+    }
+
     private function getPreparedBookData(array $bookData): array
     {
         $result = [];
@@ -162,66 +163,51 @@ class BookRepository extends Repository
         return $result;
     }
 
-    private function updateBook(array $bookData): int
+    private function update(array $entityData): int
     {
-        $bookId = $bookData[Entity::PARAM_ID];
-        $data = $this->getPreparedBookData($bookData);
+        $entityDataBuilder = $this->getEntityDataBuilder($entityData);
 
         $query = (new QueryPdo())
             ->update(
                 Book::TABLE_NAME,
-                $data,
-                'id = :book_id'
+                $entityDataBuilder->getQueryPreparedData(),
+                'id = :id'
             );
 
         $dbh = QueryPdo::getConnect();
         $stmt = $dbh->prepare($query);
 
         $variables = [
-            Product::PARAM_BOOK_ID => $bookId
+            Product::PARAM_ID => $entityDataBuilder->getEntityData(Entity::PARAM_ID)
         ];
 
         try {
             $stmt->execute($variables);
 
-            return $bookId;
+            return $entityDataBuilder->getEntityData(Entity::PARAM_ID);
         } catch(PDOException $e) {
-            processPdoException('updateBook', $variables, $bookData, $stmt, $e);
+            processPdoException('BookRepository.update', $variables, $entityDataBuilder->getQueryPreparedData(), $stmt, $e);
         }
     }
 
-    private function createBook(array $bookData): int
+    private function create(array $entityData): int
     {
-        $arrayValues = $this->assembleInsertValues([
-            Book::PARAM_TITLE,
-            Book::PARAM_AUTHOR,
-            Book::PARAM_ISBN,
-            Book::PARAM_PAGES,
-            Book::PARAM_CIRCULATION,
-            Book::PARAM_SIZE,
-            Book::PARAM_PUBLISH_YEAR,
-            Book::PARAM_RELEASE_DATE,
-            Book::PARAM_LISTEN_PRICE_VALUE
-        ]);
-
-        if (isset($bookData[Book::PARAM_BINDING_TYPE])) {
-            $arrayValues[Book::PARAM_BINDING_TYPE_ID] = ':binding_type_id';
-        }
+        $entityDataBuilder = $this->getEntityDataBuilder($entityData);
 
         $query = (new QueryPdo())
-            ->insert(Book::TABLE_NAME, $arrayValues);
+            ->insert(Book::TABLE_NAME, $entityDataBuilder->getQueryPreparedData());
 
         $dbh = QueryPdo::getConnect();
-        $stmt = $dbh->prepare($query);
+        $stmt = $dbh->prepare($query->assemble());
 
-        $variables = $this->getPreparedBookData($bookData);
+        $variables = $query->getPreparedData();
 
         try {
             $stmt->execute($variables);
 
             return $dbh->lastInsertId();
         } catch(PDOException $e) {
-            processPdoException('insertNewBook', $variables, $bookData, $stmt, $e);
+            processPdoException('BookRepository.create', $variables, $entityData, $stmt, $e);
         }
     }
 

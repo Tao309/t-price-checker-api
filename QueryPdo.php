@@ -5,7 +5,17 @@ class QueryPdo
     public const EXPR_IS_NULL = 'is_null';
     public const EXPR_IS_NOT_NULL = 'is_not_null';
 
+    private const QUERY_TYPE_SELECT = 'select_type';
+    private const QUERY_TYPE_UPDATE = 'update_type';
+    private const QUERY_TYPE_INSERT = 'insert_type';
+    private const QUERY_TYPE_DELETE = 'delete_type';
+
     static $connect;
+
+    private ?string $tableName = null;
+    private ?string $queryType = null;
+    private ?string $onDuplicateKeyUpdate = null;
+    private array $queryPreparedData;
 
     private $fields = [];
     private $fromTable = [];
@@ -52,6 +62,8 @@ class QueryPdo
 
     public function select($fields): self
     {
+        $this->queryType = self::QUERY_TYPE_SELECT;
+
         $this->fields = is_array($fields) ? $fields : [$fields];
 
         return $this;
@@ -60,6 +72,7 @@ class QueryPdo
     public function from($fromTable): self
     {
         $this->fromTable = $this->getJoinTable($fromTable);
+        $this->tableName = $this->fromTable[array_key_first($this->fromTable)];
 
         return $this;
     }
@@ -75,7 +88,7 @@ class QueryPdo
             return $joinTable;
         }
 
-        if (is_int($joinTable)) {
+        if (!is_string($joinTable)) {
             throw new \Exception('QueryPdo: fromTable prefix auto can not be a integer.');
         }
 
@@ -203,7 +216,178 @@ class QueryPdo
         return $this;
     }
 
-    public function assemble()
+    public function assemble(): string
+    {
+        if (empty($this->queryType)) {
+            throw new \Exception('Query Type is empty');
+        }
+
+        if (empty($this->tableName)) {
+            throw new \Exception('TableName is empty');
+        }
+
+        switch ($this->queryType) {
+            case self::QUERY_TYPE_SELECT:
+                return $this->assembleSelectQuery();
+            case self::QUERY_TYPE_INSERT:
+                return $this->assembleInsertQuery();
+        }
+
+        throw new \Exception('Assemble is not support for query type ' . $this->queryType);
+    }
+
+    public function update(string $table, array $values, string $condition): string
+    {
+        $this->queryType = self::QUERY_TYPE_UPDATE;
+        $this->tableName = $table;
+
+        $query = 'UPDATE ' . $table . ' SET ';
+
+        $queryValues = [];
+        foreach ($values as $index => $value) {
+            if (is_string($value)) {
+                $value = '"' . $value . '"';
+            } elseif ($value === null) {
+                $value = 'NULL';
+            } elseif ($value === false) {
+                $value = 'FALSE';
+            } elseif ($value === true) {
+                $value = 'TRUE';
+            }
+
+            $queryValues[] = $index . ' = '.$value;
+        }
+
+        $query .= implode(', ', $queryValues);
+        $query .= ' WHERE ' . $condition;
+
+        return $query;
+    }
+
+    public function delete(string $table, array $conditions)
+    {
+        $this->queryType = self::QUERY_TYPE_DELETE;
+        $this->tableName = $table;
+
+        if (empty($conditions)) {
+            throw new \Exception('Нет условий для удаления');
+        }
+
+        $query = 'DELETE FROM ' . $table;
+
+        $where = [];
+        foreach ($conditions as $index => $condition) {
+            $where[] = $index . ' = ' . $condition;
+        }
+
+        $query .= ' WHERE ' . implode(' AND ', $where);
+
+        return $query;
+    }
+
+    public function insert(string $tableName, array $preparedData, string $onDuplicateKeyUpdate = null): self
+    {
+        $this->queryType = self::QUERY_TYPE_INSERT;
+        $this->tableName = $tableName;
+        $this->onDuplicateKeyUpdate = $onDuplicateKeyUpdate;
+
+        foreach ($preparedData as $index => $preparedValue) {
+            if (is_string($preparedValue)) {
+//                $preparedValue = '"' . $preparedValue . '"';
+            }
+
+            if ($preparedValue === null) {
+                $preparedValue = 'null';
+            }
+
+            if ($preparedValue === false) {
+                $preparedValue = 'false';
+            }
+
+            if ($preparedValue === true) {
+                $preparedValue = 'true';
+            }
+
+            $this->queryPreparedData[$index] = $preparedValue;
+        }
+
+        return $this;
+    }
+
+    public function fetch(array $binds = [])
+    {
+        return $this->prepareFetch($binds)->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * @param array $binds
+     * @return array|false
+     */
+    public function fetchAll(array $binds = []): array
+    {
+        $stmt = $this->prepareFetch($binds);
+        try {
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch(\Throwable $e) {
+            echo "\nfetchAll:\n";
+            echo $e->getMessage() . "\n";
+            echo $stmt->queryString . "\n";
+            print_r($stmt->errorInfo());
+            exit;
+        }
+    }
+
+    public function fetchColumn(array $binds = [])
+    {
+        $stmt = $this->prepareFetch($binds);
+        try {
+            return $stmt->fetchColumn();
+        } catch(\Throwable $e) {
+            echo "\nfetchColumn:\n";
+            echo $e->getMessage() . "\n";
+            echo $stmt->queryString . "\n";
+            print_r($stmt->errorInfo());
+            exit;
+        }
+    }
+
+    public function getPreparedData(): array
+    {
+        if (empty($this->queryPreparedData)) {
+            throw new \Exception('queryPreparedData is empty');
+        }
+
+        return $this->queryPreparedData;
+    }
+
+    /**
+     * @param array $binds
+     * @return false|PDOStatement
+     */
+    private function prepareFetch(array $binds = []): PDOStatement
+    {
+        $dbh = QueryPdo::getConnect();
+
+        $stmt = $dbh->prepare($this->assemble());
+
+        foreach ($binds as $index => $value) {
+            $stmt->bindValue(':' . $index, $value);
+        }
+
+        try {
+            $stmt->execute();
+
+            return $stmt;
+        } catch(\Throwable $e) {
+            echo "\prepareFetch:\n";
+            echo $e->getMessage() . "\n";
+            echo $stmt->queryString . "\n";
+            print_r($stmt->errorInfo());
+            exit;
+        }
+    }
+
+    private function assembleSelectQuery(): string
     {
         $br = ' ';
 
@@ -260,147 +444,26 @@ class QueryPdo
         return $query;
     }
 
-    public function update(string $table, array $values, string $condition): string
+    private function assembleInsertQuery(): string
     {
-        $query = 'UPDATE ' . $table . ' SET ';
+        $query = 'INSERT INTO ' . $this->tableName . '(' . implode(', ', array_keys($this->getPreparedData())) . ')';
+        $query .= ' VALUES(' . implode(', ', $this->getQueryKeysVariables()) . ')';
 
-        $queryValues = [];
-        foreach ($values as $index => $value) {
-            if (is_string($value)) {
-                $value = '"' . $value . '"';
-            } elseif ($value === null) {
-                $value = 'NULL';
-            } elseif ($value === false) {
-                $value = 'FALSE';
-            } elseif ($value === true) {
-                $value = 'TRUE';
-            }
-
-            $queryValues[] = $index . ' = '.$value;
-        }
-
-        $query .= implode(', ', $queryValues);
-        $query .= ' WHERE ' . $condition;
-
-        return $query;
-    }
-
-    public function delete(string $table, array $conditions)
-    {
-        if (empty($conditions)) {
-            throw new \Exception('Нет условий для удаления');
-        }
-
-        $query = 'DELETE FROM ' . $table;
-
-        $where = [];
-        foreach ($conditions as $index => $condition) {
-            $where[] = $index . ' = ' . $condition;
-        }
-
-        $query .= ' WHERE ' . implode(' AND ', $where);
-
-        return $query;
-    }
-
-    public function insert(string $tableName, array $arrayValues, string $onDuplicateKeyUpdate = null): string
-    {
-        $fields = [];
-        $values = [];
-
-        foreach ($arrayValues as $index => $arrayValue) {
-            $fields[] = $index;
-
-            if (is_string($arrayValue)) {
-//                $arrayValue = '"' . $arrayValue . '"';
-            }
-
-            if ($arrayValue === null) {
-                $arrayValue = 'null';
-            }
-
-            if ($arrayValue === false) {
-                $arrayValue = 'false';
-            }
-
-            if ($arrayValue === true) {
-                $arrayValue = 'true';
-            }
-
-            $values[] = $arrayValue;
-        }
-
-        $query = 'INSERT INTO ' . $tableName . '(' . implode(', ', $fields) . ')';
-        $query .= ' VALUES(' . implode(', ', $values) . ')';
-
-        if ($onDuplicateKeyUpdate) {
-            $query .= ' ON DUPLICATE KEY UPDATE ' . $onDuplicateKeyUpdate;
+        if ($this->onDuplicateKeyUpdate) {
+            $query .= ' ON DUPLICATE KEY UPDATE ' . $this->onDuplicateKeyUpdate;
         }
 
         return $query;
     }
 
-    public function fetch(array $binds = [])
+    private function getQueryKeysVariables(): array
     {
-        return $this->prepareFetch($binds)->fetch(PDO::FETCH_ASSOC);
-    }
+        $vars = [];
 
-    /**
-     * @param array $binds
-     * @return array|false
-     */
-    public function fetchAll(array $binds = []): array
-    {
-        $stmt = $this->prepareFetch($binds);
-        try {
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch(\Throwable $e) {
-            echo "\nfetchAll:\n";
-            echo $e->getMessage() . "\n";
-            echo $stmt->queryString . "\n";
-            print_r($stmt->errorInfo());
-            exit;
-        }
-    }
-
-    public function fetchColumn(array $binds = [])
-    {
-        $stmt = $this->prepareFetch($binds);
-        try {
-            return $stmt->fetchColumn();
-        } catch(\Throwable $e) {
-            echo "\nfetchColumn:\n";
-            echo $e->getMessage() . "\n";
-            echo $stmt->queryString . "\n";
-            print_r($stmt->errorInfo());
-            exit;
-        }
-    }
-
-    /**
-     * @param array $binds
-     * @return false|PDOStatement
-     */
-    private function prepareFetch(array $binds = []): PDOStatement
-    {
-        $dbh = QueryPdo::getConnect();
-
-        $stmt = $dbh->prepare($this->assemble());
-
-        foreach ($binds as $index => $value) {
-            $stmt->bindValue(':' . $index, $value);
+        foreach ($this->getPreparedData() as $key => $value) {
+            $vars[$key] = ':' . $key;
         }
 
-        try {
-            $stmt->execute();
-
-            return $stmt;
-        } catch(\Throwable $e) {
-            echo "\prepareFetch:\n";
-            echo $e->getMessage() . "\n";
-            echo $stmt->queryString . "\n";
-            print_r($stmt->errorInfo());
-            exit;
-        }
+        return $vars;
     }
 }

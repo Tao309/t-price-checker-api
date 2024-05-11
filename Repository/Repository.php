@@ -2,6 +2,7 @@
 
 namespace Repository;
 
+use Core\EntityDataBuilder;
 use Core\QueryBuilder;
 use QueryPdo;
 
@@ -14,6 +15,11 @@ abstract class Repository
         if (!$this->entityModel || !class_exists($this->entityModel)) {
             throw new \Exception('EntityModel for repository '.get_class($this).' is not found');
         }
+    }
+
+    protected function getEntityDataBuilder(array $data): EntityDataBuilder
+    {
+        return new EntityDataBuilder($this->entityModel, $data);
     }
 
     protected function getListQueryNew(): QueryPdo
