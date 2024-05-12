@@ -2,6 +2,7 @@
 
 namespace Repository;
 
+use Exception\CustomPdoException;
 use Models\PriceDate;
 use QueryPdo;
 use Models\Entity;
@@ -45,11 +46,7 @@ class PriceDateRepository extends Repository
                 $query->execute();
             }
         } catch(\PDOException $e) {
-            processPdoException(
-                'PriceDateRepository.savePriceDates',
-                ['position_id' => $positionId], $priceDates,
-                $query->getStmt(), $e
-            );
+            throw new CustomPdoException('PriceDateRepository.savePriceDates', $query, $e);
         }
     }
 

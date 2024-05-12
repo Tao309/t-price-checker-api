@@ -38,7 +38,7 @@ class SameProduct extends Entity
     protected string $productId;
     protected ?string $code;
     protected bool $available;
-    protected int $minPrice;
+    protected ?int $minPrice;
     protected int $bookId;
 
     protected Shop $shop;

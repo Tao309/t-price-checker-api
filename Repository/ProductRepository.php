@@ -4,6 +4,7 @@ namespace Repository;
 
 use Core\Config;
 use Core\EntityDataBuilder;
+use Exception\CustomPdoException;
 use Models\Entity;
 use Models\PriceDate;
 use Models\Product;
@@ -31,78 +32,134 @@ class ProductRepository extends Repository
         $this->sameProductRepository = new SameProductRepository();
     }
 
-    public function save(array $data): void
+    public function save(array $entityData): int
     {
         //die('Saving products is temporary unavailable.');
         //var_dump($data);exit;
-        //return;
+        //return 1;
 
-        $stocks = $data[Product::PARAM_STOCKS] ?? [];
-        $dates = $data[Product::PARAM_PRICE_DATES] ?? [];
-        $flags = $data[Product::PARAM_FLAGS] ?? [];
+        $stocks = $entityData[Product::PARAM_STOCKS] ?? [];
+        $priceDates = $entityData[Product::PARAM_PRICE_DATES] ?? [];
+        $flags = $entityData[Product::PARAM_FLAGS] ?? [];
 
-        $positionId = null;
+        $entityId = null;
         $positionPrice = null;
-        $positionQty = null;
-        $product = $this->get($data[Product::PARAM_PRODUCT_ID], $data[Product::PARAM_SHOP_TYPE]);
+        $product = $this->get($entityData[Product::PARAM_PRODUCT_ID], $entityData[Product::PARAM_SHOP_TYPE]);
 
         if ($product) {
-            $positionId = $product->getId();
+            $entityId = $product->getId();
             $positionPrice = $product->getMinPrice();
-            $positionQty = $product->getLastQty();
         }
 
         $toChangeId = isset($flags[Product::FLAG_TO_CHANGE_ID]) && Config::isWildberriesShopType();
 
-        // Если находит товар с не пустым code, значит уже заменён product_id
-        if ($toChangeId && !$positionId) {
-            $positionId = $this->tryToChangeId($data);
+        // Если находит товар с не пустым code у wildberries, значит уже заменён product_id
+        if ($toChangeId && !$entityId) {
+            $entityId = $this->tryToChangeId($entityData);
 
-            if ($positionId) {
-                return;
+            if ($entityId) {
+                return $entityId;
             }
         }
 
         if (isset($flags[Product::FLAG_TO_LINK_BOOK])) {
-            if (!$positionId) {
+            if (!$entityId) {
                 throw new \Exception('При привязки книги не найден товар.');
             }
 
-            if (!isset($data[Product::PARAM_BOOK])) {
+            if (!isset($entityData[Product::PARAM_BOOK])) {
                 throw new \Exception('Не найдена книга в товаре для линка.');
             }
 
-            $this->bookRepository->linkBookToProduct($positionId, $data[Product::PARAM_BOOK][Entity::PARAM_ID]);
-            return;
-        } elseif (isset($flags[Product::FLAG_TO_UNLINK_BOOK])) {
-            if (!$positionId) {
+            $this->bookRepository->linkBookToProduct($entityId, $entityData[Product::PARAM_BOOK][Entity::PARAM_ID]);
+
+            return $entityId;
+        }
+
+        if (isset($flags[Product::FLAG_TO_UNLINK_BOOK])) {
+            if (!$entityId) {
                 throw new \Exception('При отвязки книги не найден товар.');
             }
 
-            $this->bookRepository->unlinkBookFromProduct($positionId);
-            return;
+            $this->bookRepository->unlinkBookFromProduct($entityId);
+
+            return $entityId;
         }
 
-        if (!$positionId) {
-            $positionId = $this->create($data);
+        if (!$entityId) {
+            $entityId = $this->create($entityData);
         } elseif (isset($flags[Product::FLAG_TO_SAVE_PRODUCT])) {
-            $this->update($data);
+            $this->update($entityData);
         }
 
-        if (!$positionId) {
-            return;
+        if (!$entityId) {
+            throw new \Exception('Entity is not exists for save priceDates and stocks.');
         }
 
-        if (isset($flags[Product::FLAG_TO_SAVE_PRICE_DATES])) {
-            if (!($positionPrice && end($dates)['price'] > $positionPrice)) {
-                $this->priceDateRepository->savePriceDates($positionId, $dates);
+        // Если цена не уменьшилась, то приходит ошибочный запрос на добавление, сток тоже не обрабатываем.
+        if (isset($flags[Product::FLAG_TO_SAVE_PRICE_DATES]) && $priceDates) {
+            if ($positionPrice && end($priceDates)['price'] >= $positionPrice) {
+                return $entityId;
             }
+
+            $this->priceDateRepository->savePriceDates($entityId, $priceDates);
         }
 
-        if (isset($flags[Product::FLAG_TO_SAVE_STOCKS])) {
-            if (!($positionQty && end($stocks)['qty'] == $positionQty)) {
-                $this->stockRepository->saveStocks($positionId, $stocks);
-            }
+        if (isset($flags[Product::FLAG_TO_SAVE_STOCKS]) && $stocks) {
+            $this->stockRepository->saveStocks($entityId, $stocks);
+        }
+
+        return $entityId;
+    }
+
+    protected function update(array $entityData): int
+    {
+        $entityDataBuilder = $this->getEntityDataBuilder($entityData);
+
+        $query = (new QueryPdo())
+            ->update(
+                Product::TABLE_NAME,
+                $entityDataBuilder->getQueryPreparedData()
+            )
+            ->where(Product::PARAM_PRODUCT_ID, ':product_id')
+            ->where(Product::PARAM_SHOP_ID, ':shop_id')
+            ->where(Product::PARAM_USER_ID, ':user_id')
+            ->bindParams([
+                Product::PARAM_SHOP_ID => $entityDataBuilder->getPreparedData(Product::PARAM_SHOP_ID),
+                Product::PARAM_USER_ID => Config::getCurrentUserid(),
+                Product::PARAM_PRODUCT_ID => $entityDataBuilder->getEntityData(Product::PARAM_PRODUCT_ID),
+            ]);
+
+        try {
+            $query->execute();
+
+//            if (!$stmt->rowCount()) {
+//                throw  new \Exception('Обновлено ' . $stmt->rowCount() . ' позиций');
+//            }
+
+            return $entityDataBuilder->getEntityData(Product::PARAM_ID);
+        } catch(PDOException $e) {
+            throw new CustomPdoException('ProductRepository.update', $query, $e);
+        }
+    }
+
+    protected function create(array $entityData): int
+    {
+        $entityDataBuilder = $this->getEntityDataBuilder($entityData);
+        $entityDataBuilder->appendPreparedData([
+            Product::PARAM_USER_ID => Config::getCurrentUserid(),
+            Product::PARAM_PRODUCT_ID => $entityDataBuilder->getEntityData(Product::PARAM_PRODUCT_ID),
+        ]);
+
+        $query = (new QueryPdo())
+            ->insert(Product::TABLE_NAME, $entityDataBuilder->getQueryPreparedData());
+
+        try {
+            $query->execute();
+
+            return $query->getLastInsertId();
+        } catch(PDOException $e) {
+            throw new CustomPdoException('ProductRepository.create', $query, $e);
         }
     }
 
@@ -127,11 +184,7 @@ class ProductRepository extends Repository
 
             return true;
         } catch(PDOException $e) {
-            processPdoException(
-                'ProductRepository.removeByProductId',
-                $query->getBindParams(), $query->getPreparedData(),
-                $query->getStmt(), $e
-            );
+            throw new CustomPdoException('ProductRepository.removeByProductId', $query, $e);
         }
     }
 
@@ -239,66 +292,6 @@ class ProductRepository extends Repository
 
         return parent::getEntityDataBuilder($data);
     }
-
-    private function update(array $productData): void
-    {
-        $entityDataBuilder = $this->getEntityDataBuilder($productData);
-
-        $query = (new QueryPdo())
-            ->update(
-                Product::TABLE_NAME,
-                $entityDataBuilder->getQueryPreparedData()
-            )
-            ->where(Product::PARAM_PRODUCT_ID, ':product_id')
-            ->where(Product::PARAM_SHOP_ID, ':shop_id')
-            ->where(Product::PARAM_USER_ID, ':user_id')
-            ->bindParams([
-                Product::PARAM_SHOP_ID => $entityDataBuilder->getPreparedData(Product::PARAM_SHOP_ID),
-                Product::PARAM_USER_ID => Config::getCurrentUserid(),
-                Product::PARAM_PRODUCT_ID => $entityDataBuilder->getEntityData(Product::PARAM_PRODUCT_ID),
-            ]);
-
-        try {
-            $query->execute();
-
-//            if (!$stmt->rowCount()) {
-//                throw  new \Exception('Обновлено ' . $stmt->rowCount() . ' позиций');
-//            }
-        } catch(PDOException $e) {
-            processPdoException(
-                'ProductRepository.update',
-                $query->getBindParams(), $query->getPreparedData(),
-                $query->getStmt(), $e
-            );
-        }
-    }
-
-    private function create(array $productData): int|null
-    {
-        $entityDataBuilder = $this->getEntityDataBuilder($productData);
-        $entityDataBuilder->appendPreparedData([
-            Product::PARAM_USER_ID => Config::getCurrentUserid(),
-            Product::PARAM_PRODUCT_ID => $entityDataBuilder->getEntityData(Product::PARAM_PRODUCT_ID),
-        ]);
-
-        $query = (new QueryPdo())
-            ->insert(Product::TABLE_NAME, $entityDataBuilder->getQueryPreparedData());
-
-        try {
-            $query->execute();
-
-            return $query->getLastInsertId();
-        } catch(PDOException $e) {
-            processPdoException(
-                'ProductRepository.create',
-                $query->getBindParams(), $query->getPreparedData(),
-                $query->getStmt(), $e
-            );
-
-            return null;
-        }
-    }
-
     /**
      * Для товаров заменяем product_id, который раньше был как код 1С на id товара и записываем в code код 1С.
      *
@@ -332,9 +325,7 @@ class ProductRepository extends Repository
 
             return $query->getRowCount();
         } catch(PDOException $e) {
-            processPdoException('ProductRepository.changeId',
-                $query->getBindParams(), $query->getPreparedData(),
-                $query->getStmt(), $e);
+            throw new CustomPdoException('ProductRepository.changeId', $query, $e);
         }
     }
 

@@ -2,6 +2,7 @@
 
 namespace Repository;
 
+use Exception\CustomPdoException;
 use Models\Stock;
 use QueryPdo;
 use Models\Entity;
@@ -47,11 +48,7 @@ class StockRepository extends Repository
                 $query->execute();
             }
         } catch(\PDOException $e) {
-            processPdoException(
-                'StockRepository.saveStocks',
-                ['position_id' => $positionId], $stocks,
-                $query->getStmt(), $e
-            );
+            throw new CustomPdoException('StockRepository.saveStocks', $query, $e);
         }
     }
 
@@ -128,11 +125,7 @@ class StockRepository extends Repository
 
             return $query->getRowCount();
         } catch(\PDOException $e) {
-            processPdoException(
-                'StockRepository.deleteStock',
-                $query->getBindParams(), $query->getPreparedData(),
-                $query->getStmt(), $e
-            );
+            throw new CustomPdoException('StockRepository.deleteStock', $query, $e);
         }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Repository;
 
+use Exception\CustomPdoException;
 use Models\Book;
 use Models\Product;
 use QueryPdo;
@@ -17,7 +18,7 @@ class BookRepository extends Repository
         parent::__construct();
     }
 
-    public function linkBookToProduct(int $positionId, int $bookId): void
+    public function linkBookToProduct(int $entityId, int $bookId): void
     {
         $query = (new QueryPdo())
             ->update(
@@ -27,20 +28,16 @@ class BookRepository extends Repository
                 ]
             )
             ->where(Product::PARAM_ID, ':id')
-            ->bindParam(Product::PARAM_ID, $positionId);
+            ->bindParam(Product::PARAM_ID, $entityId);
 
         try {
             $query->execute();
         } catch(PDOException $e) {
-            processPdoException(
-                'BookRepository.linkBookToProduct',
-                $query->getBindParams(), [Product::PARAM_ID => $positionId, Product::PARAM_BOOK_ID => $bookId],
-                $query->getStmt(), $e
-            );
+            throw new CustomPdoException('BookRepository.linkBookToProduct', $query, $e);
         }
     }
 
-    public function unlinkBookFromProduct(int $positionId): void
+    public function unlinkBookFromProduct(int $entityId): void
     {
         $query = (new QueryPdo())
             ->update(
@@ -50,15 +47,12 @@ class BookRepository extends Repository
                 ]
             )
             ->where(Product::PARAM_ID, ':id')
-            ->bindParam(Product::PARAM_ID, $positionId);
+            ->bindParam(Product::PARAM_ID, $entityId);
 
         try {
             $query->execute();
         } catch(PDOException $e) {
-            processPdoException(
-                'BookRepository.unlinkBookFromProduct', $query->getBindParams(), $query->getPreparedData(),
-                $query->getStmt(), $e
-            );
+            throw new CustomPdoException('BookRepository.unlinkBookFromProduct', $query, $e);
         }
     }
 
@@ -115,20 +109,6 @@ class BookRepository extends Repository
         }, $rows);
     }
 
-    /**
-     * @param array $data
-     *
-     * @return int ID книги.
-     */
-    public function save(array $data): int
-    {
-        if (isset($data[Entity::PARAM_ID])) {
-            return $this->update($data);
-        }
-
-        return $this->create($data);
-    }
-
     private function getPreparedBookData(array $bookData): array
     {
         $result = [];
@@ -154,7 +134,21 @@ class BookRepository extends Repository
         return $result;
     }
 
-    private function update(array $entityData): int
+    /**
+     * @param array $entityData Входящие данные модели.
+     *
+     * @return int ID книги.
+     */
+    public function save(array $entityData): int
+    {
+        if (isset($entityData[Entity::PARAM_ID])) {
+            return $this->update($entityData);
+        }
+
+        return $this->create($entityData);
+    }
+
+    protected function update(array $entityData): int
     {
         $entityDataBuilder = $this->getEntityDataBuilder($entityData);
 
@@ -171,15 +165,11 @@ class BookRepository extends Repository
 
             return $entityDataBuilder->getEntityData(Book::PARAM_ID);
         } catch(PDOException $e) {
-            processPdoException(
-                'BookRepository.update',
-                $query->getBindParams(), $query->getPreparedData(),
-                $query->getStmt(), $e
-            );
+            throw new CustomPdoException('BookRepository.update', $query, $e);
         }
     }
 
-    private function create(array $entityData): int
+    protected function create(array $entityData): int
     {
         $entityDataBuilder = $this->getEntityDataBuilder($entityData);
 
@@ -191,10 +181,7 @@ class BookRepository extends Repository
 
             return $query->getLastInsertId();
         } catch(PDOException $e) {
-            processPdoException(
-                'BookRepository.create', $query->getBindParams(), $entityData,
-                $query->getStmt(), $e
-            );
+            throw new CustomPdoException('BookRepository.create', $query, $e);
         }
     }
 

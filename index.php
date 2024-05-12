@@ -5,6 +5,9 @@ use Core\Config;
 define('init', true);
 
 require_once ('autoload.php');
+require_once ('error_handler.php');
+
+ob_start();
 
 Config::checkHeaders();
 
@@ -30,11 +33,16 @@ try {
     }
 
     $storage->$actionMethod($data);
+} catch(\Exception\CustomPdoException $e) {
+    processPdoException($e);
 } catch(\Throwable $e) {
     $tResponse->setSuccess(false);
     $tResponse->setMessage($e->getMessage());
     $tResponse->setTrace($e->getTraceAsString());
     $tResponse->setTrace($e->getPrevious()->getTraceAsString());
+    logMe($e);
 }
 
 echo $tResponse;
+
+ob_end_flush();
