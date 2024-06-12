@@ -60,13 +60,14 @@ class Product extends Entity
         self::PARAM_DATE_CREATED => 'Дата создания',
     ];
 
+    // Свойства, только для чтения, нельзя перезаписывать.
     protected const ONLY_READ_PROPERTIES = [
         self::PARAM_ID,
         self::PARAM_PRODUCT_ID,
         self::PARAM_SHOP_ID,
         self::PARAM_USER_ID,
-        self::PARAM_NOT_AVAILABLE_DATE_FROM,
-        self::PARAM_AVAILABLE_DATE_FROM,
+//        self::PARAM_NOT_AVAILABLE_DATE_FROM,
+//        self::PARAM_AVAILABLE_DATE_FROM,
         self::PARAM_DATE_UPDATED,
         self::PARAM_DATE_CREATED,
     ];
