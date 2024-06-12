@@ -25,7 +25,6 @@ abstract class Entity
     protected const RELATION_TO_MANY = [];
 
     public const PARAM_ID = 'id';
-    public const PARAM_LABELS = 'labels';
 
     protected int $id;
 
@@ -102,8 +101,6 @@ abstract class Entity
             $m['relation_to_one'],
             $m['relation_to_many']
         );
-
-        $m[self::PARAM_LABELS] = static::PROPERTIES;
 
         return $m;
     }
