@@ -114,4 +114,14 @@ class Config
         return self::getCurrentShopType() === self::TYPE_CHITAI_GOROD;
     }
 
+    public static function getDateTime(string $dateTime = null): \DateTime
+    {
+        $timezone = new \DateTimeZone('Europe/Moscow');
+
+        $date = new \DateTime($dateTime);
+        $date->setTimezone($timezone);
+        $date->modify('-3 hours');
+
+        return $date;
+    }
 }

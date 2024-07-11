@@ -83,7 +83,7 @@ class Product extends Entity
             'relation_entity' => Shop::class,
             'relation_id' => Entity::PARAM_ID,
             'foreign' => true,
-        ],
+        ]
     ];
 
     protected const RELATION_TO_MANY = [
@@ -214,5 +214,17 @@ class Product extends Entity
             default:
                 return null;
         }
+    }
+
+    /**
+     * Получаем последний сток.
+     *
+     * @return Stock Модель стока.
+     */
+    public function getLastStock(): Stock
+    {
+        $stocks = $this->getStocks();
+
+        return end($stocks);
     }
 }

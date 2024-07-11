@@ -6,7 +6,6 @@ use Core\Config;
 use Core\EntityDataBuilder;
 use Exception\CustomPdoException;
 use Models\Entity;
-use Models\PriceDate;
 use Models\Product;
 use Models\Shop;
 use Models\Stock;
@@ -105,7 +104,13 @@ class ProductRepository extends Repository
             $this->priceDateRepository->savePriceDates($entityId, $priceDates);
         }
 
-        if (isset($flags[Product::FLAG_TO_SAVE_STOCKS]) && $stocks) {
+        $lastStock = end($stocks);
+        $productLastStock = $product->getLastStock();
+        $isLastStockEqualsQty = $lastStock && $productLastStock
+            && $productLastStock->getDate()->format('d.m.Y') == Config::getDateTime($lastStock[Stock::PARAM_DATE])->format('d.m.Y')
+            && $productLastStock->getQty() == $lastStock[Stock::PARAM_QTY];
+
+        if (isset($flags[Product::FLAG_TO_SAVE_STOCKS]) && $stocks && !$isLastStockEqualsQty) {
             $this->stockRepository->saveStocks($entityId, $stocks);
         }
 
@@ -189,34 +194,63 @@ class ProductRepository extends Repository
     }
 
     /**
-     * @param array $productIds
-     * @return Product[]
+     * Получаем массив моделей продуктов по ID.
+     *
+     * @param array       $productIds Массив ID товаров.
+     * @param string|null $shopType Тип магазина.
+     * @param bool        $withCode Получать продукт с заполненным кодом.
+     *
+     * @return Product[] Массив моделей продуктов.
+     *
+     * @throws \Exception
      */
-    public function getProductsByProductIds(array $productIds): array
+    public function getProductsByProductIds(array $productIds, string $shopType = null, bool $withCode = true): array
     {
-        $query = $this->getListQueryNew();
+        $isOneId = count($productIds) === 1;
+        $shopId = $shopType ? Config::getShopIdByType($shopType) : Config::getCurrentShopId();
 
+        $query = $this->getListQueryNew();
+        $query->where('product_id', $isOneId ? current($productIds) : $productIds);
         $query->where('user_id', ':user_id');
-        $query->where('product_id', $productIds);
         $query->where('shop_id', ':shop_id');
 
-        if (Config::getCurrentUserid() !== 2) {
-            $query->limit(100);
-        }
-
         if (Config::isWildberriesShopType()) {
-            $query->where('code', QueryPdo::EXPR_IS_NOT_NULL);
+            if ($withCode) {
+                $query->where('code', QueryPdo::EXPR_IS_NOT_NULL);
+            } else {
+                $query->where('code', QueryPdo::EXPR_IS_NULL);
+            }
         }
 
-        if (Config::getCurrentUserid() !== 2) {
+        if ($isOneId) {
+            $query->limit(1);
+        } else if (Config::getCurrentUserid() !== 2) {
             $query->limit(100);
         }
 
         return $this->assembleQueryToModels(
             $query->fetchAll($this->getListQueryVariables(
-                [Product::PARAM_SHOP_ID => Config::getCurrentShopId()]
+                [Product::PARAM_SHOP_ID => $shopId]
             ))
         );
+    }
+
+    /**
+     * Получаем одну модель продукта.
+     *
+     * @param int    $productId ID продукта.
+     * @param string $shopType  Тип магазина.
+     * @param bool   $withCode  Получать продукт с заполненным кодом.
+     *
+     * @return Product|null
+     *
+     * @throws \Exception
+     */
+    public function get(int $productId, string $shopType, bool $withCode = true): Product|null
+    {
+        $products = $this->getProductsByProductIds([$productId], $shopType, $withCode);
+
+        return current($products);
     }
 
     /**
@@ -348,67 +382,5 @@ class ProductRepository extends Repository
         $affectedCount = $this->changeId($product->getId(), $data[Product::PARAM_PRODUCT_ID], $data[Product::PARAM_CODE]);
 
         return $product->getId();
-    }
-
-    public function get($productId, string $shopType, $withCode = true): Product|null
-    {
-        $shopId = Config::getShopIdByType($shopType);
-
-        $query = $this->getListQueryNew();
-
-        $priceDatesSubQuery = (new QueryPdo())
-            ->select([PriceDate::PARAM_ID, 'MIN('.PriceDate::PARAM_PRICE.') AS price'])
-            ->from(PriceDate::TABLE_NAME)
-            ->group(Stock::PARAM_ID);
-
-        $stockSubQuery = (new QueryPdo())
-            ->select([Stock::PARAM_ID, Stock::PARAM_QTY])
-            ->from(Stock::TABLE_NAME)
-            ->order(Stock::PARAM_ID, 'DESC')
-            ->group(Stock::PARAM_ID);
-
-        $query->leftJoin(
-            ['pd' => '('.$priceDatesSubQuery->assemble().')'],
-            'pd.id = '.Product::TABLE_PREFIX.'.id',
-            [
-                'pd.price AS ' . Product::PARAM_MIN_PRICE
-            ]
-        )
-        ->leftJoin(
-            ['ps' => '('.$stockSubQuery->assemble().')'],
-            'ps.id = '.Product::TABLE_PREFIX.'.id',
-            [
-                'ps.qty AS ' . Product::PARAM_LAST_QTY
-            ]
-        );
-
-        $query->where('shop_id', ':shop_id');
-        $query->where('product_id', ':product_id');
-        $query->where('user_id', ':user_id');
-        $query->limit(1);
-
-        if (Config::isWildberriesShopType()) {
-            if ($withCode) {
-                $query->where('code', QueryPdo::EXPR_IS_NOT_NULL);
-            } else {
-                $query->where('code', QueryPdo::EXPR_IS_NULL);
-            }
-        }
-
-        $data = $query->fetch(
-            $this->getListQueryVariables(
-                [
-                    Product::PARAM_PRODUCT_ID => $productId,
-                    Product::PARAM_SHOP_ID => $shopId,
-                ]
-            )
-        );
-
-        if (!$data) {
-            return null;
-//            throw new \Exception('Not found product data by id '. $productId . ' and shop_id ' . $shopId);
-        }
-
-        return new Product($data);
     }
 }
