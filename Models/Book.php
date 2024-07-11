@@ -13,6 +13,7 @@ use DateTime;
  * @method int getSize()
  * @method string getPublishYear()
  * @method ?int getListenPriceValue()
+ * @method ?string getComment()
  * @method DateTime getDateUpdated()
  * @method DateTime getDateCreated()
  *
@@ -23,6 +24,7 @@ use DateTime;
  * @method setIsbn(string $value)
  * @method setPages(int $value)
  * @method setCirculation(int $value)
+ * @method setComment(string $value)
  * @method setSize(int $value)
  * @method setPublishYear(int $value)
  */
@@ -42,6 +44,7 @@ class Book extends Entity
         self::PARAM_PUBLISH_YEAR => 'Год публикации',
         self::PARAM_RELEASE_DATE => 'Дата выпуска',
         self::PARAM_LISTEN_PRICE_VALUE => 'Отслеживание цены',
+        self::PARAM_COMMENT => 'Комментарий',
         self::PARAM_DATE_UPDATED => 'Дата обновления',
         self::PARAM_DATE_CREATED => 'Дата создания',
     ];
@@ -71,6 +74,7 @@ class Book extends Entity
     public const PARAM_PUBLISH_YEAR = 'publish_year';
     public const PARAM_RELEASE_DATE = 'release_date';
     public const PARAM_LISTEN_PRICE_VALUE = 'listen_price_value';
+    public const PARAM_COMMENT = 'comment';
     public const PARAM_DATE_UPDATED = 'date_updated';
     public const PARAM_DATE_CREATED = 'date_created';
 
@@ -85,6 +89,7 @@ class Book extends Entity
     protected ?int $publishYear;
     protected DateTime $releaseDate;
     protected ?int $listenPriceValue;
+    protected ?string $comment;
     protected DateTime $dateUpdated;
     protected DateTime $dateCreated;
 
