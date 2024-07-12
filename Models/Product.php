@@ -219,12 +219,12 @@ class Product extends Entity
     /**
      * Получаем последний сток.
      *
-     * @return Stock Модель стока.
+     * @return Stock|null Модель стока.
      */
-    public function getLastStock(): Stock
+    public function getLastStock(): Stock|null
     {
         $stocks = $this->getStocks();
 
-        return end($stocks);
+        return end($stocks) ?: null;
     }
 }

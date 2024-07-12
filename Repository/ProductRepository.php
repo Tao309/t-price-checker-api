@@ -250,7 +250,7 @@ class ProductRepository extends Repository
     {
         $products = $this->getProductsByProductIds([$productId], $shopType, $withCode);
 
-        return current($products);
+        return current($products) ?: null;
     }
 
     /**
