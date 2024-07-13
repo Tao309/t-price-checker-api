@@ -6,6 +6,7 @@ class tResponse {
     public const PARAM_SUCCESS = 'success';
     public const PARAM_MESSAGE = 'message';
     public const PARAM_TRACE = 'trace';
+    public const PARAM_PREVIOUS_TRACE = 'previous_trace';
     public const PARAM_DATA = 'data';
 
     public const MESSAGE_ACCESS_LIMITED = 'Access limited';
@@ -24,6 +25,7 @@ class tResponse {
     private bool $success = false;
     private ?string $message = null;
     private ?string $trace = null;
+    private ?string $previousTrace = null;
     private array $data = [];
 
     public function __toString()
@@ -96,6 +98,22 @@ class tResponse {
     public function setTrace(?string $trace): void
     {
         $this->trace = $trace;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getPreviousTrace(): ?string
+    {
+        return $this->previousTrace;
+    }
+
+    /**
+     * @param string|null $trace
+     */
+    public function setPreviousTrace(?string $trace): void
+    {
+        $this->previousTrace = $trace;
     }
 
     /**
