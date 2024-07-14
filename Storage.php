@@ -4,10 +4,13 @@ use Models\Book;
 use Repository\ProductRepository;
 use Repository\BookRepository;
 use Repository\StockRepository;
+use Repository\SourceProductRepository;
+use Models\SourceProduct;
 
 class Storage {
     private ProductRepository $productRepository;
     private BookRepository $bookRepository;
+    private SourceProductRepository $sourceProductRepository;
     private StockRepository $stockRepository;
     private tResponse $tResponse;
 
@@ -15,6 +18,7 @@ class Storage {
     {
         $this->productRepository = new ProductRepository();
         $this->bookRepository = new BookRepository();
+        $this->sourceProductRepository = new SourceProductRepository();
         $this->stockRepository = new StockRepository();
 
         $this->tResponse = $tResponse;
@@ -31,8 +35,25 @@ class Storage {
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData(
-            array_map(function (Book $book) {
-                return $book->toArray();
+            array_map(function (Book $model) {
+                return $model->toArray();
+            }, $result)
+        );
+    }
+
+    // api call
+    public function getSourceProductsByTitle(array $data): void
+    {
+        if (!isset($data['title'])) {
+            throw new \Exception('Not found title');
+        }
+
+        $result = $this->sourceProductRepository->getSourceProductsByTitle($data['title']);
+
+        $this->tResponse->setSuccess(true);
+        $this->tResponse->setData(
+            array_map(function (SourceProduct $model) {
+                return $model->toArray();
             }, $result)
         );
     }
@@ -85,19 +106,37 @@ class Storage {
     }
 
     // api call
-    public function saveBook(array $bookData): void
+    public function saveBook(array $modelData): void
     {
-        $entityId = $this->bookRepository->save($bookData);
+        $entityId = $this->bookRepository->save($modelData);
 
-        $book = $this->bookRepository->get($entityId);
+        $model = $this->bookRepository->get($entityId);
 
-        if (!$book) {
+        if (!$model) {
             throw new \Exception('Not found book by id '. $entityId);
         }
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
-            'entity' => $book->toArray()
+            'entity' => $model->toArray()
+        ]);
+        $this->tResponse->setMessage('Book is saved');
+    }
+
+    // api call
+    public function saveSourceProduct(array $modelData): void
+    {
+        $entityId = $this->sourceProductRepository->save($modelData);
+
+        $model = $this->sourceProductRepository->get($entityId);
+
+        if (!$model) {
+            throw new \Exception('Not found sourceProduct by id '. $entityId);
+        }
+
+        $this->tResponse->setSuccess(true);
+        $this->tResponse->setData([
+            'entity' => $model->toArray()
         ]);
         $this->tResponse->setMessage('Book is saved');
     }

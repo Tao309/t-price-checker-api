@@ -20,6 +20,8 @@ class tResponse {
         'getBooksByTitle',
         'saveBook',
         'removeStock',
+        'saveSourceProduct',
+        'getSourceProductsByTitle',
     ];
 
     private bool $success = false;

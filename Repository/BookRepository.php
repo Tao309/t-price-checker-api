@@ -84,7 +84,7 @@ class BookRepository extends Repository
             ->limit(7);
 
         $rows = $query->fetchAll([
-            Product::PARAM_TITLE => '%'.strtolower(trim($title)).'%'
+            Book::PARAM_TITLE => '%'.strtolower(trim($title)).'%'
         ]);
 
         return array_map(function ($row) {
@@ -184,5 +184,4 @@ class BookRepository extends Repository
             throw new CustomPdoException('BookRepository.create', $query, $e);
         }
     }
-
 }

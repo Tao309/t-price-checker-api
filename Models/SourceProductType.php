@@ -21,6 +21,7 @@ class SourceProductType extends Entity
     public const CODE_SHIRTS = 'shirts';
     public const CODE_BEVERAGES = 'beverages';
     public const CODE_MEDICINES = 'medicines';
+    public const CODE_SHORTS = 'shorts';
 
     protected const ONLY_READ_PROPERTIES = [
         self::PARAM_ID,

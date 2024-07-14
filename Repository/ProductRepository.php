@@ -17,6 +17,7 @@ class ProductRepository extends Repository
     protected string $entityModel = Product::class;
 
     private BookRepository $bookRepository;
+    private SourceProductRepository $sourceProductRepository;
     private StockRepository $stockRepository;
     private PriceDateRepository $priceDateRepository;
     private SameProductRepository $sameProductRepository;
@@ -26,6 +27,7 @@ class ProductRepository extends Repository
         parent::__construct();
 
         $this->bookRepository = new BookRepository();
+        $this->sourceProductRepository = new SourceProductRepository();
         $this->stockRepository = new StockRepository();
         $this->priceDateRepository = new PriceDateRepository();
         $this->sameProductRepository = new SameProductRepository();
@@ -81,6 +83,30 @@ class ProductRepository extends Repository
             }
 
             $this->bookRepository->unlinkBookFromProduct($entityId);
+
+            return $entityId;
+        }
+
+        if (isset($flags[Product::FLAG_TO_LINK_SOURCE_PRODUCT])) {
+            if (!$entityId) {
+                throw new \Exception('При привязки источника товара не найден товар.');
+            }
+
+            if (!isset($entityData[Product::PARAM_SOURCE_PRODUCT])) {
+                throw new \Exception('Не найден источник товара в товаре для линка.');
+            }
+
+            $this->sourceProductRepository->linkToProduct($entityId, $entityData[Product::PARAM_SOURCE_PRODUCT][Entity::PARAM_ID]);
+
+            return $entityId;
+        }
+
+        if (isset($flags[Product::FLAG_TO_UNLINK_SOURCE_PRODUCT])) {
+            if (!$entityId) {
+                throw new \Exception('При отвязки источника товара не найден товар.');
+            }
+
+            $this->sourceProductRepository->unlinkFromProduct($entityId);
 
             return $entityId;
         }

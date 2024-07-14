@@ -9,9 +9,10 @@ use DateTime;
  * @method string getProductId()
  * @method string getCode()
  * @method int getShopId()
+ * @method int|null getProductTypeId()
  * @method int|null getBookId()
  * @method int getUserId()
- * @method int getTitle()
+ * @method string getTitle()
  * @method bool getAvailable()
  * @method ?DateTime getNotAvailableDateFrom()
  * @method ?DateTime getAvailableDateFrom()
@@ -23,6 +24,7 @@ use DateTime;
  * @method DateTime getDateCreated()
  *
  * @method Shop getShop()
+ * @method SourceProduct|null getSourceProduct()
  * @method Book|null getBook()
  * @method int getMinPrice()
  * @method int getLastQty()
@@ -42,6 +44,44 @@ class Product extends Entity
 {
     public const TABLE_PREFIX = 'p';
     public const TABLE_NAME = 'products';
+
+    public const PARAM_PRODUCT_ID = 'product_id';
+    public const PARAM_CODE = 'code';
+    public const PARAM_SOURCE_PRODUCT_ID = 'source_product_id';
+    public const PARAM_BOOK_ID = 'book_id';
+    public const PARAM_SHOP_ID = 'shop_id';
+    public const PARAM_SHOP_TYPE = 'shop_type';
+    public const PARAM_USER_ID = 'user_id';
+    public const PARAM_TITLE = 'title';
+    public const PARAM_AVAILABLE = 'available';
+    public const PARAM_NOT_AVAILABLE_DATE_FROM = 'not_available_date_from';
+    public const PARAM_AVAILABLE_DATE_FROM = 'available_date_from';
+    public const PARAM_STOCKS = 'stocks';
+    public const PARAM_PRICE_DATES = 'price_dates';
+    public const PARAM_LISTEN_PRICE_VALUE = 'listen_price_value';
+    public const PARAM_LISTEN_QTY_VALUE = 'listen_qty_value';
+    public const PARAM_RELEASE_DATE = 'release_date';
+    public const PARAM_IS_ARCHIVE = 'is_archive';
+    public const PARAM_DATE_UPDATED = 'date_updated';
+    public const PARAM_DATE_CREATED = 'date_created';
+
+    public const PARAM_MIN_PRICE = 'min_price';
+    public const PARAM_LAST_QTY = 'last_qty';
+
+    public const PARAM_FLAGS = 'flags';
+    public const PARAM_SOURCE_PRODUCT = 'source_product';
+    public const PARAM_BOOK = 'book';
+    public const PARAM_SHOP = 'shop';
+    public const PARAM_SAME_PRODUCTS = 'same_products';
+
+    public const FLAG_TO_SAVE_PRODUCT = 'flag_to_save_product';
+    public const FLAG_TO_SAVE_PRICE_DATES = 'flag_to_save_price_dates';
+    public const FLAG_TO_SAVE_STOCKS = 'flag_to_save_stocks';
+    public const FLAG_TO_LINK_BOOK = 'flag_to_link_book';
+    public const FLAG_TO_UNLINK_BOOK = 'flag_to_unlink_book';
+    public const FLAG_TO_LINK_SOURCE_PRODUCT = 'flag_to_link_source_product';
+    public const FLAG_TO_UNLINK_SOURCE_PRODUCT = 'flag_to_unlink_source_product';
+    public const FLAG_TO_CHANGE_ID = 'flag_to_change_id';
 
     protected const PROPERTIES = [
         self::PARAM_ID => 'ID',
@@ -73,6 +113,11 @@ class Product extends Entity
     ];
 
     protected const RELATION_TO_ONE = [
+        self::PARAM_SOURCE_PRODUCT => [
+            'parent_id' => self::PARAM_SOURCE_PRODUCT_ID,
+            'relation_entity' => SourceProduct::class,
+            'relation_id' => Entity::PARAM_ID,
+        ],
         self::PARAM_BOOK => [
             'parent_id' => self::PARAM_BOOK_ID,
             'relation_entity' => Book::class,
@@ -101,45 +146,12 @@ class Product extends Entity
         ]
     ];
 
-    public const PARAM_PRODUCT_ID = 'product_id';
-    public const PARAM_CODE = 'code';
-    public const PARAM_BOOK_ID = 'book_id';
-    public const PARAM_SHOP_ID = 'shop_id';
-    public const PARAM_SHOP_TYPE = 'shop_type';
-    public const PARAM_USER_ID = 'user_id';
-    public const PARAM_TITLE = 'title';
-    public const PARAM_AVAILABLE = 'available';
-    public const PARAM_NOT_AVAILABLE_DATE_FROM = 'not_available_date_from';
-    public const PARAM_AVAILABLE_DATE_FROM = 'available_date_from';
-    public const PARAM_STOCKS = 'stocks';
-    public const PARAM_PRICE_DATES = 'price_dates';
-    public const PARAM_LISTEN_PRICE_VALUE = 'listen_price_value';
-    public const PARAM_LISTEN_QTY_VALUE = 'listen_qty_value';
-    public const PARAM_RELEASE_DATE = 'release_date';
-    public const PARAM_IS_ARCHIVE = 'is_archive';
-    public const PARAM_DATE_UPDATED = 'date_updated';
-    public const PARAM_DATE_CREATED = 'date_created';
-
-    public const PARAM_MIN_PRICE = 'min_price';
-    public const PARAM_LAST_QTY = 'last_qty';
-
-    public const PARAM_FLAGS = 'flags';
-    public const PARAM_BOOK = 'book';
-    public const PARAM_SHOP = 'shop';
-    public const PARAM_SAME_PRODUCTS = 'same_products';
-
-    public const FLAG_TO_SAVE_PRODUCT = 'flag_to_save_product';
-    public const FLAG_TO_SAVE_PRICE_DATES = 'flag_to_save_price_dates';
-    public const FLAG_TO_SAVE_STOCKS = 'flag_to_save_stocks';
-    public const FLAG_TO_LINK_BOOK = 'flag_to_link_book';
-    public const FLAG_TO_UNLINK_BOOK = 'flag_to_unlink_book';
-    public const FLAG_TO_CHANGE_ID = 'flag_to_change_id';
-
     protected int $productId;
     protected ?string $code;
     protected int $shopId;
 //    protected string $shopType;
 //    protected int $userId;
+    protected ?int $sourceProductId;
     protected ?int $bookId;
     protected string $title;
     protected bool $available;
@@ -153,6 +165,7 @@ class Product extends Entity
     protected DateTime $dateUpdated;
 
     protected Shop $shop;
+    protected ?SourceProduct $sourceProduct = null;
     protected ?Book $book = null;
     protected ?int $minPrice = null;
     protected ?int $lastQty = null;
@@ -177,7 +190,7 @@ class Product extends Entity
 
         if ($this->getStocks()) {
             $stocks = $this->getStocks();
-            $this->lastQty = end($stocks)->getQty();
+            $this->lastQty = end($stocks) ? end($stocks)->getQty() : null;
         }
     }
 
