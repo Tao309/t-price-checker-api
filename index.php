@@ -1,6 +1,7 @@
 <?php
 
 use Core\Config;
+use Core\Cache;
 
 define('init', true);
 
@@ -12,11 +13,13 @@ ob_start();
 Config::checkHeaders();
 
 $tResponse = new tResponse();
+$cache = new Cache();
 
 try {
     $tResponse->checkPostData($_POST);
 
     Config::initShopType($_POST['shop_type']);
+    Config::initSourceProductTypes();
 
     $actionMethod = $_POST['action'];
     $data = json_decode($_POST['data'], true);

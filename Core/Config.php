@@ -2,6 +2,10 @@
 
 namespace Core;
 
+use Exception\ResponseException;
+use Models\Entity;
+use Models\SourceProductType;
+use Models\Shop;
 use QueryPdo;
 use tResponse;
 
@@ -25,6 +29,7 @@ class Config
     private static ?string $currentShopType = null;
     private static int $userId = 2;// tao309.
     private static ?array $shopTypes = null;
+    private static ?array $sourceProductTypes = null;
 
     public static function getCurrentUserid(): int
     {
@@ -85,10 +90,15 @@ class Config
 
         if (is_null(self::$shopTypes)) {
             self::$shopTypes = [];
-            $query = (new QueryPdo())->select('*')->from('shops');
 
-            foreach ($query->fetchAll() as $row) {
-                self::$shopTypes[$row['type']] = $row['id'];
+            $cacheId = 'shops';
+            if (!Cache::isCacheExists($cacheId)) {
+                $query = (new QueryPdo())->select('*')->from(Shop::TABLE_NAME);
+                Cache::saveCache($cacheId, $query->fetchAll());
+            }
+
+            foreach (Cache::getCache($cacheId, Cache::TYPE_ARRAY) as $row) {
+                self::$shopTypes[$row[Shop::PARAM_TYPE]] = $row[Shop::PARAM_ID];
             }
         }
 
@@ -97,6 +107,38 @@ class Config
         }
 
         self::$currentShopId = self::$shopTypes[$shopType];
+    }
+
+    public static function initSourceProductTypes(): void
+    {
+        if (!is_null(self::$sourceProductTypes)) {
+            return;
+        }
+
+        self::$sourceProductTypes = [];
+
+        $cacheId = 'source_product_types';
+        if (!Cache::isCacheExists($cacheId)) {
+            $query = (new QueryPdo())->select('*')->from(SourceProductType::TABLE_NAME);
+            Cache::saveCache($cacheId, $query->fetchAll());
+        }
+
+        foreach (Cache::getCache($cacheId, Cache::TYPE_ARRAY) as $row) {
+            self::$sourceProductTypes[$row[Entity::PARAM_ID]] = $row;
+        }
+    }
+
+    public static function getSourceProductTypeIdByCode(string $productTypeCode): int
+    {
+        self::initSourceProductTypes();
+
+        $foundKey = array_search($productTypeCode, array_column(self::$sourceProductTypes, SourceProductType::PARAM_CODE));
+
+        if (!$foundKey) {
+            throw new ResponseException('Product Type by code ' . $productTypeCode . ' is not found');
+        }
+
+        return self::$sourceProductTypes[$foundKey][Entity::PARAM_ID];
     }
 
     public static function isWildberriesShopType(): bool
