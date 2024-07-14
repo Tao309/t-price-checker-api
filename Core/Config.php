@@ -3,6 +3,7 @@
 namespace Core;
 
 use Exception\ResponseException;
+use Models\BindingType;
 use Models\Entity;
 use Models\SourceProductType;
 use Models\Shop;
@@ -30,6 +31,7 @@ class Config
     private static int $userId = 2;// tao309.
     private static ?array $shopTypes = null;
     private static ?array $sourceProductTypes = null;
+    private static ?array $bookBindingtTypes = null;
 
     public static function getCurrentUserid(): int
     {
@@ -91,7 +93,7 @@ class Config
         if (is_null(self::$shopTypes)) {
             self::$shopTypes = [];
 
-            $cacheId = 'shops';
+            $cacheId = Shop::TABLE_NAME;
             if (!Cache::isCacheExists($cacheId)) {
                 $query = (new QueryPdo())->select('*')->from(Shop::TABLE_NAME);
                 Cache::saveCache($cacheId, $query->fetchAll());
@@ -117,7 +119,7 @@ class Config
 
         self::$sourceProductTypes = [];
 
-        $cacheId = 'source_product_types';
+        $cacheId = SourceProductType::TABLE_NAME;
         if (!Cache::isCacheExists($cacheId)) {
             $query = (new QueryPdo())->select('*')->from(SourceProductType::TABLE_NAME);
             Cache::saveCache($cacheId, $query->fetchAll());
@@ -126,6 +128,13 @@ class Config
         foreach (Cache::getCache($cacheId, Cache::TYPE_ARRAY) as $row) {
             self::$sourceProductTypes[$row[Entity::PARAM_ID]] = $row;
         }
+    }
+
+    public static function getSourceProductTypes(): array
+    {
+        self::initSourceProductTypes();
+
+        return self::$sourceProductTypes;
     }
 
     public static function getSourceProductTypeIdByCode(string $productTypeCode): int
@@ -139,6 +148,32 @@ class Config
         }
 
         return self::$sourceProductTypes[$foundKey][Entity::PARAM_ID];
+    }
+
+    public static function initBookBindingTypes(): void
+    {
+        if (!is_null(self::$bookBindingtTypes)) {
+            return;
+        }
+
+        self::$bookBindingtTypes = [];
+
+        $cacheId = BindingType::TABLE_NAME;
+        if (!Cache::isCacheExists($cacheId)) {
+            $query = (new QueryPdo())->select('*')->from(BindingType::TABLE_NAME);
+            Cache::saveCache($cacheId, $query->fetchAll());
+        }
+
+        foreach (Cache::getCache($cacheId, Cache::TYPE_ARRAY) as $row) {
+            self::$bookBindingtTypes[$row[Entity::PARAM_ID]] = $row;
+        }
+    }
+
+    public static function getBookBindingTypes(): array
+    {
+        self::initBookBindingTypes();
+
+        return self::$bookBindingtTypes;
     }
 
     public static function isWildberriesShopType(): bool

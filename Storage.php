@@ -6,6 +6,7 @@ use Repository\BookRepository;
 use Repository\StockRepository;
 use Repository\SourceProductRepository;
 use Models\SourceProduct;
+use Core\Config;
 
 class Storage {
     private ProductRepository $productRepository;
@@ -100,9 +101,13 @@ class Storage {
         $products = $this->productRepository->getProductsByProductIds($productIds);
 
         $this->tResponse->setSuccess(true);
-        $this->tResponse->setData(array_map(function ($product) {
-            return $product->toArray();
-        }, $products));
+        $this->tResponse->setData([
+            'items' =>  array_map(function ($product) {return $product->toArray();}, $products),
+            'config' => [
+                'source_product_types' => Config::getSourceProductTypes(),
+                'book_binding_types' => Config::getBookBindingTypes(),
+            ]
+        ]);
     }
 
     // api call
