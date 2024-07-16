@@ -83,9 +83,19 @@ class BookRepository extends Repository
             ->where('LOWER('.Book::TABLE_PREFIX.'.title) LIKE :title')
             ->limit(7);
 
-        $rows = $query->fetchAll([
+        $fetchData = [
             Book::PARAM_TITLE => '%'.strtolower(trim($title)).'%'
-        ]);
+        ];
+
+        $explodeTitle = explode('.', $title);
+        $splitTitle = reset($explodeTitle);
+
+        if (!empty($splitTitle)) {
+            $query->orWhere('LOWER('.Book::TABLE_PREFIX.'.title) LIKE :split_title');
+            $fetchData['split_title'] = '%'.strtolower(trim($splitTitle)).'%';
+        }
+
+        $rows = $query->fetchAll($fetchData);
 
         return array_map(function ($row) {
             return new Book($row);
