@@ -2,14 +2,13 @@
 
 namespace Models;
 
-use Models\Product;
-
 /**
  * @method string getProductId()
  * @method string getCode()
  * @method int getMinPrice()
  * @method bool getAvailable()
  * @method int getBookId()
+ * @method int getSourceProductId()
  *
  * @method Shop getShop()
  */
@@ -24,6 +23,7 @@ class SameProduct extends Entity
         Product::PARAM_CODE => 'Код 1С',
         Product::PARAM_AVAILABLE => 'Доступен',
         Product::PARAM_BOOK_ID => 'ID книги',
+        Product::PARAM_SOURCE_PRODUCT_ID => 'ID источника товара',
     ];
 
     protected const RELATION_TO_ONE = [
@@ -31,7 +31,7 @@ class SameProduct extends Entity
             'parent_id' => Product::PARAM_SHOP_ID,
             'relation_entity' => Shop::class,
             'relation_id' => Entity::PARAM_ID,
-            'foreign' => true,
+//            'foreign' => true,
         ],
     ];
 
@@ -39,7 +39,8 @@ class SameProduct extends Entity
     protected ?string $code;
     protected bool $available;
     protected ?int $minPrice;
-    protected int $bookId;
+    protected ?int $bookId;
+    protected ?int $sourceProductId;
 
     protected Shop $shop;
 

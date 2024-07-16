@@ -313,20 +313,35 @@ class ProductRepository extends Repository
 
         $priceDatesData = $ids ? $this->priceDateRepository->getPriceDatesForProducts($ids) : [];
         $stocksData = $ids ? $this->stockRepository->getStocksForProducts($ids) : [];
-        $sameProductDataRows = $ids ? $this->sameProductRepository->getAllSameProductsByBook($ids) : [];
+        $sameProductDataRows = $ids ? $this->sameProductRepository->getAllSameProducts($ids) : [];
 
         return array_map(function ($productData) use ($priceDatesData, $stocksData, $sameProductDataRows) {
-            $productBookId = $productData[Product::PARAM_BOOK_ID] ?? 0;
             $productId = $productData[Entity::PARAM_ID];
+
+            $productBookId = $productData[Product::PARAM_BOOK_ID] ?? 0;
+            $productSourceProductId = $productData[Product::PARAM_SOURCE_PRODUCT_ID] ?? 0;
 
             $productData[Product::PARAM_PRICE_DATES] = $priceDatesData[$productId] ?? [];
             $productData[Product::PARAM_STOCKS] = $stocksData[$productId] ?? [];
-            $productData[Product::PARAM_SAME_PRODUCTS] = ($productBookId && isset($sameProductDataRows[$productBookId]))
-                ? $this->sameProductRepository->prepareSameProducts(
-                    $productData,
-                    $sameProductDataRows[$productBookId]
-                )
-                : [];
+
+            $sameProducts = [];
+            if ($productBookId) {
+                $sameProducts = isset($sameProductDataRows['book-' . $productBookId])
+                    ? $this->sameProductRepository->prepareSameProducts(
+                        $productData,
+                        $sameProductDataRows['book-' . $productBookId]
+                    )
+                    : [];
+            } else if ($productSourceProductId) {
+                $sameProducts = isset($sameProductDataRows['source-product-' . $productSourceProductId])
+                    ? $this->sameProductRepository->prepareSameProducts(
+                        $productData,
+                        $sameProductDataRows['source-product-' . $productSourceProductId]
+                    )
+                    : [];
+            }
+            
+            $productData[Product::PARAM_SAME_PRODUCTS] = $sameProducts;
 
             return new Product($productData);
         }, $rows);

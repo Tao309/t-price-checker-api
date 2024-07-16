@@ -18,13 +18,14 @@ class SameProductRepository extends Repository
     }
 
     /**
-     * Получение похожих товаров с других магазинов, относительно текущего, уже сгруппированные по book_id.
+     * Получение похожих товаров с других магазинов, относительно текущего,
+     * уже сгруппированные по book_id, source_product_id.
      *
      * @param array $ids Массив id товаров.
      *
      * @return array Массив похожих товаров.
      */
-    public function getAllSameProductsByBook(array $ids): array
+    public function getAllSameProducts(array $ids): array
     {
         $priceDatesSubQuery = (new QueryPdo())
             ->select([PriceDate::PARAM_ID, 'MIN('.PriceDate::PARAM_PRICE.') AS price'])
@@ -37,17 +38,28 @@ class SameProductRepository extends Repository
             ->where('id', $ids)
         ;
 
+        $sourceProductSubQuery = (new QueryPdo())
+            ->select(['DISTINCT source_product_id'])
+            ->from(Product::TABLE_NAME)
+            ->where('id', $ids)
+        ;
+
         $query = $this->getListQueryNew();
+
+        $spPrefix = SameProduct::TABLE_PREFIX;
 
         $query->leftJoin(
                 ['pd' => '('.$priceDatesSubQuery->assemble().')'],
-                'pd.id = '.SameProduct::TABLE_PREFIX.'.id',
+                'pd.id = ' . $spPrefix . '.id',
                 [
                     'pd.price AS ' . Product::PARAM_MIN_PRICE
                 ]
             )
             ->where('user_id', ':user_id')
-            ->where('book_id', $bookSubQuery)
+            ->where(
+                '('. $spPrefix . '.book_id IN(' . $bookSubQuery->assemble(). ')'
+                . ' OR ' . $spPrefix . '.source_product_id IN (' . $sourceProductSubQuery->assemble() . '))'
+            )
             ->order('pd.price');
 
         $rows = $query->fetchAll([
@@ -58,11 +70,26 @@ class SameProductRepository extends Repository
         $result = [];
 
         foreach ($rows as $row) {
-            if (!isset($result[$row[Product::PARAM_BOOK_ID]])) {
-                $result[$row[Product::PARAM_BOOK_ID]] = [];
+            if (isset($row[Product::PARAM_SOURCE_PRODUCT_ID])) {
+                $sourceProductId = $row[Product::PARAM_SOURCE_PRODUCT_ID];
+
+                if (!isset($result['source-product-' . $sourceProductId])) {
+                    $result['source-product-' . $sourceProductId] = [];
+                }
+
+                $result['source-product-' . $sourceProductId][] = $row;
+                continue;
             }
 
-            $result[$row[Product::PARAM_BOOK_ID]][] = $row;
+            if (isset($row[Product::PARAM_BOOK_ID])) {
+                $bookId = $row[Product::PARAM_BOOK_ID];
+
+                if (!isset($result['book-' . $bookId])) {
+                    $result['book-' . $bookId] = [];
+                }
+
+                $result['book-' . $bookId][] = $row;
+            }
         }
 
         return $result;

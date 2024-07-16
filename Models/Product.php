@@ -88,6 +88,7 @@ class Product extends Entity
         self::PARAM_PRODUCT_ID => 'ID товара',
         self::PARAM_CODE => 'Код 1С',
         self::PARAM_BOOK_ID => 'ID книги',
+        self::PARAM_SOURCE_PRODUCT_ID => 'ID источника товара',
         self::PARAM_TITLE => 'Название',
         self::PARAM_AVAILABLE => 'Доступен',
         self::PARAM_NOT_AVAILABLE_DATE_FROM => 'Недоступен с',

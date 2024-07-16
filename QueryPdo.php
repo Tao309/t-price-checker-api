@@ -196,7 +196,7 @@ class QueryPdo
         return $this;
     }
 
-    public function orWhere(string $name): self
+    public function orWhere(string $name, $value = ''): self
     {
         if (!empty($value)) {
             $this->where[] = ['OR', $this->processWhereCondition($name, $value)];
