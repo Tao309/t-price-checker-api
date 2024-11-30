@@ -16,6 +16,11 @@ use DateTime;
  * @method ?string getComment()
  * @method DateTime getDateUpdated()
  * @method DateTime getDateCreated()
+ * @method ?int getLivelibId()
+ * @method ?int getGoodreadsId()
+ * @method ?int getFantlabId()
+ * @method ?int getLivelibRating()
+ * @method ?int getGoodreadsRating()
  *
  * @method BindingType getBindingType()
  *
@@ -28,6 +33,11 @@ use DateTime;
  * @method self setComment(string $value)
  * @method self setSize(int $value)
  * @method self setPublishYear(int $value)
+ * @method self setLivelibId(int $value)
+ * @method self setGoodreadsId(int $value)
+ * @method self setFantlabId(int $value)
+ * @method self setLivelibRating(int $value)
+ * @method self setGoodreadsRating(int $value)
  */
 class Book extends Entity
 {
@@ -48,6 +58,14 @@ class Book extends Entity
     public const PARAM_DATE_UPDATED = 'date_updated';
     public const PARAM_DATE_CREATED = 'date_created';
 
+    public const PARAM_LIVELIB_ID = 'livelib_id';
+    public const PARAM_GOODREADS_ID = 'goodreads_id';
+    public const PARAM_FANTLAB_ID = 'fantlab_id';
+
+    public const PARAM_LIVELIB_RATING = 'livelib_rating';
+    public const PARAM_GOODREADS_RATING = 'goodreads_rating';
+
+    // От зависимых моделей.
     public const PARAM_BINDING_TYPE = 'binding_type';
 
     protected const PROPERTIES = [
@@ -64,6 +82,11 @@ class Book extends Entity
         self::PARAM_COMMENT => 'Комментарий',
         self::PARAM_DATE_UPDATED => 'Дата обновления',
         self::PARAM_DATE_CREATED => 'Дата создания',
+        self::PARAM_LIVELIB_ID => 'ID livelib',
+        self::PARAM_GOODREADS_ID => 'ID goodreads',
+        self::PARAM_FANTLAB_ID => 'ID fantlab',
+        self::PARAM_LIVELIB_RATING => 'Рейтинг livelib',
+        self::PARAM_GOODREADS_RATING => 'Рейтинг goodreads',
     ];
 
     // Свойства, только для чтения, нельзя перезаписывать.
@@ -93,6 +116,11 @@ class Book extends Entity
     protected ?string $comment;
     protected DateTime $dateUpdated;
     protected DateTime $dateCreated;
+    protected ?int $livelibId;
+    protected ?int $goodreadsId;
+    protected ?int $fantlabId;
+    protected ?float $livelibRating;
+    protected ?float $goodreadsRating;
 
     // Приватные свойства не попадают в обходе у родителя. __call в родителе.
     protected ?BindingType $bindingType = null;

@@ -10,6 +10,7 @@ class EntityDataBuilder
     private const ALLOWABLE_PROPS_TYPES = [
         'bool',
         'int',
+        'float',
         'string',
         'DateTime',
     ];
@@ -128,6 +129,8 @@ class EntityDataBuilder
                 return (bool)$value;
             case 'int':
                 return $value ? (int)$value : null;
+            case 'float':
+                return $value ? (float)$value : null;
             case 'string':
                 return $value ? QueryPdo::escapeString($value) : null;
             case 'DateTime':
