@@ -187,6 +187,7 @@ abstract class Entity
                 case 'bool':
                 case 'string':
                 case 'int':
+                case 'float':
                     $this->$camelCaseParam = $value;
                     break;
                 case 'DateTime':
