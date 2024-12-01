@@ -23,6 +23,7 @@ use DateTime;
  * @method ?int getGoodreadsRating()
  *
  * @method BindingType getBindingType()
+ * @method User getUser()
  *
  * @method self setTitle(string $value)
  * @method self setAuthor(string $value)
@@ -55,6 +56,7 @@ class Book extends Entity
     public const PARAM_RELEASE_DATE = 'release_date';
     public const PARAM_LISTEN_PRICE_VALUE = 'listen_price_value';
     public const PARAM_COMMENT = 'comment';
+    public const PARAM_USER_ID = 'user_id';
     public const PARAM_DATE_UPDATED = 'date_updated';
     public const PARAM_DATE_CREATED = 'date_created';
 
@@ -67,6 +69,7 @@ class Book extends Entity
 
     // От зависимых моделей.
     public const PARAM_BINDING_TYPE = 'binding_type';
+    public const PARAM_USER = 'user';
 
     protected const PROPERTIES = [
         self::PARAM_ID => 'ID',
@@ -94,12 +97,18 @@ class Book extends Entity
         self::PARAM_ID,
         self::PARAM_DATE_UPDATED,
         self::PARAM_DATE_CREATED,
+        self::PARAM_USER_ID,
     ];
 
     protected const RELATION_TO_ONE = [
         self::PARAM_BINDING_TYPE => [
             'parent_id' => self::PARAM_BINDING_TYPE_ID,
             'relation_entity' => BindingType::class,
+            'relation_id' => Entity::PARAM_ID,
+        ],
+        self::PARAM_USER => [
+            'parent_id' => self::PARAM_USER_ID,
+            'relation_entity' => User::class,
             'relation_id' => Entity::PARAM_ID,
         ],
     ];
@@ -124,4 +133,5 @@ class Book extends Entity
 
     // Приватные свойства не попадают в обходе у родителя. __call в родителе.
     protected ?BindingType $bindingType = null;
+    protected User $user;
 }

@@ -2,6 +2,7 @@
 
 namespace Repository;
 
+use Core\Config;
 use Exception\CustomPdoException;
 use Models\Stock;
 use QueryPdo;
@@ -25,6 +26,7 @@ class StockRepository extends Repository
         $arrayValues = $this->assembleInsertValues([
             Stock::PARAM_ID,
             Stock::PARAM_QTY,
+            Stock::PARAM_USER_ID,
             Stock::PARAM_DATE,
             Stock::PARAM_LOG,
         ]);
@@ -42,7 +44,8 @@ class StockRepository extends Repository
                     Stock::PARAM_ID => $positionId,
                     Stock::PARAM_QTY => $stock[Stock::PARAM_QTY],
                     Stock::PARAM_DATE => $stock[Stock::PARAM_DATE],
-                    Stock::PARAM_LOG => isset($stock[Stock::PARAM_LOG]) ? json_encode($stock[Stock::PARAM_LOG]) : null
+                    Stock::PARAM_LOG => isset($stock[Stock::PARAM_LOG]) ? json_encode($stock[Stock::PARAM_LOG]) : null,
+                    Stock::PARAM_USER_ID => Config::getCurrentUserid(),
                 ]);
 
                 $query->execute();
@@ -65,11 +68,14 @@ class StockRepository extends Repository
 
         $query
             ->where('id', $ids)
+            ->where(Stock::PARAM_USER_ID, ':user_id')
             ->order('date');
 
         $result = [];
 
-        foreach ($query->fetchAll() as $row) {
+        foreach ($query->fetchAll([
+            Stock::PARAM_USER_ID => Config::getCurrentUserid(),
+        ]) as $row) {
             if (!isset($result[$row[Entity::PARAM_ID]])) {
                 $result[$row[Entity::PARAM_ID]] = [];
             }
@@ -85,12 +91,14 @@ class StockRepository extends Repository
         $query = $this->getListQueryNew()
             ->where('id', ':id')
             ->where('qty', ':qty')
+            ->where(Stock::PARAM_USER_ID, ':user_id')
             ->where('date', ':date');
 
         return $query->fetch([
             Stock::PARAM_ID => $stockData[Stock::PARAM_ID],
             Stock::PARAM_QTY => $stockData[Stock::PARAM_QTY],
-            Stock::PARAM_DATE => $stockData[Stock::PARAM_DATE]
+            Stock::PARAM_DATE => $stockData[Stock::PARAM_DATE],
+            Stock::PARAM_USER_ID => Config::getCurrentUserid(),
         ]);
     }
 
@@ -110,10 +118,12 @@ class StockRepository extends Repository
             ->where(Stock::PARAM_ID, ':' . Stock::PARAM_ID)
             ->where(Stock::PARAM_QTY, ':' . Stock::PARAM_QTY)
             ->where(Stock::PARAM_DATE, ':' . Stock::PARAM_DATE)
+            ->where(Stock::PARAM_USER_ID, ':user_id')
             ->bindParams([
                 Stock::PARAM_ID => $stockData[Stock::PARAM_ID],
                 Stock::PARAM_QTY => $stockData[Stock::PARAM_QTY],
-                Stock::PARAM_DATE => $stockData[Stock::PARAM_DATE]
+                Stock::PARAM_DATE => $stockData[Stock::PARAM_DATE],
+                Stock::PARAM_USER_ID => Config::getCurrentUserid(),
             ]);
 
         try {

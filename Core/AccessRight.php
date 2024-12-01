@@ -62,6 +62,24 @@ class AccessRight
         return self::PRICE_CHECKER_AUTH_TOKENS;
     }
 
+    public static function isSaveBookAvailable(): bool
+    {
+        if (self::isAdmin()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static function isSaveSourceProductAvailable(): bool
+    {
+        if (self::isAdmin()) {
+            return true;
+        }
+
+        return false;
+    }
+
     // Есть ли лимит для вывода связанных товаров.
     public static function isProductsViewedLimitAvailableForUser(): bool
     {

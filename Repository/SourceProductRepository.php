@@ -2,10 +2,12 @@
 
 namespace Repository;
 
+use Core\Config;
 use Exception\CustomPdoException;
 use Models\Entity;
 use Models\Product;
 use Models\SourceProduct;
+use Models\Stock;
 use QueryPdo;
 use PDOException;
 
@@ -54,10 +56,13 @@ class SourceProductRepository extends Repository
     public function get(int $id): SourceProduct|null
     {
         $query = $this->getListQueryNew();
-        $query->where('id', ':id');
+        $query
+            ->where('id', ':id')
+            ->where(SourceProduct::PARAM_USER_ID, ':user_id');
 
         $data = $query->fetch([
-            Entity::PARAM_ID => $id
+            Entity::PARAM_ID => $id,
+            SourceProduct::PARAM_USER_ID => Config::getCurrentUserid(),
         ]);
 
         if (!$data) {
@@ -76,10 +81,12 @@ class SourceProductRepository extends Repository
 
         $query
             ->where('LOWER('.SourceProduct::TABLE_PREFIX.'.title) LIKE :title')
+            ->where(SourceProduct::PARAM_USER_ID, ':user_id')
             ->limit(7);
 
         $fetchData = [
-            'title' => '%'.strtolower(trim($title)).'%'
+            'title' => '%'.strtolower(trim($title)).'%',
+            SourceProduct::PARAM_USER_ID => Config::getCurrentUserid()
         ];
 
         $explodeTitle = explode(' ', $title);
@@ -121,7 +128,11 @@ class SourceProductRepository extends Repository
                 $entityDataBuilder->getQueryPreparedData()
             )
             ->where(SourceProduct::PARAM_ID, ':id')
-            ->bindParam(SourceProduct::PARAM_ID, $entityDataBuilder->getEntityData(SourceProduct::PARAM_ID));
+            ->where(SourceProduct::PARAM_USER_ID, ':user_id')
+            ->bindParams([
+                SourceProduct::PARAM_ID => $entityDataBuilder->getEntityData(SourceProduct::PARAM_ID),
+                SourceProduct::PARAM_USER_ID => Config::getCurrentUserid()
+            ]);
 
         try {
             $query->execute();
@@ -135,6 +146,9 @@ class SourceProductRepository extends Repository
     protected function create(array $entityData): int
     {
         $entityDataBuilder = $this->getEntityDataBuilder($entityData);
+        $entityDataBuilder->appendPreparedData([
+            SourceProduct::PARAM_USER_ID => Config::getCurrentUserid(),
+        ]);
 
         $query = (new QueryPdo())
             ->insert(SourceProduct::TABLE_NAME, $entityDataBuilder->getQueryPreparedData());

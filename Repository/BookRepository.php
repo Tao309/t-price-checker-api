@@ -2,6 +2,7 @@
 
 namespace Repository;
 
+use Core\Config;
 use Exception\CustomPdoException;
 use Models\Book;
 use Models\Product;
@@ -168,7 +169,11 @@ class BookRepository extends Repository
                 $entityDataBuilder->getQueryPreparedData()
             )
             ->where(Book::PARAM_ID, ':id')
-            ->bindParam(Book::PARAM_ID, $entityDataBuilder->getEntityData(Book::PARAM_ID));
+            ->where(Product::PARAM_USER_ID, ':user_id')
+            ->bindParams([
+                Book::PARAM_ID, $entityDataBuilder->getEntityData(Book::PARAM_ID),
+                Product::PARAM_USER_ID => Config::getCurrentUserid(),
+            ]);
 
         try {
             $query->execute();
@@ -182,6 +187,9 @@ class BookRepository extends Repository
     protected function create(array $entityData): int
     {
         $entityDataBuilder = $this->getEntityDataBuilder($entityData);
+        $entityDataBuilder->appendPreparedData([
+            Product::PARAM_USER_ID => Config::getCurrentUserid(),
+        ]);
 
         $query = (new QueryPdo())
             ->insert(Book::TABLE_NAME, $entityDataBuilder->getQueryPreparedData());

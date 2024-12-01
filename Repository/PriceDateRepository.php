@@ -2,6 +2,7 @@
 
 namespace Repository;
 
+use Core\Config;
 use Exception\CustomPdoException;
 use Models\PriceDate;
 use QueryPdo;
@@ -25,6 +26,7 @@ class PriceDateRepository extends Repository
         $arrayValues = $this->assembleInsertValues([
             PriceDate::PARAM_ID,
             PriceDate::PARAM_PRICE,
+            PriceDate::PARAM_USER_ID,
             PriceDate::PARAM_DATE,
         ]);
 
@@ -40,7 +42,8 @@ class PriceDateRepository extends Repository
                 $query->bindParams([
                     PriceDate::PARAM_ID => $positionId,
                     PriceDate::PARAM_PRICE => $priceDate[PriceDate::PARAM_PRICE],
-                    PriceDate::PARAM_DATE => $priceDate[PriceDate::PARAM_DATE]
+                    PriceDate::PARAM_DATE => $priceDate[PriceDate::PARAM_DATE],
+                    PriceDate::PARAM_USER_ID => Config::getCurrentUserid(),
                 ]);
 
                 $query->execute();
@@ -62,11 +65,14 @@ class PriceDateRepository extends Repository
         $query = $this->getListQueryNew();
         $query
             ->where('id', $ids)
+            ->where(PriceDate::PARAM_USER_ID, ':user_id')
             ->order('date');
 
         $result = [];
 
-        foreach ($query->fetchAll() as $row) {
+        foreach ($query->fetchAll([
+            PriceDate::PARAM_USER_ID => Config::getCurrentUserid(),
+        ]) as $row) {
             if (!isset($result[$row[Entity::PARAM_ID]])) {
                 $result[$row[Entity::PARAM_ID]] = [];
             }

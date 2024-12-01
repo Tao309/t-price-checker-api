@@ -23,6 +23,7 @@ use DateTime;
  * @method DateTime getDateUpdated()
  * @method DateTime getDateCreated()
  *
+ * @method User getUser()
  * @method Shop getShop()
  * @method SourceProduct|null getSourceProduct()
  * @method Book|null getBook()
@@ -73,6 +74,7 @@ class Product extends Entity
     public const PARAM_BOOK = 'book';
     public const PARAM_SHOP = 'shop';
     public const PARAM_SAME_PRODUCTS = 'same_products';
+    public const PARAM_USER = 'user';
 
     public const FLAG_TO_SAVE_PRODUCT = 'flag_to_save_product';
     public const FLAG_TO_SAVE_PRICE_DATES = 'flag_to_save_price_dates';
@@ -129,7 +131,12 @@ class Product extends Entity
             'relation_entity' => Shop::class,
             'relation_id' => Entity::PARAM_ID,
             'foreign' => true,
-        ]
+        ],
+        self::PARAM_USER => [
+            'parent_id' => self::PARAM_USER_ID,
+            'relation_entity' => User::class,
+            'relation_id' => Entity::PARAM_ID,
+        ],
     ];
 
     protected const RELATION_TO_MANY = [
@@ -165,6 +172,7 @@ class Product extends Entity
     protected DateTime $dateCreated;
     protected DateTime $dateUpdated;
 
+    protected User $user;
     protected Shop $shop;
     protected ?SourceProduct $sourceProduct = null;
     protected ?Book $book = null;

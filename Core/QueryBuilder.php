@@ -3,6 +3,7 @@
 namespace Core;
 
 use Models\Entity;
+use Models\User;
 use QueryPdo;
 
 class QueryBuilder
@@ -42,6 +43,10 @@ class QueryBuilder
         $primaryClass = new \ReflectionClass('\\' . $entityClassName);
         $tableName = $primaryClass->getConstant('TABLE_NAME');
         $tablePrefix = $primaryClass->getConstant('TABLE_PREFIX') ?? $tableName;
+
+        if ($tableName === User::TABLE_NAME && $parentTablePrefix) {
+            $tablePrefix = $parentTablePrefix . '_' . $tablePrefix;
+        }
 
         $selectValues = [];
         $selectValuesJoin = [];
