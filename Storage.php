@@ -109,6 +109,7 @@ class Storage {
                 'book_binding_types' => Config::getBookBindingTypes(),
             ],
             'access_right' => [
+                'is_save_product_available' => AccessRight::isSaveProductAvailable(),
                 'is_save_book_available' => AccessRight::isSaveBookAvailable(),
                 'is_source_product_available' => AccessRight::isSaveSourceProductAvailable(),
                 'is_limit_viewed' => AccessRight::isProductsViewedLimitAvailableForUser(),
