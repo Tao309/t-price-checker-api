@@ -7,6 +7,7 @@ use Repository\StockRepository;
 use Repository\SourceProductRepository;
 use Models\SourceProduct;
 use Core\Config;
+use Core\AccessRight;
 
 class Storage {
     private ProductRepository $productRepository;
@@ -106,6 +107,14 @@ class Storage {
             'config' => [
                 'source_product_types' => Config::getSourceProductTypes(),
                 'book_binding_types' => Config::getBookBindingTypes(),
+            ],
+            'access_right' => [
+                'is_limit_viewed' => AccessRight::isProductsViewedLimitAvailableForUser(),
+                'limit_viewed' => AccessRight::getProductsViewedLimitForUser(),
+                'is_create_book_available' => AccessRight::isCreateBookAvailableForUser(),
+                'create_book_available_limit' => AccessRight::getCreateBookLimitForUser(),
+                'is_create_source_product_available' => AccessRight::isCreateSourceProductAvailableForUser(),
+                'create_source_product_available_limit' => AccessRight::getCreateSourceProductLimitForUser(),
             ]
         ]);
     }

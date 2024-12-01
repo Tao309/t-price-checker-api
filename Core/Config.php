@@ -28,14 +28,13 @@ class Config
 
     private static ?int $currentShopId = null;
     private static ?string $currentShopType = null;
-    private static int $userId = 2;// tao309.
     private static ?array $shopTypes = null;
     private static ?array $sourceProductTypes = null;
     private static ?array $bookBindingtTypes = null;
 
     public static function getCurrentUserid(): int
     {
-        return self::$userId;
+        return AccessRight::getCurrentUserid();
     }
 
     public static function getCurrentShopType(): string
@@ -67,19 +66,18 @@ class Config
 
     public static function checkHeaders(): void
     {
-        // Вынести в конфиг, чтобы находить user_id
         $headers = getallheaders();
 
         if (empty($headers['x-requested-with']) && $headers['x-requested-with'] !== 'tRequest') {
             die(tResponse::MESSAGE_ACCESS_LIMITED);
         }
 
-        $myPriceCheckerId = 'ksfu83jfregjewyrfwefewhfdhs3e'; // tao309
-
         // checkAuthToken from header
-        if (empty($headers['t-price-checker-id']) && $headers['t-price-checker-id'] !== $myPriceCheckerId) {
+        if (empty($headers['t-price-checker-id'])) {
             die(tResponse::MESSAGE_ACCESS_LIMITED);
         }
+
+        AccessRight::applyUserAccess($headers['t-price-checker-id']);
     }
 
     public static function initShopType(string $shopType): void
