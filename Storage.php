@@ -1,6 +1,8 @@
 <?php
 
 use Models\Book;
+use Models\Entity;
+use Models\Product;
 use Repository\ProductRepository;
 use Repository\BookRepository;
 use Repository\StockRepository;
@@ -61,6 +63,29 @@ class Storage {
     }
 
     // api call
+    public function changeProductIsArchive(array $data): void
+    {
+        if (empty($data[Product::PARAM_PRODUCT_ID])) {
+            throw new \Exception('Not found product_id');
+        }
+
+        if (!isset($data[Product::PARAM_IS_ARCHIVE])) {
+            throw new \Exception('Not found is_archive');
+        }
+
+        $this->productRepository->changeProductIsArchive(
+            $data['product_id'],
+            (bool)$data[Product::PARAM_IS_ARCHIVE]
+        );
+
+        $product = $this->productRepository->getProduct($data[Product::PARAM_PRODUCT_ID]);
+        $this->tResponse->setSuccess(true);
+        $this->tResponse->setData([
+            'product' => $product?->toArray()
+        ]);
+    }
+
+    // api call
     public function deleteProduct(array $data): void
     {
         if (empty($data['product_id'])) {
@@ -84,6 +109,20 @@ class Storage {
         $countRemoved = $this->stockRepository->deleteStock($stockData);
         $this->tResponse->setSuccess(true);
         $this->tResponse->setMessage('Stock is removed, affected: '. $countRemoved);
+    }
+
+    // api call
+    public function getProductByShopType(array $data): void
+    {
+        if (empty($data[Entity::PARAM_ID])) {
+            throw new \Exception('Не указан передаваемый ID товара.');
+        }
+
+        $product = $this->productRepository->getProduct($data['id']);
+        $this->tResponse->setSuccess(true);
+        $this->tResponse->setData([
+            'product' => $product?->toArray()
+        ]);
     }
 
     // api call

@@ -81,7 +81,7 @@ class QueryPdo
 
     public function bindParams(array $bindParams): self
     {
-        $this->bindParams = $bindParams;
+        $this->bindParams = array_merge($this->bindParams, $bindParams);
 
         return $this;
     }
@@ -187,7 +187,7 @@ class QueryPdo
 
     public function where(string $name, $value = ''): self
     {
-        if (!empty($value)) {
+        if (!empty($value) || is_bool($value) || is_int($value)) {
             $this->where[] = ['AND', $this->processWhereCondition($name, $value)];
         } else {
             $this->where[] = ['AND', $name];
@@ -220,6 +220,10 @@ class QueryPdo
 
         if (is_array($value)) {
             return $name . ' IN (' . implode(",", array_values($value)) . ')';
+        }
+
+        if (is_bool($value)) {
+            return $name . ' = ' . (int)$value;
         }
 
         return match ($value) {
@@ -345,18 +349,14 @@ class QueryPdo
         return $this;
     }
 
-    public function fetch(array $binds = [])
+    public function fetch()
     {
-        return $this->prepareFetch($binds)->fetch(PDO::FETCH_ASSOC);
+        return $this->prepareFetch()->fetch(PDO::FETCH_ASSOC);
     }
 
-    /**
-     * @param array $binds
-     * @return array|false
-     */
-    public function fetchAll(array $binds = []): array
+    public function fetchAll(): array
     {
-        $stmt = $this->prepareFetch($binds);
+        $stmt = $this->prepareFetch();
         try {
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch(\Throwable $e) {
@@ -368,9 +368,9 @@ class QueryPdo
         }
     }
 
-    public function fetchColumn(array $binds = [])
+    public function fetchColumn()
     {
-        $stmt = $this->prepareFetch($binds);
+        $stmt = $this->prepareFetch();
         try {
             return $stmt->fetchColumn();
         } catch(\Throwable $e) {
@@ -391,17 +391,13 @@ class QueryPdo
         return $this->preparedData;
     }
 
-    /**
-     * @param array $binds
-     * @return false|PDOStatement
-     */
-    private function prepareFetch(array $binds = []): PDOStatement
+    private function prepareFetch(): PDOStatement
     {
         $dbh = QueryPdo::getConnect();
 
         $stmt = $dbh->prepare($this->assemble());
 
-        foreach ($binds as $index => $value) {
+        foreach ($this->getBindParams() as $index => $value) {
             $stmt->bindValue(':' . $index, $value);
         }
 

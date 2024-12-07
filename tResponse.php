@@ -15,6 +15,7 @@ class tResponse {
         'saveProduct',
         'saveProducts',
         'deleteProduct',
+        'getProductByShopType',
         'getProductsByShopType',
         'importByShopType', // нужен только в начале
         'getBooksByTitle',
@@ -22,6 +23,7 @@ class tResponse {
         'removeStock',
         'saveSourceProduct',
         'getSourceProductsByTitle',
+        'changeProductIsArchive',
     ];
 
     private bool $success = false;

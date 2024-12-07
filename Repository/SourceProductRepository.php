@@ -58,12 +58,13 @@ class SourceProductRepository extends Repository
         $query = $this->getListQueryNew();
         $query
             ->where('id', ':id')
-            ->where(SourceProduct::PARAM_USER_ID, ':user_id');
+            ->where(SourceProduct::PARAM_USER_ID, ':user_id')
+            ->bindParams([
+                Entity::PARAM_ID => $id,
+                SourceProduct::PARAM_USER_ID => Config::getCurrentUserid(),
+            ]);
 
-        $data = $query->fetch([
-            Entity::PARAM_ID => $id,
-            SourceProduct::PARAM_USER_ID => Config::getCurrentUserid(),
-        ]);
+        $data = $query->fetch();
 
         if (!$data) {
             return null;
@@ -97,7 +98,9 @@ class SourceProductRepository extends Repository
             $fetchData['split_title'] = '%'.strtolower(trim($splitTitle)).'%';
         }
 
-        $rows = $query->fetchAll($fetchData);
+        $query->bindParams($fetchData);
+
+        $rows = $query->fetchAll();
 
         return array_map(function ($row) {
             return new SourceProduct($row);

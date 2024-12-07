@@ -66,13 +66,14 @@ class PriceDateRepository extends Repository
         $query
             ->where('id', $ids)
             ->where(PriceDate::PARAM_USER_ID, ':user_id')
-            ->order('date');
+            ->order('date')
+            ->bindParams([
+                PriceDate::PARAM_USER_ID => Config::getCurrentUserid()
+            ]);
 
         $result = [];
 
-        foreach ($query->fetchAll([
-            PriceDate::PARAM_USER_ID => Config::getCurrentUserid(),
-        ]) as $row) {
+        foreach ($query->fetchAll() as $row) {
             if (!isset($result[$row[Entity::PARAM_ID]])) {
                 $result[$row[Entity::PARAM_ID]] = [];
             }

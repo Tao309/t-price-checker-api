@@ -2,6 +2,7 @@
 
 namespace Repository;
 
+use Core\AccessRight;
 use Core\Config;
 use Exception\CustomPdoException;
 use Models\Book;
@@ -60,11 +61,12 @@ class BookRepository extends Repository
     public function get(int $id): Book|null
     {
         $query = $this->getListQueryNew();
-        $query->where('id', ':id');
+        $query->where('id', ':id')
+            ->bindParams([
+                Product::PARAM_ID => $id
+            ]);
 
-        $data = $query->fetch([
-            Product::PARAM_ID => $id
-        ]);
+        $data = $query->fetch();
 
         if (!$data) {
             return null;
@@ -96,7 +98,9 @@ class BookRepository extends Repository
             $fetchData['split_title'] = '%'.strtolower(trim($splitTitle)).'%';
         }
 
-        $rows = $query->fetchAll($fetchData);
+        $query->bindParams($fetchData);
+
+        $rows = $query->fetchAll();
 
         return array_map(function ($row) {
             return new Book($row);
@@ -152,6 +156,11 @@ class BookRepository extends Repository
      */
     public function save(array $entityData): int
     {
+        // Проверка прав доступа.
+        if (!AccessRight::isSaveBookAvailable()) {
+            throw new \RuntimeException('Save book is not granted');
+        }
+
         if (isset($entityData[Entity::PARAM_ID])) {
             return $this->update($entityData);
         }
@@ -171,7 +180,7 @@ class BookRepository extends Repository
             ->where(Book::PARAM_ID, ':id')
             ->where(Product::PARAM_USER_ID, ':user_id')
             ->bindParams([
-                Book::PARAM_ID, $entityDataBuilder->getEntityData(Book::PARAM_ID),
+                Book::PARAM_ID => $entityDataBuilder->getEntityData(Book::PARAM_ID),
                 Product::PARAM_USER_ID => Config::getCurrentUserid(),
             ]);
 

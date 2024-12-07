@@ -69,13 +69,14 @@ class StockRepository extends Repository
         $query
             ->where('id', $ids)
             ->where(Stock::PARAM_USER_ID, ':user_id')
-            ->order('date');
+            ->order('date')
+            ->bindParams([
+                Stock::PARAM_USER_ID => Config::getCurrentUserid()
+            ]);
 
         $result = [];
 
-        foreach ($query->fetchAll([
-            Stock::PARAM_USER_ID => Config::getCurrentUserid(),
-        ]) as $row) {
+        foreach ($query->fetchAll() as $row) {
             if (!isset($result[$row[Entity::PARAM_ID]])) {
                 $result[$row[Entity::PARAM_ID]] = [];
             }
@@ -92,14 +93,15 @@ class StockRepository extends Repository
             ->where('id', ':id')
             ->where('qty', ':qty')
             ->where(Stock::PARAM_USER_ID, ':user_id')
-            ->where('date', ':date');
+            ->where('date', ':date')
+            ->bindParams([
+                Stock::PARAM_ID => $stockData[Stock::PARAM_ID],
+                Stock::PARAM_QTY => $stockData[Stock::PARAM_QTY],
+                Stock::PARAM_DATE => $stockData[Stock::PARAM_DATE],
+                Stock::PARAM_USER_ID => Config::getCurrentUserid(),
+            ]);
 
-        return $query->fetch([
-            Stock::PARAM_ID => $stockData[Stock::PARAM_ID],
-            Stock::PARAM_QTY => $stockData[Stock::PARAM_QTY],
-            Stock::PARAM_DATE => $stockData[Stock::PARAM_DATE],
-            Stock::PARAM_USER_ID => Config::getCurrentUserid(),
-        ]);
+        return $query->fetch();
     }
 
     public function deleteStock(array $stockData): int
