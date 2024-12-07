@@ -35,7 +35,9 @@ try {
         throw new RuntimeException("The called method " . $actionMethod . " is not public.");
     }
 
+    $storage->preDispatch($actionMethod, $data);
     $storage->$actionMethod($data);
+    $storage->postDispatch($actionMethod, $data);
 } catch(\Exception\CustomPdoException $e) {
     processPdoException($e);
 } catch(\Throwable $e) {

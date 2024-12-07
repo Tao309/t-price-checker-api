@@ -28,6 +28,17 @@ class Storage {
         $this->tResponse = $tResponse;
     }
 
+    public function preDispatch(string $actionMethod, array $data): void
+    {
+        // Проверка доступа к методу по правам.
+
+    }
+
+    public function postDispatch(string $actionMethod, array $data): void
+    {
+
+    }
+
     // api call
     public function getBooksByTitle(array $data): void
     {
