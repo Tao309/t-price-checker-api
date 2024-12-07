@@ -41,7 +41,7 @@ class QueryPdo
         if (!self::$connect) {
             $dsn = 'mysql:host=localhost;dbname=fr51790_tprice;charset=utf8';
             $user = 'fr51790_tprice';
-            $password = 'Jg73fjkew3fgd';
+            $password = 'J&3f(3erjf73kfdg52wfd';
 
             self::$connect = new \PDO($dsn, $user, $password, [PDO::ATTR_PERSISTENT => true]);
             self::$connect->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
