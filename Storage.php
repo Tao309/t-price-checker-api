@@ -1,15 +1,15 @@
 <?php
 
+use Core\AccessRight\AccessRight;
+use Core\Config;
 use Models\Book;
 use Models\Entity;
 use Models\Product;
-use Repository\ProductRepository;
-use Repository\BookRepository;
-use Repository\StockRepository;
-use Repository\SourceProductRepository;
 use Models\SourceProduct;
-use Core\Config;
-use Core\AccessRight;
+use Repository\BookRepository;
+use Repository\ProductRepository;
+use Repository\SourceProductRepository;
+use Repository\StockRepository;
 
 class Storage {
     private ProductRepository $productRepository;
@@ -30,13 +30,18 @@ class Storage {
 
     public function preDispatch(string $actionMethod, array $data): void
     {
-        // Проверка доступа к методу по правам.
 
     }
 
     public function postDispatch(string $actionMethod, array $data): void
     {
-
+        $this->tResponse->appendData([
+            'config' => [
+                'source_product_types' => Config::getSourceProductTypes(),
+                'book_binding_types' => Config::getBookBindingTypes(),
+            ],
+            'access_rights' => AccessRight::getRights()
+        ]);
     }
 
     // api call
@@ -84,12 +89,18 @@ class Storage {
             throw new \Exception('Not found is_archive');
         }
 
-        $this->productRepository->changeProductIsArchive(
-            $data['product_id'],
-            (bool)$data[Product::PARAM_IS_ARCHIVE]
-        );
+        // Сначала получаем, потом сейвим или создаём новый?
+        $product = $this->productRepository->getProduct($data[Product::PARAM_PRODUCT_ID], null, true);
 
-        $product = $this->productRepository->getProduct($data[Product::PARAM_PRODUCT_ID]);
+        if ($product) {
+            $this->productRepository->changeProductIsArchive(
+                $data['product_id'],
+                (bool)$data[Product::PARAM_IS_ARCHIVE]
+            );
+
+            $product->setIsArchive(false);
+        }
+
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
             'product' => $product?->toArray()
@@ -153,22 +164,7 @@ class Storage {
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
-            'items' =>  array_map(function ($product) {return $product->toArray();}, $products),
-            'config' => [
-                'source_product_types' => Config::getSourceProductTypes(),
-                'book_binding_types' => Config::getBookBindingTypes(),
-            ],
-            'access_right' => [
-                'is_save_product_available' => AccessRight::isSaveProductAvailable(),
-                'is_save_book_available' => AccessRight::isSaveBookAvailable(),
-                'is_source_product_available' => AccessRight::isSaveSourceProductAvailable(),
-                'is_limit_viewed' => AccessRight::isProductsViewedLimitAvailableForUser(),
-                'limit_viewed' => AccessRight::getProductsViewedLimitForUser(),
-                'is_create_book_available' => AccessRight::isCreateBookAvailableForUser(),
-                'create_book_available_limit' => AccessRight::getCreateBookLimitForUser(),
-                'is_create_source_product_available' => AccessRight::isCreateSourceProductAvailableForUser(),
-                'create_source_product_available_limit' => AccessRight::getCreateSourceProductLimitForUser(),
-            ]
+            'items' =>  array_map(function ($product) {return $product->toArray();}, $products)
         ]);
     }
 

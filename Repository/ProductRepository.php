@@ -2,10 +2,12 @@
 
 namespace Repository;
 
-use Core\AccessRight;
+use Core\AccessRight\AccessRight;
 use Core\Config;
 use Core\EntityDataBuilder;
 use Exception\CustomPdoException;
+use Exception\ResponseException;
+use Models\Book;
 use Models\Entity;
 use Models\Product;
 use Models\Shop;
@@ -146,8 +148,7 @@ class ProductRepository extends Repository
 
     protected function update(array $entityData): int
     {
-        // Проверка прав доступа.
-        if (!AccessRight::isSaveProductAvailable()) {
+        if (!AccessRight::hasAccess('product.save')) {
             throw new \RuntimeException('Save product is not granted');
         }
 
@@ -182,8 +183,22 @@ class ProductRepository extends Repository
 
     protected function create(array $entityData): int
     {
+        if (!AccessRight::hasAccess('product.create')) {
+            throw new \RuntimeException('Create product is not granted');
+        }
+
+        if (!isset($entityData[Product::PARAM_TITLE])) {
+            throw new ResponseException('Title is empty');
+        }
+
+        $query = $this->getListQueryNew()->where(Book::PARAM_TITLE, $entityData[Product::PARAM_TITLE]);
+
+        if ($query->fetch()) {
+            throw new ResponseException(sprintf('Product "%s" is already exists', $entityData[Book::PARAM_TITLE]));
+        }
+
         // Проверка прав доступа.
-        if (!AccessRight::isSaveProductAvailable()) {
+        if (!AccessRight::hasAccess('product.save')) {
             throw new \RuntimeException('Save product is not granted');
         }
 
@@ -307,26 +322,33 @@ class ProductRepository extends Repository
     }
 
     /**
-     * Получаем одну модель продукта.
+     * Получаем одну модель продукта со всеми зависимостями.
      *
-     * @param int    $productId   ID продукта.
-     * @param string $shopType    Тип магазина.
+     * @param int    $productId    ID продукта.
+     * @param string $shopType     Тип магазина.
+     * @param bool   $addRelations Добавить все зависимости.
      *
      * @return Product|null
      *
      * @throws \Exception
      */
-    public function getProduct(int $productId, string $shopType = null): Product|null
+    public function getProduct(int $productId, string $shopType = null, bool $addRelations = false): Product|null
     {
         $query = $this->getQuery($productId, $shopType);
         $row = $query->fetch();
 
-        return $row ? $this->assembleModel($row) : null;
+        if (!$row) {
+            return null;
+        }
 
-//        $products = $this->getProductsByProductIds([$productId], $shopType, $withCode, $withArchive);
-//        return current($products) ?: null;
+        if (!$addRelations) {
+            return $this->assembleModel($row);
+        }
+
+        $models = $this->assembleQueryToModels([$row]);
+
+        return array_shift($models) ?? null;
     }
-
 
     /**
      * Сделать абстрактным или в интерфейс?
@@ -401,42 +423,12 @@ class ProductRepository extends Repository
         $sameProductDataRows = $ids ? $this->sameProductRepository->getAllSameProducts($ids) : [];
 
         return array_map(function ($productData) use ($priceDatesData, $stocksData, $sameProductDataRows) {
-
             return $this->assembleModel(
                 $productData,
                 $priceDatesData,
                 $stocksData,
                 $sameProductDataRows
             );
-
-//            $productId = $productData[Entity::PARAM_ID];
-//
-//            $productBookId = $productData[Product::PARAM_BOOK_ID] ?? 0;
-//            $productSourceProductId = $productData[Product::PARAM_SOURCE_PRODUCT_ID] ?? 0;
-//
-//            $productData[Product::PARAM_PRICE_DATES] = $priceDatesData[$productId] ?? [];
-//            $productData[Product::PARAM_STOCKS] = $stocksData[$productId] ?? [];
-//
-//            $sameProducts = [];
-//            if ($productBookId) {
-//                $sameProducts = isset($sameProductDataRows['book-' . $productBookId])
-//                    ? $this->sameProductRepository->prepareSameProducts(
-//                        $productData,
-//                        $sameProductDataRows['book-' . $productBookId]
-//                    )
-//                    : [];
-//            } else if ($productSourceProductId) {
-//                $sameProducts = isset($sameProductDataRows['source-product-' . $productSourceProductId])
-//                    ? $this->sameProductRepository->prepareSameProducts(
-//                        $productData,
-//                        $sameProductDataRows['source-product-' . $productSourceProductId]
-//                    )
-//                    : [];
-//            }
-//
-//            $productData[Product::PARAM_SAME_PRODUCTS] = $sameProducts;
-//
-//            return new Product($productData);
         }, $rows);
     }
 
@@ -544,7 +536,7 @@ class ProductRepository extends Repository
     {
         // По ид не найдёт, если товар без кода, в ид сейчас код установлен по старой схеме.
 //        $tempPositionData = $this->getPositionData($data[Product::PARAM_CODE], $data['shop_type'], false);
-        $product = $this->getProduct($data[Product::PARAM_PRODUCT_ID], $data[Product::PARAM_SHOP_TYPE], false);
+        $product = $this->getProduct($data[Product::PARAM_PRODUCT_ID], $data[Product::PARAM_SHOP_TYPE]);
         if (!$product) {
             return null;
         }

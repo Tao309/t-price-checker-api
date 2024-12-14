@@ -39,9 +39,12 @@ class QueryPdo
     public static function getConnect(): PDO
     {
         if (!self::$connect) {
-            $dsn = 'mysql:host=localhost;dbname=fr51790_tprice;charset=utf8';
-            $user = 'fr51790_tprice';
-            $password = 'J&3f(3erjf73kfdg52wfd';
+            $dsn = sprintf(
+                'mysql:host=localhost;dbname=%s;charset=utf8',
+                getenv('DB_TABLE')
+            );
+            $user = getenv('DB_USER');
+            $password = getenv('DB_PASSWORD');
 
             self::$connect = new \PDO($dsn, $user, $password, [PDO::ATTR_PERSISTENT => true]);
             self::$connect->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -226,10 +229,14 @@ class QueryPdo
             return $name . ' = ' . (int)$value;
         }
 
+        if (strpos($value, ':') === 0) {
+            return $name . ' = ' . trim($value);
+        }
+
         return match ($value) {
             self::EXPR_IS_NULL => $name . ' IS NULL',
             self::EXPR_IS_NOT_NULL => $name . ' IS NOT NULL',
-            default => $name . ' = ' . trim($value),
+            default => $name . ' = "' . trim($value) . '"',
         };
     }
 

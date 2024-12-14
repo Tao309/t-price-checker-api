@@ -10,12 +10,21 @@ require_once ('error_handler.php');
 
 ob_start();
 
-Config::checkHeaders();
-
-$tResponse = new tResponse();
-$cache = new Cache();
-
 try {
+    try {
+        $env = parse_ini_file('.env');
+        foreach ($env as $key => $value) {
+            putenv($key . '=' . $value);
+        }
+    } catch (\Throwable $e) {
+        throw new RuntimeException('Unable to parse the environment file.');
+    }
+
+    Config::checkHeaders();
+
+    $tResponse = new tResponse();
+    $cache = new Cache();
+
     $tResponse->checkPostData($_POST);
 
     Config::initShopType($_POST['shop_type']);
@@ -49,7 +58,7 @@ try {
         $tResponse->setPreviousTrace($e->getPrevious()->getTraceAsString());
     }
 
-    logMe($e);
+//    logMe($e);
 }
 
 echo $tResponse;

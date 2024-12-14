@@ -135,4 +135,12 @@ class tResponse {
     {
         $this->data = $data;
     }
+
+    /**
+     * @param array $data
+     */
+    public function appendData(array $data): void
+    {
+        $this->data = array_merge($this->data, $data);
+    }
 }

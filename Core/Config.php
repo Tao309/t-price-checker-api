@@ -2,11 +2,14 @@
 
 namespace Core;
 
+use Core\AccessRight\AccessRight;
+use Core\AccessRight\AdminAccess;
+use Core\AccessRight\UserAccess;
 use Exception\ResponseException;
 use Models\BindingType;
 use Models\Entity;
-use Models\SourceProductType;
 use Models\Shop;
+use Models\SourceProductType;
 use QueryPdo;
 use tResponse;
 
@@ -34,7 +37,7 @@ class Config
 
     public static function getCurrentUserid(): int
     {
-        return AccessRight::getCurrentUserid();
+        return AccessRight::getCurrentUserId();
     }
 
     public static function getCurrentShopType(): string
@@ -78,6 +81,12 @@ class Config
         }
 
         AccessRight::applyUserAccess($headers['t-price-checker-id']);
+
+        match (AccessRight::getCurrentUserRole()) {
+            AccessRight::USER_ADMIN_ROLE => new AdminAccess(),
+            AccessRight::USER_USER_ROLE => new UserAccess(),
+            default => throw new \Exception('Role for user is not found')
+        };
     }
 
     public static function initShopType(string $shopType): void
@@ -132,7 +141,13 @@ class Config
     {
         self::initSourceProductTypes();
 
-        return self::$sourceProductTypes;
+        $types = self::$sourceProductTypes;
+
+        usort($types, function($a, $b) {
+            return $a['name'] <=> $b['name'];
+        });
+
+        return $types;
     }
 
     public static function getSourceProductTypeIdByCode(string $productTypeCode): int

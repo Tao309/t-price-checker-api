@@ -2,14 +2,15 @@
 
 namespace Repository;
 
-use Core\AccessRight;
+use Core\AccessRight\AccessRight;
 use Core\Config;
 use Exception\CustomPdoException;
+use Exception\ResponseException;
 use Models\Book;
-use Models\Product;
-use QueryPdo;
 use Models\Entity;
+use Models\Product;
 use PDOException;
+use QueryPdo;
 
 class BookRepository extends Repository
 {
@@ -156,10 +157,6 @@ class BookRepository extends Repository
      */
     public function save(array $entityData): int
     {
-        // Проверка прав доступа.
-        if (!AccessRight::isSaveBookAvailable()) {
-            throw new \RuntimeException('Save book is not granted');
-        }
 
         if (isset($entityData[Entity::PARAM_ID])) {
             return $this->update($entityData);
@@ -170,6 +167,10 @@ class BookRepository extends Repository
 
     protected function update(array $entityData): int
     {
+        if (!AccessRight::hasAccess('book.save')) {
+            throw new \RuntimeException('Save book is not granted');
+        }
+
         $entityDataBuilder = $this->getEntityDataBuilder($entityData);
 
         $query = (new QueryPdo())
@@ -195,6 +196,21 @@ class BookRepository extends Repository
 
     protected function create(array $entityData): int
     {
+        if (!AccessRight::hasAccess('book.create')) {
+            throw new \RuntimeException('Create book is not granted');
+        }
+
+        if (!isset($entityData[Book::PARAM_TITLE])) {
+            throw new ResponseException('Title is empty');
+        }
+
+        $query = $this->getListQueryNew()
+            ->where(Book::PARAM_TITLE, $entityData[Book::PARAM_TITLE]);
+
+        if ($query->fetch()) {
+            throw new ResponseException(sprintf('Book "%s" is already exists', $entityData[Book::PARAM_TITLE]));
+        }
+
         $entityDataBuilder = $this->getEntityDataBuilder($entityData);
         $entityDataBuilder->appendPreparedData([
             Product::PARAM_USER_ID => Config::getCurrentUserid(),

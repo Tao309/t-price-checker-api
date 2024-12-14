@@ -40,6 +40,7 @@ use DateTime;
  * @method setListenPriceValue(int $value)
  * @method setListenQtyValue(int $value)
  * @method setReleaseDate(string $value)
+ * @method setIsArchive(bool $value)
  */
 class Product extends Entity
 {
