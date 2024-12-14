@@ -318,7 +318,7 @@ class ProductRepository extends Repository
 //            Product::PARAM_USER_ID => Config::getCurrentUserid(),
 //        ]);
 
-        return $this->assembleQueryToModels($query->fetchAll());
+        return $this->assembleQueryToModels($query->fetchAll(), true);
     }
 
     /**
@@ -345,7 +345,7 @@ class ProductRepository extends Repository
             return $this->assembleModel($row);
         }
 
-        $models = $this->assembleQueryToModels([$row]);
+        $models = $this->assembleQueryToModels([$row], true);
 
         return array_shift($models) ?? null;
     }
@@ -411,16 +411,26 @@ class ProductRepository extends Repository
     }
 
     /**
-     * @param array $rows
-     * @return Product[]
+     * Собираем данные в модели.
+     *
+     * @param array $rows Данные модели.
+     * @param bool $addRelations Добавлять модели, имеющие связь один к многим.
+     *
+     * @return array
      */
-    private function assembleQueryToModels(array $rows): array
+    private function assembleQueryToModels(array $rows, bool $addRelations = false): array
     {
         $ids = array_column($rows, Entity::PARAM_ID);
 
-        $priceDatesData = $ids ? $this->priceDateRepository->getPriceDatesForProducts($ids) : [];
-        $stocksData = $ids ? $this->stockRepository->getStocksForProducts($ids) : [];
-        $sameProductDataRows = $ids ? $this->sameProductRepository->getAllSameProducts($ids) : [];
+        $priceDatesData = [];
+        $stocksData = [];
+        $sameProductDataRows = [];
+
+        if ($addRelations && $ids) {
+            $priceDatesData = $ids ? $this->priceDateRepository->getPriceDatesForProducts($ids) : [];
+            $stocksData = $ids ? $this->stockRepository->getStocksForProducts($ids) : [];
+            $sameProductDataRows = $ids ? $this->sameProductRepository->getAllSameProducts($ids) : [];
+        }
 
         return array_map(function ($productData) use ($priceDatesData, $stocksData, $sameProductDataRows) {
             return $this->assembleModel(
