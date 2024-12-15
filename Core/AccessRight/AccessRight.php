@@ -2,6 +2,7 @@
 
 namespace Core\AccessRight;
 
+use Exception\ResponseException;
 use Models\Entity;
 use tResponse;
 
@@ -93,6 +94,10 @@ class AccessRight
 
     public static function getCurrentUserId(): int
     {
+        if (empty(self::$userId)) {
+            throw new ResponseException('Current user is not authenticated');
+        }
+
         return self::$userId;
     }
 

@@ -6,7 +6,7 @@ namespace Models;
  * @method string getProductId()
  * @method string getCode()
  * @method int getMinPrice()
- * @method bool getAvailable()
+// * @method bool getAvailable()
  * @method int getBookId()
  * @method int getSourceProductId()
  *
@@ -21,7 +21,7 @@ class SameProduct extends Entity
         self::PARAM_ID => 'ID',
         Product::PARAM_PRODUCT_ID => 'ID товара',
         Product::PARAM_CODE => 'Код 1С',
-        Product::PARAM_AVAILABLE => 'Доступен',
+//        Product::PARAM_AVAILABLE => 'Доступен',
         Product::PARAM_BOOK_ID => 'ID книги',
         Product::PARAM_SOURCE_PRODUCT_ID => 'ID источника товара',
     ];
@@ -37,7 +37,7 @@ class SameProduct extends Entity
 
     protected string $productId;
     protected ?string $code;
-    protected bool $available;
+//    protected bool $available;
     protected ?int $minPrice;
     protected ?int $bookId;
     protected ?int $sourceProductId;

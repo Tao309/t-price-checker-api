@@ -70,16 +70,29 @@ class QueryBuilder
         } else {
             $joinType = isset($relData['foreign']) && $relData['foreign'] ? 'rightJoin' : 'leftJoin';
 
+            $whereCondition = sprintf(
+                '%s.%s = %s.%s',
+                $parentTablePrefix,
+                $relData['parent_id'],
+                $tablePrefix,
+                $relData['relation_id'] ?? Entity::PARAM_ID,
+            );
+
+            if (isset($relData['relation_user_id'])) {
+                $whereCondition .= sprintf(
+                    ' AND %s.%s = %s',
+                    $tablePrefix,
+                    $relData['relation_user_id'],
+                    Config::getCurrentUserid()
+                );
+
+                $joinType = 'leftJoin';
+            }
+
             $this->getQueryPdo()
                 ->$joinType(
                     [$tablePrefix => $tableName],
-                    sprintf(
-                        '%s.%s = %s.%s',
-                        $parentTablePrefix,
-                        $relData['parent_id'],
-                        $tablePrefix,
-                        $relData['relation_id'] ?? Entity::PARAM_ID,
-                    ),
+                    $whereCondition,
                     $selectValuesJoin
                 );
         }

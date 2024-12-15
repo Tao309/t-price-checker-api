@@ -17,6 +17,7 @@ class QueryPdo
     private ?string $onDuplicateKeyUpdate = null;
     private array $preparedData;
     private array $bindParams = [];
+    private array $tablePrefixes = [];
     private ?PDOStatement $stmt;
 
     private $fields = [];
@@ -126,10 +127,12 @@ class QueryPdo
     private function getJoinTable($joinTable): array
     {
         if (is_array($joinTable)) {
-            $key = array_key_first($joinTable);
-            if (is_int($key)) {
+            $prefix = array_key_first($joinTable);
+            if (is_int($prefix)) {
                 throw new \Exception('QueryPdo: fromTable prefix can not be a integer.');
             }
+
+            $this->addTablePrefix($prefix, $joinTable[$prefix]);
 
             return $joinTable;
         }
@@ -137,6 +140,8 @@ class QueryPdo
         if (!is_string($joinTable)) {
             throw new \Exception('QueryPdo: fromTable prefix auto can not be a integer.');
         }
+
+        $this->addTablePrefix($joinTable, $joinTable);
 
         return [$joinTable => $joinTable];
     }
@@ -208,36 +213,6 @@ class QueryPdo
         }
 
         return $this;
-    }
-
-    private function processWhereCondition($name, $value = ''): string
-    {
-        $nameSplit = explode('.', $name);
-        if (count($nameSplit) < 2) {
-            $name = $this->getFromTablePrefix() . '.' . $name;
-        }
-
-        if ($value instanceof QueryPdo) {
-            return $name . ' IN (' . $value->assemble() . ')';
-        }
-
-        if (is_array($value)) {
-            return $name . ' IN (' . implode(",", array_values($value)) . ')';
-        }
-
-        if (is_bool($value)) {
-            return $name . ' = ' . (int)$value;
-        }
-
-        if (strpos($value, ':') === 0) {
-            return $name . ' = ' . trim($value);
-        }
-
-        return match ($value) {
-            self::EXPR_IS_NULL => $name . ' IS NULL',
-            self::EXPR_IS_NOT_NULL => $name . ' IS NOT NULL',
-            default => $name . ' = "' . trim($value) . '"',
-        };
     }
 
     public function group(string $groupValue): self
@@ -396,6 +371,50 @@ class QueryPdo
         }
 
         return $this->preparedData;
+    }
+
+    public function getTablePrefix(string $tableName): string|null
+    {
+        if (!isset($this->tablePrefixes[$tableName])) {
+            throw new \Exception('TablePrefix for "' . $tableName . '" is empty');
+        }
+
+        return $this->tablePrefixes[$tableName];
+    }
+
+    private function addTablePrefix(string $prefixName, string $tableName): void
+    {
+        $this->tablePrefixes[$tableName] = $prefixName;
+    }
+
+    private function processWhereCondition($name, $value = ''): string
+    {
+        $nameSplit = explode('.', $name);
+        if (count($nameSplit) < 2) {
+            $name = $this->getFromTablePrefix() . '.' . $name;
+        }
+
+        if ($value instanceof QueryPdo) {
+            return $name . ' IN (' . $value->assemble() . ')';
+        }
+
+        if (is_array($value)) {
+            return $name . ' IN (' . implode(",", array_values($value)) . ')';
+        }
+
+        if (is_bool($value)) {
+            return $name . ' = ' . (int)$value;
+        }
+
+        if (strpos($value, ':') === 0) {
+            return $name . ' = ' . trim($value);
+        }
+
+        return match ($value) {
+            self::EXPR_IS_NULL => $name . ' IS NULL',
+            self::EXPR_IS_NOT_NULL => $name . ' IS NOT NULL',
+            default => $name . ' = "' . trim($value) . '"',
+        };
     }
 
     private function prepareFetch(): PDOStatement

@@ -6,12 +6,15 @@ use Models\Book;
 use Models\Entity;
 use Models\Product;
 use Models\SourceProduct;
+use Models\ProductUserData;
 use Repository\BookRepository;
 use Repository\ProductRepository;
 use Repository\SourceProductRepository;
 use Repository\StockRepository;
+use Repository\ProductUserDataRepository;
 
 class Storage {
+    private ProductUserDataRepository $productUserDataRepository;
     private ProductRepository $productRepository;
     private BookRepository $bookRepository;
     private SourceProductRepository $sourceProductRepository;
@@ -20,6 +23,7 @@ class Storage {
 
     public function __construct(tResponse $tResponse)
     {
+        $this->productUserDataRepository = new ProductUserDataRepository();
         $this->productRepository = new ProductRepository();
         $this->bookRepository = new BookRepository();
         $this->sourceProductRepository = new SourceProductRepository();
@@ -54,11 +58,11 @@ class Storage {
         $result = $this->bookRepository->getBooksByTitle($data['title']);
 
         $this->tResponse->setSuccess(true);
-        $this->tResponse->setData(
-            array_map(function (Book $model) {
+        $this->tResponse->setData([
+            'books' => array_map(function (Book $model) {
                 return $model->toArray();
             }, $result)
-        );
+        ]);
     }
 
     // api call
@@ -71,11 +75,11 @@ class Storage {
         $result = $this->sourceProductRepository->getSourceProductsByTitle($data['title']);
 
         $this->tResponse->setSuccess(true);
-        $this->tResponse->setData(
-            array_map(function (SourceProduct $model) {
+        $this->tResponse->setData([
+            'products' => array_map(function (SourceProduct $model) {
                 return $model->toArray();
             }, $result)
-        );
+        ]);
     }
 
     // api call
@@ -85,7 +89,7 @@ class Storage {
             throw new \Exception('Not found product_id');
         }
 
-        if (!isset($data[Product::PARAM_IS_ARCHIVE])) {
+        if (!isset($data[ProductUserData::PARAM_IS_ARCHIVE])) {
             throw new \Exception('Not found is_archive');
         }
 
@@ -93,30 +97,31 @@ class Storage {
         $product = $this->productRepository->getProduct($data[Product::PARAM_PRODUCT_ID], null, true);
 
         if ($product) {
+            if (!$product->getProductUserData()) {
+                $this->productUserDataRepository->create([
+                    ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
+                    ProductUserData::PARAM_PRODUCT_ID => $product->getId(),
+                    ProductUserData::PARAM_AVAILABLE => true,
+                    ProductUserData::PARAM_IS_ARCHIVE => false,
+                ]);
+
+                $pud = $this->productUserDataRepository->get($product->getId());
+
+                $product->setProductUserData($pud);
+            } else {
+                $product->getProductUserData()->setIsArchive(false);
+            }
+
             $this->productRepository->changeProductIsArchive(
                 $data['product_id'],
-                (bool)$data[Product::PARAM_IS_ARCHIVE]
+                (bool)$data[ProductUserData::PARAM_IS_ARCHIVE]
             );
-
-            $product->setIsArchive(false);
         }
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
             'product' => $product?->toArray()
         ]);
-    }
-
-    // api call
-    public function deleteProduct(array $data): void
-    {
-        if (empty($data['product_id'])) {
-            throw new \Exception('Not found product_id');
-        }
-
-        $this->productRepository->removeByProductId($data['product_id']);
-        $this->tResponse->setSuccess(true);
-        $this->tResponse->setMessage('Product is removed');
     }
 
     // api call
@@ -140,7 +145,7 @@ class Storage {
             throw new \Exception('Не указан передаваемый ID товара.');
         }
 
-        $product = $this->productRepository->getProduct($data['id']);
+        $product = $this->productRepository->getProduct($data['id'], null, true);
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
             'product' => $product?->toArray()
@@ -208,13 +213,21 @@ class Storage {
     public function saveProduct(array $productData): void
     {
         $this->productRepository->save($productData);
+
+        $model = $this->productRepository->getProduct($productData[Product::PARAM_PRODUCT_ID], null, true);
+
         $this->tResponse->setSuccess(true);
         $this->tResponse->setMessage('Product is saved');
+        $this->tResponse->setData([
+            'product' => $model->toArray()
+        ]);
     }
 
     // api call
     public function importByShopType(array $productsData): void
     {
+        throw new RuntimeException('ImportByShopType is not implemented');
+
         $this->saveProducts($productsData);
     }
 

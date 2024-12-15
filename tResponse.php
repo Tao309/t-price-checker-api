@@ -14,7 +14,6 @@ class tResponse {
     private const AVAILABLE_REQUEST_METHODS = [
         'saveProduct',
         'saveProducts',
-        'deleteProduct',
         'getProductByShopType',
         'getProductsByShopType',
         'importByShopType', // нужен только в начале

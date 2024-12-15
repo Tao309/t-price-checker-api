@@ -10,6 +10,7 @@ use Exception\ResponseException;
 use Models\Book;
 use Models\Entity;
 use Models\Product;
+use Models\ProductUserData;
 use Models\Shop;
 use Models\Stock;
 use PDOException;
@@ -19,6 +20,7 @@ class ProductRepository extends Repository
 {
     protected string $entityModel = Product::class;
 
+    private ProductUserDataRepository $productUserDataRepository;
     private BookRepository $bookRepository;
     private SourceProductRepository $sourceProductRepository;
     private StockRepository $stockRepository;
@@ -29,6 +31,7 @@ class ProductRepository extends Repository
     {
         parent::__construct();
 
+        $this->productUserDataRepository = new ProductUserDataRepository();
         $this->bookRepository = new BookRepository();
         $this->sourceProductRepository = new SourceProductRepository();
         $this->stockRepository = new StockRepository();
@@ -38,9 +41,13 @@ class ProductRepository extends Repository
 
     public function save(array $entityData): int
     {
-        //die('Saving products is temporary unavailable.');
-        //var_dump($data);exit;
-        //return 1;
+        if (!isset($entityData[Product::PARAM_PRODUCT_ID])) {
+            throw new ResponseException('product_id is required');
+        }
+
+        if (!isset($entityData[Product::PARAM_SHOP_TYPE])) {
+            throw new ResponseException('shop_id is required');
+        }
 
         $stocks = $entityData[Product::PARAM_STOCKS] ?? [];
         $priceDates = $entityData[Product::PARAM_PRICE_DATES] ?? [];
@@ -57,7 +64,10 @@ class ProductRepository extends Repository
 
         $toChangeId = isset($flags[Product::FLAG_TO_CHANGE_ID]) && Config::isWildberriesShopType();
 
-        // Если находит товар с не пустым code у wildberries, значит уже заменён product_id
+        /**
+         * Если находит товар с не пустым code у wildberries, значит уже заменён product_id.
+         * Сохранение не производим, передаваемые ид неверны.
+         */
         if ($toChangeId && !$entityId) {
             $entityId = $this->tryToChangeId($entityData);
 
@@ -118,6 +128,22 @@ class ProductRepository extends Repository
             $entityId = $this->create($entityData);
         } elseif (isset($flags[Product::FLAG_TO_SAVE_PRODUCT])) {
             $this->update($entityData);
+        }
+
+        if (isset($flags[Product::FLAG_TO_SAVE_PRODUCT_USER_DATA])
+            && isset($entityData[Product::PARAM_PRODUCT_USER_DATA])
+        ) {
+            $entityData[Product::PARAM_PRODUCT_USER_DATA][ProductUserData::PARAM_PRODUCT_ID] = $entityId;
+
+//            $isNew = $isNew && !isset($entityData[Product::PARAM_PRODUCT_USER_DATA][Product::PARAM_USER_ID]);
+
+            $pud = $this->productUserDataRepository->get($entityId);
+
+            if (!$pud) {
+                $this->productUserDataRepository->create($entityData[Product::PARAM_PRODUCT_USER_DATA]);
+            } else {
+                $this->productUserDataRepository->update($entityData[Product::PARAM_PRODUCT_USER_DATA]);
+            }
         }
 
         if (!$entityId) {
@@ -187,21 +213,6 @@ class ProductRepository extends Repository
             throw new \RuntimeException('Create product is not granted');
         }
 
-        if (!isset($entityData[Product::PARAM_TITLE])) {
-            throw new ResponseException('Title is empty');
-        }
-
-        $query = $this->getListQueryNew()->where(Book::PARAM_TITLE, $entityData[Product::PARAM_TITLE]);
-
-        if ($query->fetch()) {
-            throw new ResponseException(sprintf('Product "%s" is already exists', $entityData[Book::PARAM_TITLE]));
-        }
-
-        // Проверка прав доступа.
-        if (!AccessRight::hasAccess('product.save')) {
-            throw new \RuntimeException('Save product is not granted');
-        }
-
         $entityDataBuilder = $this->getEntityDataBuilder($entityData);
         $entityDataBuilder->appendPreparedData([
             Product::PARAM_USER_ID => Config::getCurrentUserid(),
@@ -222,11 +233,9 @@ class ProductRepository extends Repository
 
     public function changeProductIsArchive($productId, bool $isArchive): void
     {
-        $query = (new QueryPdo())
-            ->update(
-                Product::TABLE_NAME,
-                [Product::PARAM_IS_ARCHIVE => $isArchive]
-            )
+        $subQuery = (new QueryPdo())
+            ->select(Entity::PARAM_ID)
+            ->from(Product::TABLE_NAME)
             ->where(Product::PARAM_PRODUCT_ID, ':product_id')
             ->where(Product::PARAM_SHOP_ID, ':shop_id')
             ->where(Product::PARAM_USER_ID, ':user_id')
@@ -234,6 +243,17 @@ class ProductRepository extends Repository
                 Product::PARAM_PRODUCT_ID => $productId,
                 Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
                 Product::PARAM_USER_ID => Config::getCurrentUserid(),
+            ]);
+
+        $query = (new QueryPdo())
+            ->update(
+                ProductUserData::TABLE_NAME,
+                [ProductUserData::PARAM_IS_ARCHIVE => $isArchive]
+            )
+            ->where(ProductUserData::PARAM_PRODUCT_ID, $subQuery->assemble())
+            ->where(ProductUserData::PARAM_USER_ID, ':user_id')
+            ->bindParams([
+                ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
             ]);
 
         try {
@@ -245,11 +265,9 @@ class ProductRepository extends Repository
 
     public function removeByProductId($productId): bool
     {
-        $query = (new QueryPdo())
-            ->update(
-                Product::TABLE_NAME,
-                [Product::PARAM_IS_ARCHIVE => TRUE]
-            )
+        $subQuery = (new QueryPdo())
+            ->select(Entity::PARAM_ID)
+            ->from(Product::TABLE_NAME)
             ->where(Product::PARAM_PRODUCT_ID, ':product_id')
             ->where(Product::PARAM_SHOP_ID, ':shop_id')
             ->where(Product::PARAM_USER_ID, ':user_id')
@@ -257,6 +275,17 @@ class ProductRepository extends Repository
                 Product::PARAM_PRODUCT_ID => $productId,
                 Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
                 Product::PARAM_USER_ID => Config::getCurrentUserid(),
+            ]);
+
+        $query = (new QueryPdo())
+            ->update(
+                Product::TABLE_NAME,
+                [ProductUserData::PARAM_IS_ARCHIVE => TRUE]
+            )
+            ->where(ProductUserData::PARAM_PRODUCT_ID, $subQuery->assemble())
+            ->where(ProductUserData::PARAM_USER_ID, ':user_id')
+            ->bindParams([
+                ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
             ]);
 
         try {
@@ -286,17 +315,16 @@ class ProductRepository extends Repository
         $withArchive = false
     ): array
     {
-//        $isOneId = count($productIds) === 1;
-//        $shopId = $shopType ? Config::getShopIdByType($shopType) : Config::getCurrentShopId();
+        $query = $this->getQuery($productIds, $shopType, true);
 
-//        $query = $this->getListQueryNew();
-//        $query->where('product_id', ':' . Product::PARAM_PRODUCT_ID);
-//        $query->where('shop_id', ':' . Product::PARAM_SHOP_ID);
-//        $query->where('user_id', ':' . Product::PARAM_USER_ID);
-
-        $query = $this->getQuery($productIds, $shopType);
-
-        $query->where(Product::PARAM_IS_ARCHIVE, $withArchive); // пока временно.
+        $query->where(
+            sprintf(
+                '%s.%s',
+                $query->getTablePrefix(ProductUserData::TABLE_NAME),
+                ProductUserData::PARAM_IS_ARCHIVE
+            ),
+            $withArchive
+        );
 
         if (Config::isWildberriesShopType()) {
             if ($withCode) {
@@ -305,18 +333,6 @@ class ProductRepository extends Repository
                 $query->where('code', QueryPdo::EXPR_IS_NULL);
             }
         }
-
-//        if (count($productIds) === 1) {
-//            $query->limit(1);
-//        } else if (Config::getCurrentUserid() !== 2) {
-//            $query->limit(100);
-//        }
-
-//        $query->bindParams([
-//            Product::PARAM_PRODUCT_ID => $isOneId ? current($productIds) : $productIds,
-//            Product::PARAM_SHOP_ID => $shopId,
-//            Product::PARAM_USER_ID => Config::getCurrentUserid(),
-//        ]);
 
         return $this->assembleQueryToModels($query->fetchAll(), true);
     }
@@ -360,17 +376,31 @@ class ProductRepository extends Repository
      *
      * @throws \Exception
      */
-    public function getQuery(int|array $productId, string $shopType = null): QueryPdo
+    public function getQuery(int|array $productId, string $shopType = null, bool $findByUser = false): QueryPdo
     {
         $query = $this->getListQueryNew();
-        $query->where('product_id', $productId);// Массив передаётся, пока ошибка будет, если через bindParams.
         $query->where('shop_id', ':' . Product::PARAM_SHOP_ID);
-        $query->where('user_id', ':' . Product::PARAM_USER_ID);
         $query->bindParams([
-//            Product::PARAM_PRODUCT_ID => $productId,
             Product::PARAM_SHOP_ID => $shopType ? Config::getShopIdByType($shopType) : Config::getCurrentShopId(),
-            Product::PARAM_USER_ID => Config::getCurrentUserid(),
         ]);
+
+        $foundProductId = $productId;
+
+        if ($findByUser) {
+//            $subQuery = (new QueryPdo())
+//                ->select(ProductUserData::PARAM_PRODUCT_ID)
+//                ->from(ProductUserData::TABLE_NAME)
+//                ->where(ProductUserData::PARAM_PRODUCT_ID, $productId)
+//                ->where(ProductUserData::PARAM_USER_ID, ':user_id')
+//                ->bindParams([
+//                    ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
+//                ])
+//                ->limit(1);
+//
+//            $foundProductId = $subQuery->assemble();
+        }
+
+        $query->where('product_id', $foundProductId);// Массив передаётся, пока ошибка будет, если через bindParams.
 
         if (is_array($productId)) {
             if (count($productId) === 1) {
@@ -520,11 +550,11 @@ class ProductRepository extends Repository
                 ->where(Product::PARAM_CODE, QueryPdo::EXPR_IS_NULL)
                 ->where(Product::PARAM_ID, ':id')
                 ->where(Product::PARAM_SHOP_ID, ':shop_id')
-                ->where(Product::PARAM_USER_ID, ':user_id')
+//                ->where(Product::PARAM_USER_ID, ':user_id')
                 ->bindParams([
                     Product::PARAM_ID => $positionId,
                     Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
-                    Product::PARAM_USER_ID => Config::getCurrentUserid(),
+//                    Product::PARAM_USER_ID => Config::getCurrentUserid(),
                 ]);
 
             $query->execute();
