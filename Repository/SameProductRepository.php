@@ -55,15 +55,16 @@ class SameProductRepository extends Repository
                     'pd.price AS ' . Product::PARAM_MIN_PRICE
                 ]
             )
-            ->where($spPrefix . '.user_id = :user_id')
+//            ->where($spPrefix . '.user_id = :user_id')
             ->where(
                 '('. $spPrefix . '.book_id IN(' . $bookSubQuery->assemble(). ')'
                 . ' OR ' . $spPrefix . '.source_product_id IN (' . $sourceProductSubQuery->assemble() . '))'
             )
             ->order('pd.price')
-            ->bindParams([
-                Product::PARAM_USER_ID => Config::getCurrentUserid()
-            ]);
+//            ->bindParams([
+//                Product::PARAM_USER_ID => Config::getCurrentUserid()
+//            ])
+        ;
 
         $rows = $query->fetchAll();
 

@@ -16,7 +16,7 @@ use DateTime;
  * @method DateTime getDateUpdated()
  * @method DateTime getDateCreated()
  *
- * @method User getUser()
+// * @method User getUser()
  * @method Shop getShop()
  * @method SourceProduct|null getSourceProduct()
  * @method Book|null getBook()
@@ -65,7 +65,7 @@ class Product extends Entity
     public const PARAM_BOOK = 'book';
     public const PARAM_SHOP = 'shop';
     public const PARAM_SAME_PRODUCTS = 'same_products';
-    public const PARAM_USER = 'user';
+//    public const PARAM_USER = 'user';
     public const PARAM_PRODUCT_USER_DATA = 'product_user_data';
 
     public const FLAG_TO_SAVE_PRODUCT_USER_DATA = 'flag_to_save_product_user_data';
@@ -101,7 +101,7 @@ class Product extends Entity
         self::PARAM_ID,
         self::PARAM_PRODUCT_ID,
         self::PARAM_SHOP_ID,
-        self::PARAM_USER_ID,
+//        self::PARAM_USER_ID,
         self::PARAM_DATE_UPDATED,
         self::PARAM_DATE_CREATED,
     ];
@@ -123,11 +123,11 @@ class Product extends Entity
             'relation_id' => Entity::PARAM_ID,
             'foreign' => true,
         ],
-        self::PARAM_USER => [
-            'parent_id' => self::PARAM_USER_ID,
-            'relation_entity' => User::class,
-            'relation_id' => Entity::PARAM_ID,
-        ],
+//        self::PARAM_USER => [
+//            'parent_id' => self::PARAM_USER_ID,
+//            'relation_entity' => User::class,
+//            'relation_id' => Entity::PARAM_ID,
+//        ],
         self::PARAM_PRODUCT_USER_DATA => [
             'parent_id' => Entity::PARAM_ID,
             'relation_entity' => ProductUserData::class,
@@ -170,7 +170,7 @@ class Product extends Entity
     protected DateTime $dateUpdated;
 
     protected ?ProductUserData $productUserData = null;
-    protected User $user;
+//    protected User $user;
     protected Shop $shop;
     protected ?SourceProduct $sourceProduct = null;
     protected ?Book $book = null;
@@ -211,16 +211,6 @@ class Product extends Entity
         unset(
             $m[self::PARAM_SHOP]
         );
-
-        // Временное решение, пока на фронтенде не подстрою всё.
-//        $m[ProductUserData::PARAM_AVAILABLE] = $this->getAvailable();
-//        $m[ProductUserData::PARAM_NOT_AVAILABLE_DATE_FROM] = $this->getNotAvailableDateFrom();
-//        $m[ProductUserData::PARAM_AVAILABLE_DATE_FROM] = $this->getAvailableDateFrom();
-//        $m[ProductUserData::PARAM_LISTEN_PRICE_VALUE] = $this->getListenPriceValue();
-//        $m[ProductUserData::PARAM_LISTEN_QTY_VALUE] = $this->getListenQtyValue();
-//        $m[ProductUserData::PARAM_RELEASE_DATE] = $this->getReleaseDate();
-//        $m[ProductUserData::PARAM_IS_ARCHIVE] = $this->getIsArchive();
-//        $m[ProductUserData::PARAM_USER_ID] = $this->getProductUserData()->getUserId();
 
         return $m;
     }
@@ -292,5 +282,10 @@ class Product extends Entity
     public function getIsArchive(): bool
     {
         return $this->getProductUserData()->getIsArchive();
+    }
+
+    public function getUser(): User
+    {
+        return $this->getProductUserData()->getUser();
     }
 }

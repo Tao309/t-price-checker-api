@@ -31,7 +31,6 @@ class SameProduct extends Entity
             'parent_id' => Product::PARAM_SHOP_ID,
             'relation_entity' => Shop::class,
             'relation_id' => Entity::PARAM_ID,
-//            'foreign' => true,
         ],
     ];
 

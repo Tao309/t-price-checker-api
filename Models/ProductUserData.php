@@ -17,6 +17,8 @@ use DateTime;
  * @method DateTime getDateUpdated()
  * @method DateTime getDateCreated()
  *
+ * @method User getUser()
+ *
  * @method setAvailable(bool $value)
  * @method setNotAvailableDateFrom(string $value)
  * @method setAvailableDateFrom(string $value)
@@ -44,6 +46,8 @@ class ProductUserData extends Entity
     public const PARAM_DATE_UPDATED = 'date_updated';
     public const PARAM_DATE_CREATED = 'date_created';
 
+    public const PARAM_USER = 'user';
+
     protected const PROPERTIES = [
         self::PARAM_USER_ID => 'ID пользователя',
         self::PARAM_PRODUCT_ID => 'ID продукта',
@@ -66,6 +70,15 @@ class ProductUserData extends Entity
         self::PARAM_DATE_CREATED,
     ];
 
+
+    protected const RELATION_TO_ONE = [
+        self::PARAM_USER => [
+            'parent_id' => self::PARAM_USER_ID,
+            'relation_entity' => User::class,
+            'relation_id' => Entity::PARAM_ID,
+        ],
+    ];
+
     protected int $userId;
     protected int $productId;
 
@@ -79,4 +92,6 @@ class ProductUserData extends Entity
 
     protected DateTime $dateUpdated;
     protected DateTime $dateCreated;
+
+    protected User $user;
 }
