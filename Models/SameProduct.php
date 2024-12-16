@@ -21,7 +21,7 @@ class SameProduct extends Entity
         self::PARAM_ID => 'ID',
         Product::PARAM_PRODUCT_ID => 'ID товара',
         Product::PARAM_CODE => 'Код 1С',
-//        Product::PARAM_AVAILABLE => 'Доступен',
+        ProductUserData::PARAM_AVAILABLE => 'Доступен',
         Product::PARAM_BOOK_ID => 'ID книги',
         Product::PARAM_SOURCE_PRODUCT_ID => 'ID источника товара',
     ];

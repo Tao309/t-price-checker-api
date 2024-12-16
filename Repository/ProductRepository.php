@@ -187,10 +187,10 @@ class ProductRepository extends Repository
             )
             ->where(Product::PARAM_PRODUCT_ID, ':product_id')
             ->where(Product::PARAM_SHOP_ID, ':shop_id')
-            ->where(Product::PARAM_USER_ID, ':user_id')
+//            ->where(Product::PARAM_USER_ID, ':user_id')
             ->bindParams([
                 Product::PARAM_SHOP_ID => $entityDataBuilder->getPreparedData(Product::PARAM_SHOP_ID),
-                Product::PARAM_USER_ID => Config::getCurrentUserid(),
+//                Product::PARAM_USER_ID => Config::getCurrentUserid(),
                 Product::PARAM_PRODUCT_ID => $entityDataBuilder->getEntityData(Product::PARAM_PRODUCT_ID),
             ]);
 
@@ -215,7 +215,7 @@ class ProductRepository extends Repository
 
         $entityDataBuilder = $this->getEntityDataBuilder($entityData);
         $entityDataBuilder->appendPreparedData([
-            Product::PARAM_USER_ID => Config::getCurrentUserid(),
+//            Product::PARAM_USER_ID => Config::getCurrentUserid(),
             Product::PARAM_PRODUCT_ID => $entityDataBuilder->getEntityData(Product::PARAM_PRODUCT_ID),
         ]);
 
@@ -520,7 +520,7 @@ class ProductRepository extends Repository
 
     protected function getEntityDataBuilder(array $data): EntityDataBuilder
     {
-        $data[Product::PARAM_USER_ID] = Config::getCurrentUserid();
+//        $data[Product::PARAM_USER_ID] = Config::getCurrentUserid();
         $data[Product::PARAM_SHOP] = [
             Shop::PARAM_ID => Config::getShopIdByType($data['shop_type']),
             Shop::PARAM_TYPE => $data['shop_type'],
