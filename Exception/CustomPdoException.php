@@ -19,7 +19,9 @@ class CustomPdoException extends \Exception
         $this->requestMethod = $requestMethod;
         $this->queryPdo = $queryPdo;
 
-        parent::__construct($e->getMessage(), $e->getCode());
+        $code = is_int($e->getCode()) ? $e->getCode() : 0;
+
+        parent::__construct($e->getMessage(), $code);
     }
 
     public function getRequestMethod(): string

@@ -12,7 +12,6 @@ use DateTime;
  * @method null|DateTime getAvailableDateFrom()
  * @method null|int getListenPriceValue()
  * @method null|int getListenQtyValue()
- * @method null|DateTime getReleaseDate()
  * @method bool getIsArchive()
  * @method DateTime getDateUpdated()
  * @method DateTime getDateCreated()
@@ -24,7 +23,6 @@ use DateTime;
  * @method setAvailableDateFrom(string $value)
  * @method setListenPriceValue(int $value)
  * @method setListenQtyValue(int $value)
- * @method setReleaseDate(string $value)
  * @method setIsArchive(bool $value)
  */
 class ProductUserData extends Entity
@@ -40,7 +38,6 @@ class ProductUserData extends Entity
     public const PARAM_AVAILABLE_DATE_FROM = 'available_date_from';
     public const PARAM_LISTEN_PRICE_VALUE = 'listen_price_value';
     public const PARAM_LISTEN_QTY_VALUE = 'listen_qty_value';
-    public const PARAM_RELEASE_DATE = 'release_date';
     public const PARAM_IS_ARCHIVE = 'is_archive';
 
     public const PARAM_DATE_UPDATED = 'date_updated';
@@ -56,8 +53,6 @@ class ProductUserData extends Entity
         self::PARAM_AVAILABLE_DATE_FROM => 'Доступен с',
         self::PARAM_LISTEN_PRICE_VALUE => 'Отслеживание цены',
         self::PARAM_LISTEN_QTY_VALUE => 'Отслеживание количества',
-        self::PARAM_RELEASE_DATE => 'Дата выпуска',
-        self::PARAM_IS_ARCHIVE => 'В архиве',
         self::PARAM_DATE_UPDATED => 'Дата обновления',
         self::PARAM_DATE_CREATED => 'Дата создания',
     ];
@@ -87,7 +82,6 @@ class ProductUserData extends Entity
     protected ?DateTime $availableDateFrom = null;
     protected ?int $listenPriceValue = null;
     protected ?int $listenQtyValue = null;
-    protected ?DateTime $releaseDate = null;
     protected bool $isArchive;
 
     protected DateTime $dateUpdated;

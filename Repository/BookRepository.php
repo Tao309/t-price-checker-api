@@ -7,6 +7,7 @@ use Core\Config;
 use Exception\CustomPdoException;
 use Exception\ResponseException;
 use Models\Book;
+use Models\BookUserData;
 use Models\Entity;
 use Models\Product;
 use PDOException;
@@ -16,9 +17,13 @@ class BookRepository extends Repository
 {
     protected string $entityModel = Book::class;
 
+    private BookUserDataRepository $bookUserDataRepository;
+
     public function __construct()
     {
         parent::__construct();
+
+        $this->bookUserDataRepository = new BookUserDataRepository();
     }
 
     public function linkBookToProduct(int $entityId, int $bookId): void
@@ -136,8 +141,8 @@ class BookRepository extends Repository
                     Book::PARAM_CIRCULATION,
                     Book::PARAM_SIZE,
                     Book::PARAM_PUBLISH_YEAR,
-                    Book::PARAM_RELEASE_DATE,
-                    Book::PARAM_LISTEN_PRICE_VALUE
+//                    Book::PARAM_RELEASE_DATE,
+//                    Book::PARAM_LISTEN_PRICE_VALUE
                 ] as $param) {
             $result[$param] = $bookData[$param] ?: null;
         }
@@ -157,12 +162,25 @@ class BookRepository extends Repository
      */
     public function save(array $entityData): int
     {
-
         if (isset($entityData[Entity::PARAM_ID])) {
-            return $this->update($entityData);
+            $entityId = $this->update($entityData);
+        } else {
+            $entityId = $this->create($entityData);
         }
 
-        return $this->create($entityData);
+        if (isset($entityData[Book::PARAM_BOOK_USER_DATA])) {
+            $entityData[Book::PARAM_BOOK_USER_DATA][BookUserData::PARAM_BOOK_ID] = $entityId;
+
+            $bud = $this->bookUserDataRepository->get($entityId);
+
+            if (!$bud) {
+                $this->bookUserDataRepository->create($entityData[Book::PARAM_BOOK_USER_DATA]);
+            } else {
+                $this->bookUserDataRepository->update($entityData[Book::PARAM_BOOK_USER_DATA]);
+            }
+        }
+
+        return $entityId;
     }
 
     protected function update(array $entityData): int

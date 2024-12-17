@@ -12,26 +12,22 @@ use DateTime;
  * @method int getCirculation()
  * @method int getSize()
  * @method string getPublishYear()
- * @method ?int getListenPriceValue()
- * @method ?string getComment()
  * @method DateTime getDateUpdated()
  * @method DateTime getDateCreated()
- * @method ?int getLivelibId()
- * @method ?int getGoodreadsId()
- * @method ?int getFantlabId()
- * @method ?int getLivelibRating()
- * @method ?int getGoodreadsRating()
+ * @method int getLivelibId()
+ * @method int getGoodreadsId()
+ * @method int getFantlabId()
+ * @method float getLivelibRating()
+ * @method float getGoodreadsRating()
  *
  * @method BindingType getBindingType()
- * @method User getUser()
+ * @method BookUserData getBookUserData()
  *
  * @method self setTitle(string $value)
  * @method self setAuthor(string $value)
  * @method self setIsbn(string $value)
  * @method self setPages(int $value)
  * @method self setCirculation(int $value)
- * @method self setListenPriceValue(int $value)
- * @method self setComment(string $value)
  * @method self setSize(int $value)
  * @method self setPublishYear(int $value)
  * @method self setLivelibId(int $value)
@@ -53,10 +49,6 @@ class Book extends Entity
     public const PARAM_SIZE = 'size'; // Размер.
     public const PARAM_BINDING_TYPE_ID = 'binding_type_id';
     public const PARAM_PUBLISH_YEAR = 'publish_year';
-    public const PARAM_RELEASE_DATE = 'release_date';
-    public const PARAM_LISTEN_PRICE_VALUE = 'listen_price_value';
-    public const PARAM_COMMENT = 'comment';
-    public const PARAM_USER_ID = 'user_id';
     public const PARAM_DATE_UPDATED = 'date_updated';
     public const PARAM_DATE_CREATED = 'date_created';
 
@@ -69,7 +61,7 @@ class Book extends Entity
 
     // От зависимых моделей.
     public const PARAM_BINDING_TYPE = 'binding_type';
-    public const PARAM_USER = 'user';
+    public const PARAM_BOOK_USER_DATA = 'book_user_data';
 
     protected const PROPERTIES = [
         self::PARAM_ID => 'ID',
@@ -80,9 +72,6 @@ class Book extends Entity
         self::PARAM_CIRCULATION => 'Тираж',
         self::PARAM_SIZE => 'Размер',
         self::PARAM_PUBLISH_YEAR => 'Год публикации',
-        self::PARAM_RELEASE_DATE => 'Дата выпуска',
-        self::PARAM_LISTEN_PRICE_VALUE => 'Отслеживание цены',
-        self::PARAM_COMMENT => 'Комментарий',
         self::PARAM_DATE_UPDATED => 'Дата обновления',
         self::PARAM_DATE_CREATED => 'Дата создания',
         self::PARAM_LIVELIB_ID => 'ID livelib',
@@ -97,7 +86,7 @@ class Book extends Entity
         self::PARAM_ID,
         self::PARAM_DATE_UPDATED,
         self::PARAM_DATE_CREATED,
-        self::PARAM_USER_ID,
+//        self::PARAM_USER_ID,
     ];
 
     protected const RELATION_TO_ONE = [
@@ -106,10 +95,11 @@ class Book extends Entity
             'relation_entity' => BindingType::class,
             'relation_id' => Entity::PARAM_ID,
         ],
-        self::PARAM_USER => [
-            'parent_id' => self::PARAM_USER_ID,
-            'relation_entity' => User::class,
-            'relation_id' => Entity::PARAM_ID,
+        self::PARAM_BOOK_USER_DATA => [
+            'parent_id' => Entity::PARAM_ID,
+            'relation_entity' => BookUserData::class,
+            'relation_id' => BookUserData::PARAM_BOOK_ID,
+            'relation_user_id' => BookUserData::PARAM_USER_ID,
         ],
     ];
 
@@ -120,9 +110,6 @@ class Book extends Entity
     protected ?int $circulation;
     protected ?string $size;
     protected ?int $publishYear;
-    protected DateTime $releaseDate;
-    protected ?int $listenPriceValue;
-    protected ?string $comment;
     protected DateTime $dateUpdated;
     protected DateTime $dateCreated;
     protected ?int $livelibId;
@@ -132,6 +119,27 @@ class Book extends Entity
     protected ?float $goodreadsRating;
 
     // Приватные свойства не попадают в обходе у родителя. __call в родителе.
+    protected ?BookUserData $bookUserData = null;
     protected ?BindingType $bindingType = null;
     protected User $user;
+
+    public function getUser(): User
+    {
+        return $this->getBookUserData()->getUser();
+    }
+
+    public function getReleaseDate(): DateTime
+    {
+        return $this->getBookUserData()->getReleaseDate();
+    }
+
+    public function getListenPriceValue(): int
+    {
+        return $this->getBookUserData()->getListenPriceValue();
+    }
+
+    public function getComment(): string
+    {
+        return $this->getBookUserData()->getComment();
+    }
 }

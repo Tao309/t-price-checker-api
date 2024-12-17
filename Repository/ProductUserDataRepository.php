@@ -2,13 +2,8 @@
 
 namespace Repository;
 
-use Core\AccessRight\AccessRight;
 use Core\Config;
 use Exception\CustomPdoException;
-use Exception\ResponseException;
-use Models\Book;
-use Models\Entity;
-use Models\Product;
 use Models\ProductUserData;
 use PDOException;
 use QueryPdo;

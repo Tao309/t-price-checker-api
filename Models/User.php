@@ -21,6 +21,11 @@ class User extends Entity
         self::PARAM_DATE_CREATED => 'Дата создания',
     ];
 
+    // Свойства, только для чтения, нельзя перезаписывать.
+    protected const ONLY_READ_PROPERTIES = [
+        self::PARAM_AUTH_TOKEN,
+    ];
+
     public const PARAM_USERNAME = 'username';
     public const PARAM_AUTH_TOKEN = 'auth_token';
     public const PARAM_DATE_CREATED = 'date_created';

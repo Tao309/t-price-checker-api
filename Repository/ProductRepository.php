@@ -231,19 +231,13 @@ class ProductRepository extends Repository
         }
     }
 
-    public function changeProductIsArchive($productId, bool $isArchive): void
+    public function changeProductIsArchive(string $productId, bool $isArchive): void
     {
         $subQuery = (new QueryPdo())
             ->select(Entity::PARAM_ID)
             ->from(Product::TABLE_NAME)
             ->where(Product::PARAM_PRODUCT_ID, ':product_id')
-            ->where(Product::PARAM_SHOP_ID, ':shop_id')
-            ->where(Product::PARAM_USER_ID, ':user_id')
-            ->bindParams([
-                Product::PARAM_PRODUCT_ID => $productId,
-                Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
-                Product::PARAM_USER_ID => Config::getCurrentUserid(),
-            ]);
+            ->where(Product::PARAM_SHOP_ID, ':shop_id');
 
         $query = (new QueryPdo())
             ->update(
@@ -254,6 +248,8 @@ class ProductRepository extends Repository
             ->where(ProductUserData::PARAM_USER_ID, ':user_id')
             ->bindParams([
                 ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
+                Product::PARAM_PRODUCT_ID => $productId,
+                Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
             ]);
 
         try {
@@ -270,12 +266,7 @@ class ProductRepository extends Repository
             ->from(Product::TABLE_NAME)
             ->where(Product::PARAM_PRODUCT_ID, ':product_id')
             ->where(Product::PARAM_SHOP_ID, ':shop_id')
-            ->where(Product::PARAM_USER_ID, ':user_id')
-            ->bindParams([
-                Product::PARAM_PRODUCT_ID => $productId,
-                Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
-                Product::PARAM_USER_ID => Config::getCurrentUserid(),
-            ]);
+            ->where(Product::PARAM_USER_ID, ':user_id');
 
         $query = (new QueryPdo())
             ->update(
@@ -286,6 +277,8 @@ class ProductRepository extends Repository
             ->where(ProductUserData::PARAM_USER_ID, ':user_id')
             ->bindParams([
                 ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
+                Product::PARAM_PRODUCT_ID => $productId,
+                Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
             ]);
 
         try {

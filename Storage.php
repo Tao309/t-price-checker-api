@@ -97,25 +97,27 @@ class Storage {
         $product = $this->productRepository->getProduct($data[Product::PARAM_PRODUCT_ID], null, true);
 
         if ($product) {
+            $isArchive = (bool)$data[ProductUserData::PARAM_IS_ARCHIVE];
+
             if (!$product->getProductUserData()) {
                 $this->productUserDataRepository->create([
                     ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
                     ProductUserData::PARAM_PRODUCT_ID => $product->getId(),
                     ProductUserData::PARAM_AVAILABLE => true,
-                    ProductUserData::PARAM_IS_ARCHIVE => false,
+                    ProductUserData::PARAM_IS_ARCHIVE => $isArchive,
                 ]);
 
                 $pud = $this->productUserDataRepository->get($product->getId());
 
                 $product->setProductUserData($pud);
             } else {
-                $product->getProductUserData()->setIsArchive(false);
-            }
+                $this->productRepository->changeProductIsArchive(
+                    (string)$data['product_id'],
+                    $isArchive
+                );
 
-            $this->productRepository->changeProductIsArchive(
-                $data['product_id'],
-                (bool)$data[ProductUserData::PARAM_IS_ARCHIVE]
-            );
+                $product->getProductUserData()->setIsArchive($isArchive);
+            }
         }
 
         $this->tResponse->setSuccess(true);

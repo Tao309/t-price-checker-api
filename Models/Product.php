@@ -16,7 +16,6 @@ use DateTime;
  * @method DateTime getDateUpdated()
  * @method DateTime getDateCreated()
  *
-// * @method User getUser()
  * @method Shop getShop()
  * @method SourceProduct|null getSourceProduct()
  * @method Book|null getBook()
@@ -44,15 +43,8 @@ class Product extends Entity
     public const PARAM_SHOP_TYPE = 'shop_type';
     public const PARAM_USER_ID = 'user_id';
     public const PARAM_TITLE = 'title';
-//        public const PARAM_AVAILABLE = 'available';
-//        public const PARAM_NOT_AVAILABLE_DATE_FROM = 'not_available_date_from';
-//        public const PARAM_AVAILABLE_DATE_FROM = 'available_date_from';
     public const PARAM_STOCKS = 'stocks';
     public const PARAM_PRICE_DATES = 'price_dates';
-//        public const PARAM_LISTEN_PRICE_VALUE = 'listen_price_value';
-//        public const PARAM_LISTEN_QTY_VALUE = 'listen_qty_value';
-//        public const PARAM_RELEASE_DATE = 'release_date';
-//        public const PARAM_IS_ARCHIVE = 'is_archive';
     public const PARAM_PRODUCT_USER_DATA_ID = 'product_user_data_id';
     public const PARAM_DATE_UPDATED = 'date_updated';
     public const PARAM_DATE_CREATED = 'date_created';
@@ -65,7 +57,6 @@ class Product extends Entity
     public const PARAM_BOOK = 'book';
     public const PARAM_SHOP = 'shop';
     public const PARAM_SAME_PRODUCTS = 'same_products';
-//    public const PARAM_USER = 'user';
     public const PARAM_PRODUCT_USER_DATA = 'product_user_data';
 
     public const FLAG_TO_SAVE_PRODUCT_USER_DATA = 'flag_to_save_product_user_data';
@@ -85,13 +76,6 @@ class Product extends Entity
         self::PARAM_BOOK_ID => 'ID книги',
         self::PARAM_SOURCE_PRODUCT_ID => 'ID источника товара',
         self::PARAM_TITLE => 'Название',
-//            self::PARAM_AVAILABLE => 'Доступен',
-//            self::PARAM_NOT_AVAILABLE_DATE_FROM => 'Недоступен с',
-//            self::PARAM_AVAILABLE_DATE_FROM => 'Доступен с',
-//            self::PARAM_LISTEN_PRICE_VALUE => 'Отслеживание цены',
-//            self::PARAM_LISTEN_QTY_VALUE => 'Отслеживание количества',
-//            self::PARAM_RELEASE_DATE => 'Дата выпуска',
-//            self::PARAM_IS_ARCHIVE => 'В архиве',
         self::PARAM_DATE_UPDATED => 'Дата обновления',
         self::PARAM_DATE_CREATED => 'Дата создания',
     ];
@@ -101,7 +85,6 @@ class Product extends Entity
         self::PARAM_ID,
         self::PARAM_PRODUCT_ID,
         self::PARAM_SHOP_ID,
-//        self::PARAM_USER_ID,
         self::PARAM_DATE_UPDATED,
         self::PARAM_DATE_CREATED,
     ];
@@ -123,11 +106,6 @@ class Product extends Entity
             'relation_id' => Entity::PARAM_ID,
             'foreign' => true,
         ],
-//        self::PARAM_USER => [
-//            'parent_id' => self::PARAM_USER_ID,
-//            'relation_entity' => User::class,
-//            'relation_id' => Entity::PARAM_ID,
-//        ],
         self::PARAM_PRODUCT_USER_DATA => [
             'parent_id' => Entity::PARAM_ID,
             'relation_entity' => ProductUserData::class,
@@ -154,23 +132,13 @@ class Product extends Entity
     protected int $productId;
     protected ?string $code;
     protected int $shopId;
-//    protected string $shopType;
-//    protected int $userId;
     protected ?int $sourceProductId;
     protected ?int $bookId;
     protected string $title;
-//        protected bool $available;
-//        protected ?DateTime $notAvailableDateFrom;
-//        protected ?DateTime $availableDateFrom;
-//        protected ?int $listenPriceValue;
-//        protected ?int $listenQtyValue;
-//        protected ?DateTime $releaseDate;
-//        protected bool $isArchive;
     protected DateTime $dateCreated;
     protected DateTime $dateUpdated;
 
     protected ?ProductUserData $productUserData = null;
-//    protected User $user;
     protected Shop $shop;
     protected ?SourceProduct $sourceProduct = null;
     protected ?Book $book = null;
@@ -249,6 +217,11 @@ class Product extends Entity
         return end($stocks) ?: null;
     }
 
+    public function getUser(): User
+    {
+        return $this->getProductUserData()->getUser();
+    }
+
     public function getAvailable(): bool
     {
         return $this->getProductUserData()->getAvailable();
@@ -274,18 +247,8 @@ class Product extends Entity
         return $this->getProductUserData()->getListenQtyValue();
     }
 
-    public function getReleaseDate(): ?DateTime
-    {
-        return $this->getProductUserData()->getReleaseDate();
-    }
-
     public function getIsArchive(): bool
     {
         return $this->getProductUserData()->getIsArchive();
-    }
-
-    public function getUser(): User
-    {
-        return $this->getProductUserData()->getUser();
     }
 }
