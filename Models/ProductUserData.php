@@ -45,6 +45,8 @@ class ProductUserData extends Entity
 
     public const PARAM_USER = 'user';
 
+    protected const PRIMARY_KEY = [self::PARAM_USER_ID, self::PARAM_PRODUCT_ID];
+
     protected const PROPERTIES = [
         self::PARAM_USER_ID => 'ID пользователя',
         self::PARAM_PRODUCT_ID => 'ID продукта',
@@ -59,8 +61,8 @@ class ProductUserData extends Entity
 
     // Свойства, только для чтения, нельзя перезаписывать.
     protected const ONLY_READ_PROPERTIES = [
-//        self::PARAM_USER_ID,
-//        self::PARAM_PRODUCT_ID,
+        self::PARAM_USER_ID,
+        self::PARAM_PRODUCT_ID,
         self::PARAM_DATE_UPDATED,
         self::PARAM_DATE_CREATED,
     ];

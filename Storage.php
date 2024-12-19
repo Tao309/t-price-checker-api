@@ -178,7 +178,16 @@ class Storage {
     // api call
     public function saveBook(array $modelData): void
     {
-        $entityId = $this->bookRepository->save($modelData);
+        QueryPdo::beginTransaction();
+        try {
+            $entityId = $this->bookRepository->save($modelData);
+
+            QueryPdo::commit();
+        } catch(\Throwable $e) {
+            QueryPdo::rollBack();
+
+            throw $e;
+        }
 
         $model = $this->bookRepository->get($entityId);
 
@@ -196,7 +205,16 @@ class Storage {
     // api call
     public function saveSourceProduct(array $modelData): void
     {
-        $entityId = $this->sourceProductRepository->save($modelData);
+        QueryPdo::beginTransaction();
+        try {
+            $entityId = $this->sourceProductRepository->save($modelData);
+
+            QueryPdo::commit();
+        } catch(\Throwable $e) {
+            QueryPdo::rollBack();
+
+            throw $e;
+        }
 
         $model = $this->sourceProductRepository->get($entityId);
 
@@ -214,7 +232,16 @@ class Storage {
     // api call
     public function saveProduct(array $productData): void
     {
-        $this->productRepository->save($productData);
+        QueryPdo::beginTransaction();
+        try {
+            $this->productRepository->save($productData);
+
+            QueryPdo::commit();
+        } catch(\Throwable $e) {
+            QueryPdo::rollBack();
+
+            throw $e;
+        }
 
         $model = $this->productRepository->getProduct($productData[Product::PARAM_PRODUCT_ID], null, true);
 
@@ -255,7 +282,17 @@ class Storage {
             $productsCount++;
 
             try {
-                $this->productRepository->save($productData);
+                QueryPdo::beginTransaction();
+                try {
+                    $this->productRepository->save($productData);
+
+                    QueryPdo::commit();
+                } catch(\Throwable $e) {
+                    QueryPdo::rollBack();
+
+                    throw $e;
+                }
+
                 $savedCount++;
             } catch (\Throwable $e) {
                 $errorsCount++;

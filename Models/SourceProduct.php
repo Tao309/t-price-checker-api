@@ -6,16 +6,13 @@ use DateTime;
 
 /**
  * @method string getTitle()
- * @method ?int getListenPriceValue()
- * @method ?string getComment()
+ * @method DateTime getDateUpdated()
  * @method DateTime getDateCreated()
  *
  * @method SourceProductType getSourceProductType()
- * @method User getUser()
+ * @method SourceProductUserData getSourceProductUserData()
  *
  * @method self setTitle(string $value)
- * @method self setListenPriceValue(int $value)
- * @method self setComment(string $value)
  */
 class SourceProduct extends Entity
 {
@@ -24,27 +21,23 @@ class SourceProduct extends Entity
 
     public const PARAM_SOURCE_PRODUCT_TYPE_ID = 'source_product_type_id';
     public const PARAM_TITLE = 'title';
-    public const PARAM_LISTEN_PRICE_VALUE = 'listen_price_value';
-    public const PARAM_COMMENT = 'comment';
-    public const PARAM_USER_ID = 'user_id';
+    public const PARAM_DATE_UPDATED = 'date_updated';
     public const PARAM_DATE_CREATED = 'date_created';
 
     // От зависимых моделей.
     public const PARAM_SOURCE_PRODUCT_TYPE = 'source_product_type';
-    public const PARAM_USER = 'user';
 
     protected const PROPERTIES = [
         self::PARAM_ID => 'ID',
         self::PARAM_TITLE => 'Название',
-        self::PARAM_LISTEN_PRICE_VALUE => 'Отслеживание цены',
-        self::PARAM_COMMENT => 'Комментарий',
+        self::PARAM_DATE_UPDATED => 'Дата обновления',
         self::PARAM_DATE_CREATED => 'Дата создания',
     ];
 
     protected const ONLY_READ_PROPERTIES = [
         self::PARAM_ID,
+        self::PARAM_DATE_UPDATED,
         self::PARAM_DATE_CREATED,
-        self::PARAM_USER_ID,
     ];
 
     protected const RELATION_TO_ONE = [
@@ -53,19 +46,12 @@ class SourceProduct extends Entity
             'relation_entity' => SourceProductType::class,
             'relation_id' => Entity::PARAM_ID,
         ],
-        self::PARAM_USER => [
-            'parent_id' => self::PARAM_USER_ID,
-            'relation_entity' => User::class,
-            'relation_id' => Entity::PARAM_ID,
-        ],
     ];
 
     protected string $title;
-    protected ?int $listenPriceValue;
-    protected ?string $comment;
+    protected DateTime $dateUpdated;
     protected DateTime $dateCreated;
 
     // Приватные свойства не попадают в обходе у родителя. __call в родителе.
     protected SourceProductType $sourceProductType;
-    protected User $user;
 }

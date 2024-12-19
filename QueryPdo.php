@@ -54,6 +54,24 @@ class QueryPdo
         return self::$connect;
     }
 
+    public static function beginTransaction(): void
+    {
+        $dbh = self::getConnect();
+        $dbh->beginTransaction();
+    }
+
+    public static function commit(): void
+    {
+        $dbh = self::getConnect();
+        $dbh->commit();
+    }
+
+    public static function rollBack(): void
+    {
+        $dbh = self::getConnect();
+        $dbh->rollBack();
+    }
+
     public function execute(): PDOStatement
     {
         $dbh = self::getConnect();
@@ -195,7 +213,7 @@ class QueryPdo
 
     public function where(string $name, $value = ''): self
     {
-        if (!empty($value) || is_bool($value) || is_int($value)) {
+        if (!empty($value) || is_bool($value) || is_int($value) || ($value instanceof QueryPdo)) {
             $this->where[] = ['AND', $this->processWhereCondition($name, $value)];
         } else {
             $this->where[] = ['AND', $name];

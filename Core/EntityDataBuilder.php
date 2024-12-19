@@ -18,6 +18,7 @@ class EntityDataBuilder
     private string $entityModel;
     private array $entityData;
     private array $preparedData;
+    private array $preparedReadData;
 
     public function __construct(string $entityModel, array $entityData)
     {
@@ -88,6 +89,19 @@ class EntityDataBuilder
         $primaryClass = new \ReflectionClass('\\' . $this->entityModel);
         $relToOne = $primaryClass->getConstant('RELATION_TO_ONE');
         $onlyReadProps = $primaryClass->getConstant('ONLY_READ_PROPERTIES');
+        $primaryKeys = $primaryClass->getConstant('PRIMARY_KEY');
+        $isNewModel = true;
+
+        if ($primaryKeys === false || !is_array($primaryKeys)) {
+            throw new \Exception('PrimaryKey for entity '.$primaryClass->getName().' is required');
+        }
+
+        // Проверяем новая ли модель по входящим главным ключам модели.
+        foreach ($primaryKeys as $primaryKey) {
+            if (empty($this->entityData[$primaryKey])) {
+                $isNewModel = false;
+            }
+        }
 
         foreach ($this->entityData as $param => $value) {
             $camelCaseParam = Entity::toCamelCase($param);
@@ -101,7 +115,17 @@ class EntityDataBuilder
             $property = $primaryClass->getProperty($camelCaseParam);
             $propertyType = $property->getType()->getName();
 
-            if (is_array($onlyReadProps) && in_array($param, $onlyReadProps)) {
+            // Для update не переписывать главные ключи.
+            if (!$isNewModel && in_array($param, $primaryKeys)) {
+                continue;
+            }
+
+            // Не пропускаем пустые значения главных ключей.
+            if ($isNewModel && in_array($param, $primaryKeys) && empty($value)) {
+                continue;
+            }
+
+            if (!$isNewModel && is_array($onlyReadProps) && in_array($param, $onlyReadProps)) {
                 continue;
             }
 

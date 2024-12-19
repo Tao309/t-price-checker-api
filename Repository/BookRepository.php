@@ -170,6 +170,7 @@ class BookRepository extends Repository
 
         if (isset($entityData[Book::PARAM_BOOK_USER_DATA])) {
             $entityData[Book::PARAM_BOOK_USER_DATA][BookUserData::PARAM_BOOK_ID] = $entityId;
+            $entityData[Book::PARAM_BOOK_USER_DATA][BookUserData::PARAM_USER_ID] = Config::getCurrentUserid();
 
             $bud = $this->bookUserDataRepository->get($entityId);
 

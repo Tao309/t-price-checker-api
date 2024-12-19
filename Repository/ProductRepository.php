@@ -134,8 +134,7 @@ class ProductRepository extends Repository
             && isset($entityData[Product::PARAM_PRODUCT_USER_DATA])
         ) {
             $entityData[Product::PARAM_PRODUCT_USER_DATA][ProductUserData::PARAM_PRODUCT_ID] = $entityId;
-
-//            $isNew = $isNew && !isset($entityData[Product::PARAM_PRODUCT_USER_DATA][Product::PARAM_USER_ID]);
+            $entityData[Product::PARAM_PRODUCT_USER_DATA][ProductUserData::PARAM_USER_ID] = Config::getCurrentUserid();
 
             $pud = $this->productUserDataRepository->get($entityId);
 
@@ -237,14 +236,19 @@ class ProductRepository extends Repository
             ->select(Entity::PARAM_ID)
             ->from(Product::TABLE_NAME)
             ->where(Product::PARAM_PRODUCT_ID, ':product_id')
-            ->where(Product::PARAM_SHOP_ID, ':shop_id');
+            ->where(Product::PARAM_SHOP_ID, ':shop_id')
+//            ->bindParams([
+//                Product::PARAM_PRODUCT_ID => $productId,
+//                Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
+//            ])
+        ;
 
         $query = (new QueryPdo())
             ->update(
                 ProductUserData::TABLE_NAME,
                 [ProductUserData::PARAM_IS_ARCHIVE => $isArchive]
             )
-            ->where(ProductUserData::PARAM_PRODUCT_ID, $subQuery->assemble())
+            ->where(ProductUserData::PARAM_PRODUCT_ID, $subQuery)
             ->where(ProductUserData::PARAM_USER_ID, ':user_id')
             ->bindParams([
                 ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
@@ -273,7 +277,7 @@ class ProductRepository extends Repository
                 Product::TABLE_NAME,
                 [ProductUserData::PARAM_IS_ARCHIVE => TRUE]
             )
-            ->where(ProductUserData::PARAM_PRODUCT_ID, $subQuery->assemble())
+            ->where(ProductUserData::PARAM_PRODUCT_ID, $subQuery)
             ->where(ProductUserData::PARAM_USER_ID, ':user_id')
             ->bindParams([
                 ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),

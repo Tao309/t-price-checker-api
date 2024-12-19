@@ -78,16 +78,14 @@ class SourceProductRepository extends Repository
      */
     public function getSourceProductsByTitle(string $title): array
     {
-        $query = $this->getListQueryNew();
-
-        $query
+        $query = $this->getListQueryNew()
             ->where('LOWER('.SourceProduct::TABLE_PREFIX.'.title) LIKE :title')
-            ->where(SourceProduct::PARAM_USER_ID, ':user_id')
+//            ->where(SourceProduct::PARAM_USER_ID, ':user_id')
             ->limit(7);
 
         $fetchData = [
             'title' => '%'.strtolower(trim($title)).'%',
-            SourceProduct::PARAM_USER_ID => Config::getCurrentUserid()
+//            SourceProduct::PARAM_USER_ID => Config::getCurrentUserid()
         ];
 
         $explodeTitle = explode(' ', $title);

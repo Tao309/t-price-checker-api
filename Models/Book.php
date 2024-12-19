@@ -86,7 +86,6 @@ class Book extends Entity
         self::PARAM_ID,
         self::PARAM_DATE_UPDATED,
         self::PARAM_DATE_CREATED,
-//        self::PARAM_USER_ID,
     ];
 
     protected const RELATION_TO_ONE = [
@@ -121,7 +120,6 @@ class Book extends Entity
     // Приватные свойства не попадают в обходе у родителя. __call в родителе.
     protected ?BookUserData $bookUserData = null;
     protected ?BindingType $bindingType = null;
-    protected User $user;
 
     public function getUser(): User
     {

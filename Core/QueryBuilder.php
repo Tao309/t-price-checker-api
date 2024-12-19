@@ -13,7 +13,7 @@ class QueryBuilder
 
     public function __construct(string $entityClassName)
     {
-        $this->queryPdo = new queryPdo();
+        $this->queryPdo = new QueryPdo();
         $this->entityClassName = $entityClassName;
 
         $this->appendToQuery($this->entityClassName);
