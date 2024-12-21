@@ -4,6 +4,7 @@ namespace Core;
 
 use Models\Entity;
 use QueryPdo;
+use Repository\Repository;
 
 class EntityDataBuilder
 {
@@ -13,6 +14,11 @@ class EntityDataBuilder
         'float',
         'string',
         'DateTime',
+    ];
+
+    private const NOT_UPDATABLE_PARAMS = [
+        'date_updated',
+        'date_created'
     ];
 
     private string $entityModel;
@@ -65,8 +71,16 @@ class EntityDataBuilder
         return $this->preparedData[$param];
     }
 
-    // Получение значения из входящих данных.
-    public function getEntityData(string $param): mixed
+    /**
+     * Получение значения из входящих данных по названию поля.
+     *
+     * @param string|array $param Входящие названия поля, полей.
+     *
+     * @return array|false|mixed Найденные значения.
+     *
+     * @throws \ReflectionException
+     */
+    public function getEntityData(string|array $param): mixed
     {
         if (!isset($this->entityData[$param])) {
             throw new \Exception('Property ' . $param . ' is not found in Entity Data');
@@ -78,9 +92,15 @@ class EntityDataBuilder
             throw new \Exception('Property ' . $param . ' is not exist in Entity');
         }
 
-        $property = $primaryClass->getProperty($camelCaseParam);
+        $param = is_array($param) ? $param : [$param];
 
-        return $this->prepareValue($property->getType()->getName(), $this->entityData[$param]);
+        $values = [];
+        foreach ($param as $paramValue) {
+            $property = $primaryClass->getProperty($camelCaseParam);
+            $values[] = $this->prepareValue($property->getType()->getName(), $this->entityData[$paramValue]);
+        }
+
+        return count($values) > 1 ? $values: reset($values);
     }
 
     private function processEntityData(): void
@@ -131,7 +151,14 @@ class EntityDataBuilder
                 continue;
             }
 
-            if (is_array($relToOne) && isset($relToOne[$currentParam])) {
+            if (in_array($param, self::NOT_UPDATABLE_PARAMS)) {
+                continue;
+            }
+
+            if (is_array($relToOne)
+                && isset($relToOne[$currentParam])
+                && !isset($relToOne[$currentParam][Repository::PARAM_RELATION_USER_id])
+            ) {
                 $toData = true;
                 $param = $relToOne[$currentParam]['parent_id'];
                 $value = $value[$relToOne[$currentParam]['relation_id']];

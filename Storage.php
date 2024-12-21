@@ -180,7 +180,7 @@ class Storage {
     {
         QueryPdo::beginTransaction();
         try {
-            $entityId = $this->bookRepository->save($modelData);
+            $entityId = $this->bookRepository->processSave($modelData);
 
             QueryPdo::commit();
         } catch(\Throwable $e) {

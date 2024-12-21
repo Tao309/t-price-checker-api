@@ -30,7 +30,7 @@ function cutDate(string $date)
 if ($bookId) {
     try {
 
-        $book = $bookRepository->get($bookId);
+        $book = $bookRepository->find($bookId);
 
         if (!$book) {exit;}
 

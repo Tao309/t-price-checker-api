@@ -3,6 +3,7 @@
 namespace Models;
 
 use DateTime;
+use Repository\Repository;
 
 /**
  * @method int getTitle()
@@ -90,15 +91,15 @@ class Book extends Entity
 
     protected const RELATION_TO_ONE = [
         self::PARAM_BINDING_TYPE => [
-            'parent_id' => self::PARAM_BINDING_TYPE_ID,
-            'relation_entity' => BindingType::class,
-            'relation_id' => Entity::PARAM_ID,
+            Repository::PARAM_PARENT_ID => self::PARAM_BINDING_TYPE_ID,
+            Repository::PARAM_RELATION_ENTITY => BindingType::class,
+            Repository::PARAM_RELATION_ID => Entity::PARAM_ID,
         ],
         self::PARAM_BOOK_USER_DATA => [
-            'parent_id' => Entity::PARAM_ID,
-            'relation_entity' => BookUserData::class,
-            'relation_id' => BookUserData::PARAM_BOOK_ID,
-            'relation_user_id' => BookUserData::PARAM_USER_ID,
+            Repository::PARAM_PARENT_ID => Entity::PARAM_ID,
+            Repository::PARAM_RELATION_ENTITY => BookUserData::class,
+            Repository::PARAM_RELATION_ID => BookUserData::PARAM_BOOK_ID,
+            Repository::PARAM_RELATION_USER_id => BookUserData::PARAM_USER_ID,
         ],
     ];
 
