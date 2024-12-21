@@ -74,11 +74,7 @@ class BookRepository extends Repository
 
         $data = $query->fetch();
 
-        if (!$data) {
-            return null;
-        }
-
-        return new Book($data);
+        return $data ? Book::create($data) : null;
     }
 
     /**

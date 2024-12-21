@@ -92,9 +92,11 @@ class EntityDataBuilder
         $primaryKeys = $primaryClass->getConstant('PRIMARY_KEY');
         $isNewModel = true;
 
-        if ($primaryKeys === false || !is_array($primaryKeys)) {
+        if ($primaryKeys === false) {
             throw new \Exception('PrimaryKey for entity '.$primaryClass->getName().' is required');
         }
+
+        $primaryKeys = !is_array($primaryKeys) ? [$primaryKeys] : $primaryKeys;
 
         // Проверяем новая ли модель по входящим главным ключам модели.
         foreach ($primaryKeys as $primaryKey) {

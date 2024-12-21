@@ -13,7 +13,7 @@ abstract class Entity
     public const TABLE_NAME = null;
 
     // По каким полям находить модель.
-    protected const PRIMARY_KEY = [self::PARAM_ID];
+    protected const PRIMARY_KEY = self::PARAM_ID;
 
     // Свойства модели с бд, их описание.
     protected const PROPERTIES = [];

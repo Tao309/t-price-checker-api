@@ -189,7 +189,8 @@ class Storage {
             throw $e;
         }
 
-        $model = $this->bookRepository->get($entityId);
+        /** @var Book $model */
+        $model = $this->bookRepository->find($entityId);
 
         if (!$model) {
             throw new \Exception('Not found book by id '. $entityId);
