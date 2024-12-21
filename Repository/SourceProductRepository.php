@@ -16,13 +16,7 @@ use PDOException;
 class SourceProductRepository extends Repository
 {
     protected string $entityModel = SourceProduct::class;
-
-    public function __construct()
-    {
-        parent::__construct();
-
-        $this->sourceProductUserDataRepository = new SourceProductUserDataRepository();
-    }
+    protected ?string $userDataRepositoryModel = SourceProductUserDataRepository::class;
 
     public function linkToProduct(int $entityId, int $sourceProductId): void
     {
@@ -62,32 +56,6 @@ class SourceProductRepository extends Repository
         }
     }
 
-    public function get(int $id): SourceProduct|null
-    {
-        $query = $this->getListQueryNew();
-        $query
-            ->where('id', ':id')
-            ->where(
-                sprintf(
-                    '%s.%s',
-                    $query->getTablePrefix(SourceProductUserData::TABLE_NAME),
-                    SourceProductUserData::PARAM_USER_ID
-                ),
-                Config::getCurrentUserid()
-            )
-            ->bindParams([
-                Entity::PARAM_ID => $id,
-            ]);
-
-        $data = $query->fetch();
-
-        if (!$data) {
-            return null;
-        }
-
-        return new SourceProduct($data);
-    }
-
     /**
      * @return SourceProduct[]
      */
@@ -118,73 +86,5 @@ class SourceProductRepository extends Repository
         return array_map(function ($row) {
             return new SourceProduct($row);
         }, $rows);
-    }
-
-    /**
-     * @param array $entityData Входящие данные модели.
-     *
-     * @return int ID книги.
-     */
-    public function save(array $entityData): int
-    {
-        if (isset($entityData[Entity::PARAM_ID])) {
-            $entityId = $this->update($entityData);
-        } else {
-            $entityId = $this->create($entityData);
-        }
-
-        if (isset($entityData[SourceProduct::PARAM_SOURCE_PRODUCT_USER_DATA])) {
-            $entityData[SourceProduct::PARAM_SOURCE_PRODUCT_USER_DATA][SourceProductUserData::PARAM_SOURCE_PRODUCT] = $entityId;
-            $entityData[SourceProduct::PARAM_SOURCE_PRODUCT_USER_DATA][SourceProductUserData::PARAM_USER_ID] = Config::getCurrentUserid();
-
-            $bud = $this->sourceProductUserDataRepository->get($entityId);
-
-            if (!$bud) {
-                $this->sourceProductUserDataRepository->create($entityData[SourceProduct::PARAM_SOURCE_PRODUCT_USER_DATA]);
-            } else {
-                $this->sourceProductUserDataRepository->update($entityData[SourceProduct::PARAM_SOURCE_PRODUCT_USER_DATA]);
-            }
-        }
-
-        return $entityId;
-    }
-
-    protected function update(array $entityData): int
-    {
-        $entityDataBuilder = $this->getEntityDataBuilder($entityData);
-
-        $query = (new QueryPdo())
-            ->update(
-                SourceProduct::TABLE_NAME,
-                $entityDataBuilder->getQueryPreparedData()
-            )
-            ->where(SourceProduct::PARAM_ID, ':id')
-            ->bindParams([
-                SourceProduct::PARAM_ID => $entityDataBuilder->getEntityData(SourceProduct::PARAM_ID),
-            ]);
-
-        try {
-            $query->execute();
-
-            return $entityDataBuilder->getEntityData(SourceProduct::PARAM_ID);
-        } catch(PDOException $e) {
-            throw new CustomPdoException('SourceProductRepository.update', $query, $e);
-        }
-    }
-
-    protected function create(array $entityData): int
-    {
-        $entityDataBuilder = $this->getEntityDataBuilder($entityData);
-
-        $query = (new QueryPdo())
-            ->insert(SourceProduct::TABLE_NAME, $entityDataBuilder->getQueryPreparedData());
-
-        try {
-            $query->execute();
-
-            return $query->getLastInsertId();
-        } catch(PDOException $e) {
-            throw new CustomPdoException('SourceProductRepository.create', $query, $e);
-        }
     }
 }

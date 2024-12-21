@@ -208,7 +208,7 @@ class Storage {
     {
         QueryPdo::beginTransaction();
         try {
-            $entityId = $this->sourceProductRepository->save($modelData);
+            $entityId = $this->sourceProductRepository->processSave($modelData);
 
             QueryPdo::commit();
         } catch(\Throwable $e) {
@@ -217,7 +217,7 @@ class Storage {
             throw $e;
         }
 
-        $model = $this->sourceProductRepository->get($entityId);
+        $model = $this->sourceProductRepository->find($entityId);
 
         if (!$model) {
             throw new \Exception('Not found sourceProduct by id '. $entityId);
