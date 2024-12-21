@@ -13,11 +13,6 @@ class SameProductRepository extends Repository
 {
     protected string $entityModel = SameProduct::class;
 
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
     /**
      * Получение похожих товаров с других магазинов, относительно текущего,
      * уже сгруппированные по book_id, source_product_id.

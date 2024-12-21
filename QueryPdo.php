@@ -120,11 +120,13 @@ class QueryPdo
         return addslashes(stripslashes($value));
     }
 
-    public function select($fields): self
+    public function select($fields = null): self
     {
         $this->queryType = self::QUERY_TYPE_SELECT;
 
-        $this->fields = is_array($fields) ? $fields : [$fields];
+        if (!empty($fields)) {
+            $this->fields = is_array($fields) ? $fields : [$fields];
+        }
 
         return $this;
     }

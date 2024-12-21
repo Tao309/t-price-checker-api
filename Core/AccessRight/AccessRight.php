@@ -4,6 +4,8 @@ namespace Core\AccessRight;
 
 use Exception\ResponseException;
 use Models\Entity;
+use Models\User;
+use Repository\AuthTokenRepository;
 use tResponse;
 
 class AccessRight
@@ -11,31 +13,13 @@ class AccessRight
     public const USER_ADMIN_ROLE = 'admin';
     public const USER_USER_ROLE = 'user';
 
-    // tao309
-    private const PRICE_CHECKER_ADMIN_AUTH_TOKEN = 'ksfu83jfregjewyrfwefewhfdhs3e';
-    // a.sologub
-    private const PRICE_CHECKER_SOLOGUB_AUTH_TOKEN = 'sfy830fn54y09w2rhw348932gyre0';
-
-    // Перенеси в БД.
-    private const PRICE_CHECKER_AUTH_TOKENS = [
-        self::PRICE_CHECKER_ADMIN_AUTH_TOKEN,
-        self::PRICE_CHECKER_SOLOGUB_AUTH_TOKEN,
-    ];
-
     private static int $userId = 0;
 
     private static string|null $userRole = null;
 
-    // tao309
-    private const USER_ADMIN_ID = 2;
-    // a.sologub
-    private const USER_SOLOGUB_ID = 3;
-
-    // Перенеси в БД.
-    private const USER_IDS = [
-        self::USER_ADMIN_ID,
-        self::USER_SOLOGUB_ID,
-    ];
+    private const USER_NAME_ADMIN = 'admin';
+    private const USER_NAME_TAO309 = 'tao309';
+    private const USER_NAME_SOLOGUB = 'a.sologub';
 
     static $rights = [];
 
@@ -73,23 +57,26 @@ class AccessRight
     {
         self::$userId = 0;
 
-        switch($userToken) {
-            case self::PRICE_CHECKER_ADMIN_AUTH_TOKEN:
-                self::$userId = self::USER_ADMIN_ID;
-                self::$userRole = self::USER_ADMIN_ROLE;
-                break;
-            case self::PRICE_CHECKER_SOLOGUB_AUTH_TOKEN:
-                self::$userId = self::USER_SOLOGUB_ID;
-                self::$userRole = self::USER_USER_ROLE;
-                break;
-            default:
-                die(tResponse::MESSAGE_ACCESS_LIMITED);
+        $authTokenRepository = new AuthTokenRepository();
+
+        $userData = $authTokenRepository->getUserDataByAuthToken($userToken);
+
+        if (!$userData || empty($userData[Entity::PARAM_ID]) || empty($userData[User::PARAM_USERNAME])) {
+            throw new ResponseException('User is not found by token');
         }
+
+        self::$userRole = match ($userData[User::PARAM_USERNAME]) {
+            self::USER_NAME_ADMIN, self::USER_NAME_TAO309 => self::USER_ADMIN_ROLE,
+            self::USER_NAME_SOLOGUB => self::USER_USER_ROLE,
+            default => throw new(tResponse::MESSAGE_ACCESS_LIMITED),
+        };
+
+        self::$userId = $userData[Entity::PARAM_ID];
     }
 
     public static function isAdmin(): bool
     {
-        return self::getCurrentUserId() === self::USER_ADMIN_ID;
+        return self::$userRole === self::USER_ADMIN_ROLE;
     }
 
     public static function getCurrentUserId(): int
@@ -104,11 +91,6 @@ class AccessRight
     public static function getCurrentUserRole(): string
     {
         return self::$userRole;
-    }
-
-    public static function getUserAuthTokens(): array
-    {
-        return self::PRICE_CHECKER_AUTH_TOKENS;
     }
 
     public static function hasAccess(string $path, $defaultValue = null): bool

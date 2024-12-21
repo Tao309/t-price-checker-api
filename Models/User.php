@@ -6,7 +6,6 @@ use DateTime;
 
 /**
  * @method string getUsername()
- * @method string getAuthToken()
  * @method DateTime getDateCreated()
  */
 class User extends Entity
@@ -17,20 +16,20 @@ class User extends Entity
     protected const PROPERTIES = [
         self::PARAM_ID => 'ID',
         self::PARAM_USERNAME => 'Логин',
-        self::PARAM_AUTH_TOKEN => 'Токен авторизации',
+//        self::PARAM_AUTH_TOKEN => 'Токен авторизации',
         self::PARAM_DATE_CREATED => 'Дата создания',
     ];
 
     // Свойства, только для чтения, нельзя перезаписывать.
     protected const ONLY_READ_PROPERTIES = [
-        self::PARAM_AUTH_TOKEN,
+//        self::PARAM_AUTH_TOKEN,
     ];
 
     public const PARAM_USERNAME = 'username';
-    public const PARAM_AUTH_TOKEN = 'auth_token';
+//    public const PARAM_AUTH_TOKEN = 'auth_token';
     public const PARAM_DATE_CREATED = 'date_created';
 
     protected string $username;
-    protected string $authToken;
+//    protected string $authToken;
     protected DateTime $dateCreated;
 }

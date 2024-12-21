@@ -26,6 +26,7 @@ class SourceProduct extends Entity
 
     // От зависимых моделей.
     public const PARAM_SOURCE_PRODUCT_TYPE = 'source_product_type';
+    public const PARAM_SOURCE_PRODUCT_USER_DATA = 'source_product_user_data';
 
     protected const PROPERTIES = [
         self::PARAM_ID => 'ID',
@@ -46,6 +47,12 @@ class SourceProduct extends Entity
             'relation_entity' => SourceProductType::class,
             'relation_id' => Entity::PARAM_ID,
         ],
+        self::PARAM_SOURCE_PRODUCT_USER_DATA => [
+            'parent_id' => Entity::PARAM_ID,
+            'relation_entity' => SourceProductUserData::class,
+            'relation_id' => SourceProductUserData::PARAM_SOURCE_PRODUCT,
+            'relation_user_id' => SourceProductUserData::PARAM_USER_ID,
+        ],
     ];
 
     protected string $title;
@@ -54,4 +61,5 @@ class SourceProduct extends Entity
 
     // Приватные свойства не попадают в обходе у родителя. __call в родителе.
     protected SourceProductType $sourceProductType;
+    protected SourceProductUserData $sourceProductUserData;
 }

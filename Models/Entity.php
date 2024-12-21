@@ -61,6 +61,11 @@ abstract class Entity
         throw new \Exception('Method ' . $methodPrefix . ' is not defined.');
     }
 
+    public static function create(array $data): static
+    {
+        return new static($data);
+    }
+
     public static function toCamelCase($str, array $noStrip = array()): string
     {
         $str = preg_replace('/[^a-z0-9' . implode("", $noStrip) . ']+/i', ' ', $str);

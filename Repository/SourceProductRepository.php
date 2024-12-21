@@ -7,13 +7,22 @@ use Exception\CustomPdoException;
 use Models\Entity;
 use Models\Product;
 use Models\SourceProduct;
+use Models\SourceProductUserData;
 use Models\Stock;
+use PDO;
 use QueryPdo;
 use PDOException;
 
 class SourceProductRepository extends Repository
 {
     protected string $entityModel = SourceProduct::class;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->sourceProductUserDataRepository = new SourceProductUserDataRepository();
+    }
 
     public function linkToProduct(int $entityId, int $sourceProductId): void
     {
@@ -58,10 +67,16 @@ class SourceProductRepository extends Repository
         $query = $this->getListQueryNew();
         $query
             ->where('id', ':id')
-            ->where(SourceProduct::PARAM_USER_ID, ':user_id')
+            ->where(
+                sprintf(
+                    '%s.%s',
+                    $query->getTablePrefix(SourceProductUserData::TABLE_NAME),
+                    SourceProductUserData::PARAM_USER_ID
+                ),
+                Config::getCurrentUserid()
+            )
             ->bindParams([
                 Entity::PARAM_ID => $id,
-                SourceProduct::PARAM_USER_ID => Config::getCurrentUserid(),
             ]);
 
         $data = $query->fetch();
@@ -113,10 +128,25 @@ class SourceProductRepository extends Repository
     public function save(array $entityData): int
     {
         if (isset($entityData[Entity::PARAM_ID])) {
-            return $this->update($entityData);
+            $entityId = $this->update($entityData);
+        } else {
+            $entityId = $this->create($entityData);
         }
 
-        return $this->create($entityData);
+        if (isset($entityData[SourceProduct::PARAM_SOURCE_PRODUCT_USER_DATA])) {
+            $entityData[SourceProduct::PARAM_SOURCE_PRODUCT_USER_DATA][SourceProductUserData::PARAM_SOURCE_PRODUCT] = $entityId;
+            $entityData[SourceProduct::PARAM_SOURCE_PRODUCT_USER_DATA][SourceProductUserData::PARAM_USER_ID] = Config::getCurrentUserid();
+
+            $bud = $this->sourceProductUserDataRepository->get($entityId);
+
+            if (!$bud) {
+                $this->sourceProductUserDataRepository->create($entityData[SourceProduct::PARAM_SOURCE_PRODUCT_USER_DATA]);
+            } else {
+                $this->sourceProductUserDataRepository->update($entityData[SourceProduct::PARAM_SOURCE_PRODUCT_USER_DATA]);
+            }
+        }
+
+        return $entityId;
     }
 
     protected function update(array $entityData): int
@@ -129,10 +159,8 @@ class SourceProductRepository extends Repository
                 $entityDataBuilder->getQueryPreparedData()
             )
             ->where(SourceProduct::PARAM_ID, ':id')
-            ->where(SourceProduct::PARAM_USER_ID, ':user_id')
             ->bindParams([
                 SourceProduct::PARAM_ID => $entityDataBuilder->getEntityData(SourceProduct::PARAM_ID),
-                SourceProduct::PARAM_USER_ID => Config::getCurrentUserid()
             ]);
 
         try {
@@ -147,9 +175,6 @@ class SourceProductRepository extends Repository
     protected function create(array $entityData): int
     {
         $entityDataBuilder = $this->getEntityDataBuilder($entityData);
-        $entityDataBuilder->appendPreparedData([
-            SourceProduct::PARAM_USER_ID => Config::getCurrentUserid(),
-        ]);
 
         $query = (new QueryPdo())
             ->insert(SourceProduct::TABLE_NAME, $entityDataBuilder->getQueryPreparedData());

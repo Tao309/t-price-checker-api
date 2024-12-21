@@ -20,10 +20,10 @@ try {
         throw new RuntimeException('Unable to parse the environment file.');
     }
 
-    Config::checkHeaders();
-
     $tResponse = new tResponse();
     $cache = new Cache();
+
+    Config::checkHeaders();
 
     $tResponse->checkPostData($_POST);
 

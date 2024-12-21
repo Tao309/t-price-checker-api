@@ -12,11 +12,6 @@ class StockRepository extends Repository
 {
     protected string $entityModel = Stock::class;
 
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
     public function saveStocks(int $positionId, array $stocks = []): void
     {
         if (empty($stocks)) {

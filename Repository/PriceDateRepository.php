@@ -12,11 +12,6 @@ class PriceDateRepository extends Repository
 {
     protected string $entityModel = PriceDate::class;
 
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
     public function savePriceDates(int $positionId, array $priceDates = []): void
     {
         if (empty($priceDates)) {
