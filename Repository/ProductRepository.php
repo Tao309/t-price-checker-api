@@ -231,7 +231,7 @@ class ProductRepository extends Repository
         return $models;
     }
 
-    public function findProduct(string $shopProductId, bool $addRelations = false): Product
+    public function findProduct(string $shopProductId, bool $addRelations = false): null|Product
     {
         $models = $this->findByParams(
             [
@@ -247,7 +247,7 @@ class ProductRepository extends Repository
             $this->addOneToManyRelationsModels($models);
         }
 
-        return reset($models);
+        return $models ? reset($models) : null;
     }
 
     /**
