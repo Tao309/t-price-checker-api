@@ -151,13 +151,13 @@ abstract class Repository
      */
     public function find(array|int $primaryId): Entity|null
     {
-        if (!is_array($primaryId)) {
-            $cacheModel = $this->getCacheModel($primaryId);
-
-            if ($cacheModel) {
-                return $cacheModel;
-            }
-        }
+//        if (!is_array($primaryId)) {
+//            $cacheModel = $this->getCacheModel($primaryId);
+//
+//            if ($cacheModel) {
+//                return $cacheModel;
+//            }
+//        }
 
         $rows = $this->findByParams(
             $this->getWhereConditionsByPrimaryKeys($primaryId),
@@ -210,7 +210,7 @@ abstract class Repository
         $models = [];
         foreach ($rows as $row) {
             $model = $this->transformRowDataToModel($row);
-            $this->addToCache($model);
+//            $this->addToCache($model);
             $models[] = $model;
         }
 
@@ -632,7 +632,7 @@ abstract class Repository
 
     private function addToCache(Entity $model): void
     {
-        $key = $this->entityModel . '-' . $model->getName();
+        $key = $this->entityModel . '-' . $model->getId();
         self::$cacheModels[$key] = $model;
     }
 

@@ -29,7 +29,7 @@ abstract class Entity
 
     public const PARAM_ID = 'id';
 
-    protected int $id;
+    protected ?int $id;
 
     public function __construct(array $data)
     {
