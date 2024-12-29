@@ -36,6 +36,9 @@ abstract class Repository
     // Выводим в дебаг показа собранного запроса.
     private $debugQuery = false;
 
+    // Кэшированные модели при запросах.
+    private static array $cacheModels = [];
+
     public function __construct()
     {
         if (!$this->entityModel || !class_exists($this->entityModel)) {
@@ -148,6 +151,14 @@ abstract class Repository
      */
     public function find(array|int $primaryId): Entity|null
     {
+        if (!is_array($primaryId)) {
+            $cacheModel = $this->getCacheModel($primaryId);
+
+            if ($cacheModel) {
+                return $cacheModel;
+            }
+        }
+
         $rows = $this->findByParams(
             $this->getWhereConditionsByPrimaryKeys($primaryId),
             [
@@ -198,7 +209,9 @@ abstract class Repository
 
         $models = [];
         foreach ($rows as $row) {
-            $models[] = $this->transformRowDataToModel($row);
+            $model = $this->transformRowDataToModel($row);
+            $this->addToCache($model);
+            $models[] = $model;
         }
 
         return $models;
@@ -615,5 +628,17 @@ abstract class Repository
             'bind_params' => $query->getBindParams(),
             'prepared_data' => $preparedData
         ]);exit;
+    }
+
+    private function addToCache(Entity $model): void
+    {
+        $key = $this->entityModel . '-' . $model->getName();
+        self::$cacheModels[$key] = $model;
+    }
+
+    private function getCacheModel(int $id)
+    {
+        $key = $this->entityModel . '-' . $id;
+        return self::$cacheModels[$key] ?? null;
     }
 }
