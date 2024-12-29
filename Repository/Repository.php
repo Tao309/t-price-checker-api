@@ -17,7 +17,7 @@ abstract class Repository
     public const PARAM_PARENT_ID = 'parent_id';
     public const PARAM_RELATION_ENTITY = 'relation_entity';
     public const PARAM_RELATION_ID = 'relation_id';
-    public const PARAM_RELATION_USER_id = 'relation_user_id';
+    public const PARAM_RELATION_USER_ID = 'relation_user_id';
     public const PARAM_ORDER = 'order';
     public const PARAM_ORDER_DIRECTION = 'order_direction';
     public const PARAM_LIMIT = 'limit';
@@ -503,7 +503,7 @@ abstract class Repository
 
         $userDataClassName = null;
         foreach ($relationsToOne as $relationToOne) {
-            if (isset($relationToOne[Repository::PARAM_RELATION_USER_id])) {
+            if (isset($relationToOne[Repository::PARAM_RELATION_USER_ID])) {
                 $userDataClassName = $relationToOne[Repository::PARAM_RELATION_ENTITY];
                 break;
             }
@@ -525,7 +525,7 @@ abstract class Repository
 
         $userDataFieldParam = null;
         foreach ($relationsToOne as $index => $relationToOne) {
-            if (isset($relationToOne[Repository::PARAM_RELATION_USER_id])) {
+            if (isset($relationToOne[Repository::PARAM_RELATION_USER_ID])) {
                 $userDataFieldParam = $index;
                 break;
             }
@@ -546,7 +546,7 @@ abstract class Repository
 
         $userDataRelationIdParam = null;
         foreach ($relationsToOne as $relationToOne) {
-            if (isset($relationToOne[Repository::PARAM_RELATION_USER_id])) {
+            if (isset($relationToOne[Repository::PARAM_RELATION_USER_ID])) {
                 $userDataRelationIdParam = $relationToOne[Repository::PARAM_RELATION_ID];
                 break;
             }
@@ -567,8 +567,8 @@ abstract class Repository
 
         $userDataRelationUserIdParam = null;
         foreach ($relationsToOne as $relationToOne) {
-            if (isset($relationToOne[Repository::PARAM_RELATION_USER_id])) {
-                $userDataRelationUserIdParam = $relationToOne[Repository::PARAM_RELATION_USER_id];
+            if (isset($relationToOne[Repository::PARAM_RELATION_USER_ID])) {
+                $userDataRelationUserIdParam = $relationToOne[Repository::PARAM_RELATION_USER_ID];
                 break;
             }
         }

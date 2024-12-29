@@ -49,7 +49,7 @@ class Config
         return self::$currentShopType;
     }
 
-    public static function getCurrentShopId(): string
+    public static function getCurrentShopId(): int
     {
         if (is_null(self::$currentShopId)) {
             throw new \Exception('Shop id is empty.');

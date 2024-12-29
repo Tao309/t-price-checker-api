@@ -99,7 +99,7 @@ class Book extends Entity
             Repository::PARAM_PARENT_ID => Entity::PARAM_ID,
             Repository::PARAM_RELATION_ENTITY => BookUserData::class,
             Repository::PARAM_RELATION_ID => BookUserData::PARAM_BOOK_ID,
-            Repository::PARAM_RELATION_USER_id => BookUserData::PARAM_USER_ID,
+            Repository::PARAM_RELATION_USER_ID => BookUserData::PARAM_USER_ID,
         ],
     ];
 

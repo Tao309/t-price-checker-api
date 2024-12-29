@@ -457,6 +457,10 @@ class QueryPdo
             return $name . ' = ' . (int)$value;
         }
 
+        if (is_int($value)) {
+            return $name . ' = ' . (int)$value;
+        }
+
         if (strpos($value, ':') === 0) {
             return $name . ' = ' . trim($value);
         }

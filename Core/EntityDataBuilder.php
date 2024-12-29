@@ -157,7 +157,7 @@ class EntityDataBuilder
 
             if (is_array($relToOne)
                 && isset($relToOne[$currentParam])
-                && !isset($relToOne[$currentParam][Repository::PARAM_RELATION_USER_id])
+                && !isset($relToOne[$currentParam][Repository::PARAM_RELATION_USER_ID])
             ) {
                 $toData = true;
                 $param = $relToOne[$currentParam]['parent_id'];

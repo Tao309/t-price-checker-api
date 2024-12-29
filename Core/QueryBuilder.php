@@ -5,6 +5,7 @@ namespace Core;
 use Models\Entity;
 use Models\User;
 use QueryPdo;
+use Repository\Repository;
 
 class QueryBuilder
 {
@@ -78,20 +79,27 @@ class QueryBuilder
             $whereCondition = sprintf(
                 '%s.%s = %s.%s',
                 $parentTablePrefix,
-                $relData['parent_id'],
+                $relData[Repository::PARAM_PARENT_ID],
                 $tablePrefix,
-                $relData['relation_id'] ?? Entity::PARAM_ID,
+                $relData[Repository::PARAM_RELATION_ID] ?? Entity::PARAM_ID,
             );
 
-            if (isset($relData['relation_user_id'])) {
+            if (isset($relData[Repository::PARAM_RELATION_USER_ID])) {
                 $whereCondition .= sprintf(
                     ' AND %s.%s = %s',
                     $tablePrefix,
-                    $relData['relation_user_id'],
+                    $relData[Repository::PARAM_RELATION_USER_ID],
                     Config::getCurrentUserid()
                 );
 
                 $joinType = 'leftJoin';
+
+//                $this->getQueryPdo()
+//                    ->where(sprintf(
+//                        '%s.%s',
+//                        $tablePrefix,
+//                        $relData[Repository::PARAM_RELATION_ID]
+//                    ));
             }
 
             $this->getQueryPdo()
