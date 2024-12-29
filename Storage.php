@@ -3,7 +3,6 @@
 use Core\AccessRight\AccessRight;
 use Core\Config;
 use Models\Book;
-use Models\Entity;
 use Models\Product;
 use Models\SourceProduct;
 use Models\ProductUserData;
@@ -12,6 +11,7 @@ use Repository\ProductRepository;
 use Repository\SourceProductRepository;
 use Repository\StockRepository;
 use Repository\ProductUserDataRepository;
+use Core\ArrayHandler;
 
 class Storage {
     private ProductUserDataRepository $productUserDataRepository;
@@ -51,11 +51,9 @@ class Storage {
     // api call
     public function getBooksByTitle(array $data): void
     {
-        if (!isset($data['title'])) {
-            throw new \Exception('Not found title');
-        }
+        ArrayHandler::hasParamThroughException(Book::PARAM_TITLE, $data, 'Not found title');
 
-        $result = $this->bookRepository->getBooksByTitle($data['title']);
+        $result = $this->bookRepository->getBooksByTitle(ArrayHandler::getValueAsString(Book::PARAM_TITLE, $data));
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
@@ -68,11 +66,11 @@ class Storage {
     // api call
     public function getSourceProductsByTitle(array $data): void
     {
-        if (!isset($data['title'])) {
-            throw new \Exception('Not found title');
-        }
+        ArrayHandler::hasParamThroughException(SourceProduct::PARAM_TITLE, $data, 'Not found title');
 
-        $result = $this->sourceProductRepository->getSourceProductsByTitle($data['title']);
+        $result = $this->sourceProductRepository->getSourceProductsByTitle(
+            ArrayHandler::getValueAsString(SourceProduct::PARAM_TITLE, $data)
+        );
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
@@ -85,19 +83,16 @@ class Storage {
     // api call
     public function changeProductIsArchive(array $data): void
     {
-        if (empty($data[Product::PARAM_PRODUCT_ID])) {
-            throw new \Exception('Not found product_id');
-        }
+        ArrayHandler::hasParamThroughException(Product::PARAM_SHOP_PRODUCT_ID, $data, 'Not found shop_product_id');
+        ArrayHandler::hasParamThroughException(ProductUserData::PARAM_IS_ARCHIVE, $data, 'Not found is_archive');
 
-        if (!isset($data[ProductUserData::PARAM_IS_ARCHIVE])) {
-            throw new \Exception('Not found is_archive');
-        }
+        $shopProductId = ArrayHandler::getValueAsString(Product::PARAM_SHOP_PRODUCT_ID, $data);
 
         // Сначала получаем, потом сейвим или создаём новый?
-        $product = $this->productRepository->getProduct($data[Product::PARAM_PRODUCT_ID], null, true);
+        $product = $this->productRepository->findProduct($shopProductId, true);
 
         if ($product) {
-            $isArchive = (bool)$data[ProductUserData::PARAM_IS_ARCHIVE];
+            $isArchive = ArrayHandler::getValueAsBool(ProductUserData::PARAM_IS_ARCHIVE, $data);
 
             if (!$product->getProductUserData()) {
                 $this->productUserDataRepository->processSave([
@@ -112,10 +107,7 @@ class Storage {
 
                 $product->setProductUserData($pud);
             } else {
-                $this->productRepository->changeProductIsArchive(
-                    (string)$data['product_id'],
-                    $isArchive
-                );
+                $this->productRepository->changeProductIsArchive($shopProductId, $isArchive);
 
                 $product->getProductUserData()->setIsArchive($isArchive);
             }
@@ -142,33 +134,21 @@ class Storage {
     }
 
     // api call
-    public function getProductByShopType(array $data): void
-    {
-        if (empty($data[Entity::PARAM_ID])) {
-            throw new \Exception('Не указан передаваемый ID товара.');
-        }
-
-        $product = $this->productRepository->getProduct($data['id'], null, true);
-        $this->tResponse->setSuccess(true);
-        $this->tResponse->setData([
-            'product' => $product?->toArray()
-        ]);
-    }
-
-    // api call
     public function getProductsByShopType(array $data): void
     {
-        if (empty($data['ids'])) {
-            throw new \Exception('Не указан передаваемый массив ID товаров.');
-        }
+        ArrayHandler::hasParamThroughException('ids', $data, 'Не указан передаваемый массив ID товаров.');
 
-        $productIds = json_decode($data['ids'], true);
+        $productIds = json_decode(
+            ArrayHandler::getValueAsString('ids', $data),
+            true
+        );
 
         if (!is_array($productIds)) {
             throw new \Exception('Не корректен передаваемый массив ID товаров.');
         }
 
-        $products = $this->productRepository->getProductsByProductIds($productIds);
+//        $products = $this->productRepository->getProductsByShopProductIdsOld($productIds);
+        $products = $this->productRepository->getProductsByShopProductIds($productIds);
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
@@ -245,8 +225,9 @@ class Storage {
             throw $e;
         }
 
-//        $model = $this->productRepository->getProduct($productData[Product::PARAM_PRODUCT_ID], null, true);
-        $model = $this->productRepository->findProduct($productData[Product::PARAM_PRODUCT_ID], null, true);
+        $model = $this->productRepository->findProduct(
+            ArrayHandler::getValueAsString(Product::PARAM_SHOP_PRODUCT_ID, $productData)
+        );
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setMessage('Product is saved');
@@ -259,15 +240,12 @@ class Storage {
     public function importByShopType(array $productsData): void
     {
         throw new RuntimeException('ImportByShopType is not implemented');
-//        $this->saveProducts($productsData);
     }
 
     // api call
     public function saveProducts(array $data): void
     {
-        if (empty($data['products'])) {
-            throw new \Exception('Не указан передаваемый массив товаров для сохранения.');
-        }
+        ArrayHandler::hasParamThroughException('products', $data, 'Не указан передаваемый массив товаров для сохранения.');
 
         $productsData = json_decode($data['products'], true);
 

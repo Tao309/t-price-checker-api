@@ -31,12 +31,11 @@ class ArrayHandler
         return self::hasParam($param, $array) ? (bool)$array[$param] : false;
     }
 
-    public static function hasParamThroughException(string $param, array $array, string $message = null): bool
+    public static function hasParamThroughException(string $param, array $array, string $message = null)
     {
         if (!self::hasParam($param, $array)) {
             $message = $message ?? "Required param '{$param}' not found";
             throw new \Exception($message);
         }
     }
-
 }

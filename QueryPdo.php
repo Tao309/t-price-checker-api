@@ -87,8 +87,17 @@ class QueryPdo
         $prefix = $prefix ? $prefix . '.' : '';
 
         foreach ($params as $param => $value) {
-            $this->where($prefix . $param, ':' . $param);
-            $this->bindParam($param, is_array($value) ? implode(',',$value) : $value);
+            $paramWithPrefix = $prefix . $param;
+            $realParam = $param;
+
+            if (str_contains($param, '.')) {
+                $paramWithPrefix = $param;
+                $realParam = explode('.', $param)[1];
+            }
+
+//            $this->where($paramWithPrefix, ':' . $realParam);
+//            $this->bindParam($realParam, is_array($value) ? implode(',',$value) : $value);
+            $this->where($paramWithPrefix, $value);
         }
 
         return $this;

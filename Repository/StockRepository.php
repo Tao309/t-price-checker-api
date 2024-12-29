@@ -76,7 +76,7 @@ class StockRepository extends Repository
      */
     public function getStocksForProducts(array $ids = []): array
     {
-        $query = $this->getListQueryNew();
+        $query = $this->getQuery();
 
         $query
             ->where('id', $ids)
@@ -101,7 +101,7 @@ class StockRepository extends Repository
 
     public function getStock(array $stockData)
     {
-        $query = $this->getListQueryNew()
+        $query = $this->getQuery()
             ->where('id', ':id')
             ->where('qty', ':qty')
             ->where(Stock::PARAM_USER_ID, ':user_id')

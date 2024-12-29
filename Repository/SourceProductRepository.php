@@ -14,7 +14,7 @@ use QueryPdo;
 use PDOException;
 
 /**
- * @method SourceProduct find()
+ * @method SourceProduct find(int $id)
  * @method SourceProduct[] findByParams(array $params, array $filters = [])
  */
 class SourceProductRepository extends Repository
@@ -65,7 +65,7 @@ class SourceProductRepository extends Repository
      */
     public function getSourceProductsByTitle(string $title): array
     {
-        $query = $this->getListQueryNew()
+        $query = $this->getQuery()
             ->where('LOWER('.SourceProduct::TABLE_PREFIX.'.title) LIKE :title')
 //            ->where(SourceProduct::PARAM_USER_ID, ':user_id')
             ->limit(7);

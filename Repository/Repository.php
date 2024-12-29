@@ -33,6 +33,9 @@ abstract class Repository
     private ReflectionClass $reflectionClass;
     private $toSaveUserData = true;
 
+    // Выводим в дебаг показа собранного запроса.
+    private $debugQuery = false;
+
     public function __construct()
     {
         if (!$this->entityModel || !class_exists($this->entityModel)) {
@@ -41,6 +44,22 @@ abstract class Repository
 
         $this->reflectionClass = new ReflectionClass('\\' . $this->entityModel);
     }
+
+    public function enableDebugQuery(): void
+    {
+        $this->debugQuery = true;
+    }
+
+    public function disabledDebugQuery(): void
+    {
+        $this->debugQuery = false;
+    }
+
+    public function isDebugQueryEnabled(): bool
+    {
+        return $this->debugQuery;
+    }
+
     public function setToSaveUserData(bool $toSaveUserData): void
     {
         $this->toSaveUserData = $toSaveUserData;
@@ -156,7 +175,7 @@ abstract class Repository
      */
     public function findByParams(array $params, array $filters = []): array
     {
-        $query = $this->getListQueryNew();
+        $query = $this->getQuery();
         $query->appendWhereConditionByParams($params, $this->getTablePrefix());
 
         if (ArrayHandler::hasParam(self::PARAM_ORDER, $filters)) {
@@ -169,6 +188,10 @@ abstract class Repository
 
         if (ArrayHandler::hasParam(self::PARAM_LIMIT, $filters)) {
             $query->limit(ArrayHandler::getValueAsInt(self::PARAM_LIMIT, $filters));
+        }
+
+        if ($this->isDebugQueryEnabled()) {
+            $this->showDebugQuery($query);
         }
 
         $rows = $query->fetchAll();
@@ -265,14 +288,11 @@ abstract class Repository
                 $e
             );
         }
-
     }
 
-    protected function getListQueryNew(): QueryPdo
+    protected function getQuery(): QueryPdo
     {
-        $qb = new QueryBuilder($this->entityModel);
-
-        return $qb->getQueryPdo();
+        return (new QueryBuilder($this->entityModel))->getQueryPdo();
     }
 
     /**
@@ -580,5 +600,20 @@ abstract class Repository
         }
 
         return $userDataRepo;
+    }
+
+    private function showDebugQuery(QueryPdo $query): void
+    {
+        $preparedData = [];
+
+        try {
+            $preparedData = $query->getPreparedData();
+        } catch(\Throwable) {}
+
+        logMe([
+            'query' => $query->assemble(),
+            'bind_params' => $query->getBindParams(),
+            'prepared_data' => $preparedData
+        ]);exit;
     }
 }

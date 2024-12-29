@@ -8,6 +8,8 @@ use QueryPdo;
 
 class QueryBuilder
 {
+    public const PREFIX_LINK = '_';
+
     private QueryPdo $queryPdo;
     private string $entityClassName;
 
@@ -45,7 +47,10 @@ class QueryBuilder
         $tablePrefix = $primaryClass->getConstant('TABLE_PREFIX') ?? $tableName;
 
         if ($tableName === User::TABLE_NAME && $parentTablePrefix) {
-            $tablePrefix = $parentTablePrefix . '_' . $tablePrefix;
+            $tablePrefix = implode(self::PREFIX_LINK, [
+                $parentTablePrefix,
+                $tablePrefix
+            ]);
         }
 
         $selectValues = [];

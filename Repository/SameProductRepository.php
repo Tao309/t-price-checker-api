@@ -73,7 +73,7 @@ class SameProductRepository extends Repository
         foreach ($sameProductsRows as $index => $sameProductsRow) {
             $toUnlink = false;
 
-            if ($sameProductsRow[Product::PARAM_PRODUCT_ID] === $productData[Product::PARAM_PRODUCT_ID]) {
+            if ($sameProductsRow[Product::PARAM_SHOP_PRODUCT_ID] === $productData[Product::PARAM_SHOP_PRODUCT_ID]) {
                 $toUnlink = true;
             } else if ($sameProductsRow['shop.type'] === $productData['shop.type']) {
                 if (!$sameProductByShop) {
@@ -114,7 +114,7 @@ class SameProductRepository extends Repository
             ->where('id', $ids)
         ;
 
-        $query = $this->getListQueryNew();
+        $query = $this->getQuery();
 
         $spPrefix = SameProduct::TABLE_PREFIX;
 

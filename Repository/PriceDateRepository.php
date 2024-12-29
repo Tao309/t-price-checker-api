@@ -74,7 +74,7 @@ class PriceDateRepository extends Repository
      */
     public function getPriceDatesForProducts(array $ids = []): array
     {
-        $query = $this->getListQueryNew();
+        $query = $this->getQuery();
         $query
             ->where('id', $ids)
             ->where(PriceDate::PARAM_USER_ID, ':user_id')

@@ -60,7 +60,7 @@ class BookRepository extends Repository
      */
     public function getBooksByTitle(string $title): array
     {
-        $query = $this->getListQueryNew();
+        $query = $this->getQuery();
 
         $query
             ->where('LOWER('.Book::TABLE_PREFIX.'.title) LIKE :title')
@@ -92,7 +92,7 @@ class BookRepository extends Repository
      */
     public function getBooks(): array
     {
-        $query = $this->getListQueryNew();
+        $query = $this->getQuery();
 
         $query->order(Book::TABLE_PREFIX . '.title')
             ->limit(100);

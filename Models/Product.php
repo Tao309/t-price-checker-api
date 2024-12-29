@@ -6,8 +6,8 @@ use Core\Config;
 use DateTime;
 
 /**
- * @method string getProductId()
- * @method string getCode()
+ * @method string getShopProductId()
+ * @method string getShopProductCode()
  * @method int getShopId()
  * @method int|null getProductTypeId()
  * @method int|null getBookId()
@@ -40,8 +40,8 @@ class Product extends Entity
     public const TABLE_PREFIX = 'p';
     public const TABLE_NAME = 'products';
 
-    public const PARAM_PRODUCT_ID = 'product_id';
-    public const PARAM_CODE = 'code';
+    public const PARAM_SHOP_PRODUCT_ID = 'shop_product_id';
+    public const PARAM_SHOP_PRODUCT_CODE = 'shop_product_code';
     public const PARAM_SOURCE_PRODUCT_ID = 'source_product_id';
     public const PARAM_BOOK_ID = 'book_id';
     public const PARAM_SHOP_ID = 'shop_id';
@@ -76,8 +76,8 @@ class Product extends Entity
 
     protected const PROPERTIES = [
         self::PARAM_ID => 'ID',
-        self::PARAM_PRODUCT_ID => 'ID товара',
-        self::PARAM_CODE => 'Код 1С',
+        self::PARAM_SHOP_PRODUCT_ID => 'ID товара с магазина',
+        self::PARAM_SHOP_PRODUCT_CODE => 'Код 1С',
         self::PARAM_BOOK_ID => 'ID книги',
         self::PARAM_SOURCE_PRODUCT_ID => 'ID источника товара',
         self::PARAM_TITLE => 'Название',
@@ -88,8 +88,8 @@ class Product extends Entity
     // Свойства, только для чтения, нельзя перезаписывать.
     protected const ONLY_READ_PROPERTIES = [
         self::PARAM_ID,
-        self::PARAM_PRODUCT_ID,
-        self::PARAM_SHOP_ID,
+//        self::PARAM_SHOP_PRODUCT_ID,
+//        self::PARAM_SHOP_ID,
         self::PARAM_DATE_UPDATED,
         self::PARAM_DATE_CREATED,
     ];
@@ -134,8 +134,8 @@ class Product extends Entity
         ],
     ];
 
-    protected int $productId;
-    protected ?string $code;
+    protected int $shopProductId;
+    protected ?string $shopProductCode;
     protected int $shopId;
     protected ?int $sourceProductId;
     protected ?int $bookId;
@@ -195,17 +195,17 @@ class Product extends Entity
             case Config::TYPE_KNIGOFAN:
                 return 'https://knigofan.ru/catalog/horus-heresy/primarkhi/929/';
             case Config::TYPE_WILDBERRIES:
-                if ($this->getCode()) {
-                    return 'https://www.wildberries.ru/catalog/' . $this->getCode() . '/detail.aspx?size=' . $this->getProductId();
+                if ($this->getShopProductCode()) {
+                    return 'https://www.wildberries.ru/catalog/' . $this->getShopProductCode() . '/detail.aspx?size=' . $this->getShopProductId();
                 }
 
-                return 'https://www.wildberries.ru/catalog/' . $this->getProductId() . '/detail.aspx';
+                return 'https://www.wildberries.ru/catalog/' . $this->getShopProductId() . '/detail.aspx';
             case Config::TYPE_OZON:
-                return 'https://www.ozon.ru/product/' . $this->getProductId() . '/';
+                return 'https://www.ozon.ru/product/' . $this->getShopProductId() . '/';
             case Config::TYPE_FFAN:
-                return 'https://ffan.ru/catalog/product/' . $this->getProductId() . '/';
+                return 'https://ffan.ru/catalog/product/' . $this->getShopProductId() . '/';
             case Config::TYPE_CHITAI_GOROD:
-                return 'https://www.chitai-gorod.ru/product/-' . $this->getProductId();
+                return 'https://www.chitai-gorod.ru/product/-' . $this->getShopProductId();
             default:
                 return null;
         }
