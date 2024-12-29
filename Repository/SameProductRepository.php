@@ -13,6 +13,11 @@ class SameProductRepository extends Repository
 {
     protected string $entityModel = SameProduct::class;
 
+    public function getRowsByProductIds(array $ids): array
+    {
+        return $this->getRows($ids);
+    }
+
     /**
      * Получение похожих товаров с других магазинов, относительно текущего,
      * уже сгруппированные по book_id, source_product_id.
@@ -23,55 +28,7 @@ class SameProductRepository extends Repository
      */
     public function getAllSameProducts(array $ids): array
     {
-        $priceDatesSubQuery = (new QueryPdo())
-            ->select([PriceDate::PARAM_ID, 'MIN('.PriceDate::PARAM_PRICE.') AS price'])
-            ->from(PriceDate::TABLE_NAME)
-            ->group(PriceDate::PARAM_ID);
-
-        $bookSubQuery = (new QueryPdo())
-            ->select(['DISTINCT book_id'])
-            ->from(Product::TABLE_NAME)
-            ->where('id', $ids)
-        ;
-
-        $sourceProductSubQuery = (new QueryPdo())
-            ->select(['DISTINCT source_product_id'])
-            ->from(Product::TABLE_NAME)
-            ->where('id', $ids)
-        ;
-
-        $query = $this->getListQueryNew();
-
-        $spPrefix = SameProduct::TABLE_PREFIX;
-
-        $query->leftJoin(
-                ['pd' => '('.$priceDatesSubQuery->assemble().')'],
-                'pd.id = ' . $spPrefix . '.id',
-                [
-                    'pd.price AS ' . Product::PARAM_MIN_PRICE
-                ]
-            )
-            ->leftJoin(
-                [
-                    'pud' => ProductUserData::TABLE_NAME
-                ],
-                'pud.product_id = same_p.id',
-                [
-                    'pud.available'
-                ]
-            )
-            ->where('pud.user_id = :user_id')
-//            ->where($spPrefix . '.user_id = :user_id')
-            ->where(
-                '('. $spPrefix . '.book_id IN(' . $bookSubQuery->assemble(). ')'
-                . ' OR ' . $spPrefix . '.source_product_id IN (' . $sourceProductSubQuery->assemble() . '))'
-            )
-            ->order('pd.price')
-            ->bindParams([
-                ProductUserData::PARAM_USER_ID => Config::getCurrentUserid()
-            ]);
-
-        $rows = $query->fetchAll();
+        $rows = $this->getRows($ids);
 
         $result = [];
 
@@ -136,5 +93,57 @@ class SameProductRepository extends Repository
         }
 
         return $sameProductsRows;
+    }
+
+    private function getRows(array $ids): array
+    {
+        $priceDatesSubQuery = (new QueryPdo())
+            ->select([PriceDate::PARAM_ID, 'MIN('.PriceDate::PARAM_PRICE.') AS price'])
+            ->from(PriceDate::TABLE_NAME)
+            ->group(PriceDate::PARAM_ID);
+
+        $bookSubQuery = (new QueryPdo())
+            ->select(['DISTINCT book_id'])
+            ->from(Product::TABLE_NAME)
+            ->where('id', $ids)
+        ;
+
+        $sourceProductSubQuery = (new QueryPdo())
+            ->select(['DISTINCT source_product_id'])
+            ->from(Product::TABLE_NAME)
+            ->where('id', $ids)
+        ;
+
+        $query = $this->getListQueryNew();
+
+        $spPrefix = SameProduct::TABLE_PREFIX;
+
+        $query->leftJoin(
+            ['pd' => '('.$priceDatesSubQuery->assemble().')'],
+            'pd.id = ' . $spPrefix . '.id',
+            [
+                'pd.price AS ' . Product::PARAM_MIN_PRICE
+            ]
+        )
+            ->leftJoin(
+                [
+                    'pud' => ProductUserData::TABLE_NAME
+                ],
+                'pud.product_id = same_p.id',
+                [
+                    'pud.available'
+                ]
+            )
+            ->where('pud.user_id = :user_id')
+            ->where(
+                '('. $spPrefix . '.book_id IN(' . $bookSubQuery->assemble(). ')'
+                . ' OR ' . $spPrefix . '.source_product_id IN (' . $sourceProductSubQuery->assemble() . '))'
+            )
+            ->order('pd.price')
+            ->bindParams([
+                ProductUserData::PARAM_USER_ID => Config::getCurrentUserid()
+            ]);
+
+        return $query->fetchAll();
     }
 }

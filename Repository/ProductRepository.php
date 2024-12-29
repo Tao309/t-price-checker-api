@@ -3,24 +3,33 @@
 namespace Repository;
 
 use Core\AccessRight\AccessRight;
+use Core\ArrayHandler;
 use Core\Config;
 use Core\EntityDataBuilder;
 use Exception\CustomPdoException;
 use Exception\ResponseException;
 use Models\Book;
 use Models\Entity;
+use Models\PriceDate;
 use Models\Product;
 use Models\ProductUserData;
 use Models\Shop;
 use Models\Stock;
 use PDOException;
+use PullRepository\PriceDateAbstractPullRepository;
+use PullRepository\PriceDatePullRepository;
+use PullRepository\StockPullRepository;
 use QueryPdo;
 
+/**
+ * @method Product find(int $id)
+ * @method Product[] findByParams(array $params, array $filters = [])
+ */
 class ProductRepository extends Repository
 {
     protected string $entityModel = Product::class;
+    protected ?string $userDataRepositoryModel = ProductUserDataRepository::class;
 
-    private ProductUserDataRepository $productUserDataRepository;
     private BookRepository $bookRepository;
     private SourceProductRepository $sourceProductRepository;
     private StockRepository $stockRepository;
@@ -31,7 +40,6 @@ class ProductRepository extends Repository
     {
         parent::__construct();
 
-        $this->productUserDataRepository = new ProductUserDataRepository();
         $this->bookRepository = new BookRepository();
         $this->sourceProductRepository = new SourceProductRepository();
         $this->stockRepository = new StockRepository();
@@ -41,13 +49,12 @@ class ProductRepository extends Repository
 
     public function save(array $entityData): int
     {
-        if (!isset($entityData[Product::PARAM_PRODUCT_ID])) {
-            throw new ResponseException('product_id is required');
-        }
+        ArrayHandler::hasParamThroughException(Product::PARAM_PRODUCT_ID, $entityData, 'product_id is required');
+        ArrayHandler::hasParamThroughException(Product::PARAM_SHOP_ID, $entityData, 'shop_id is required');
 
-        if (!isset($entityData[Product::PARAM_SHOP_TYPE])) {
-            throw new ResponseException('shop_id is required');
-        }
+        $entityData[Product::PARAM_SHOP_ID] = Config::getShopIdByType(
+            ArrayHandler::getValueAsString(Product::PARAM_SHOP_TYPE, $entityData)
+        );
 
         $stocks = $entityData[Product::PARAM_STOCKS] ?? [];
         $priceDates = $entityData[Product::PARAM_PRICE_DATES] ?? [];
@@ -60,9 +67,10 @@ class ProductRepository extends Repository
         if ($product) {
             $entityId = $product->getId();
             $positionPrice = $product->getMinPrice();
+            $entityData[Entity::PARAM_ID] = $entityId;
         }
 
-        $toChangeId = isset($flags[Product::FLAG_TO_CHANGE_ID]) && Config::isWildberriesShopType();
+        $toChangeId = ArrayHandler::hasParamTrue(Product::FLAG_TO_CHANGE_ID, $flags) && Config::isWildberriesShopType();
 
         /**
          * Если находит товар с не пустым code у wildberries, значит уже заменён product_id.
@@ -76,7 +84,7 @@ class ProductRepository extends Repository
             }
         }
 
-        if (isset($flags[Product::FLAG_TO_LINK_BOOK])) {
+        if (ArrayHandler::hasParamTrue(Product::FLAG_TO_LINK_BOOK, $flags)) {
             if (!$entityId) {
                 throw new \Exception('При привязки книги не найден товар.');
             }
@@ -90,7 +98,7 @@ class ProductRepository extends Repository
             return $entityId;
         }
 
-        if (isset($flags[Product::FLAG_TO_UNLINK_BOOK])) {
+        if (ArrayHandler::hasParamTrue(Product::FLAG_TO_UNLINK_BOOK, $flags)) {
             if (!$entityId) {
                 throw new \Exception('При отвязки книги не найден товар.');
             }
@@ -100,7 +108,7 @@ class ProductRepository extends Repository
             return $entityId;
         }
 
-        if (isset($flags[Product::FLAG_TO_LINK_SOURCE_PRODUCT])) {
+        if (ArrayHandler::hasParamTrue(Product::FLAG_TO_LINK_SOURCE_PRODUCT, $flags)) {
             if (!$entityId) {
                 throw new \Exception('При привязки источника товара не найден товар.');
             }
@@ -114,7 +122,7 @@ class ProductRepository extends Repository
             return $entityId;
         }
 
-        if (isset($flags[Product::FLAG_TO_UNLINK_SOURCE_PRODUCT])) {
+        if (ArrayHandler::hasParamTrue(Product::FLAG_TO_UNLINK_SOURCE_PRODUCT, $flags)) {
             if (!$entityId) {
                 throw new \Exception('При отвязки источника товара не найден товар.');
             }
@@ -124,33 +132,17 @@ class ProductRepository extends Repository
             return $entityId;
         }
 
-        if (!$entityId) {
-            $entityId = $this->create($entityData);
-        } elseif (isset($flags[Product::FLAG_TO_SAVE_PRODUCT])) {
-            $this->update($entityData);
-        }
+        $this->setToSaveUserData(ArrayHandler::hasParamTrue(Product::FLAG_TO_SAVE_PRODUCT_USER_DATA, $flags)
+            && ArrayHandler::hasParam(Product::PARAM_PRODUCT_USER_DATA, $entityData));
 
-        if (isset($flags[Product::FLAG_TO_SAVE_PRODUCT_USER_DATA])
-            && isset($entityData[Product::PARAM_PRODUCT_USER_DATA])
-        ) {
-            $entityData[Product::PARAM_PRODUCT_USER_DATA][ProductUserData::PARAM_PRODUCT_ID] = $entityId;
-            $entityData[Product::PARAM_PRODUCT_USER_DATA][ProductUserData::PARAM_USER_ID] = Config::getCurrentUserid();
-
-            $pud = $this->productUserDataRepository->get($entityId);
-
-            if (!$pud) {
-                $this->productUserDataRepository->create($entityData[Product::PARAM_PRODUCT_USER_DATA]);
-            } else {
-                $this->productUserDataRepository->update($entityData[Product::PARAM_PRODUCT_USER_DATA]);
-            }
-        }
+        $entityId = $this->processSave($entityData);
 
         if (!$entityId) {
-            throw new \Exception('Entity is not exists for save priceDates and stocks.');
+            throw new \Exception('Entity is not exists for save priceDates or stocks.');
         }
 
         // Если цена не уменьшилась, то приходит ошибочный запрос на добавление, сток тоже не обрабатываем.
-        if (isset($flags[Product::FLAG_TO_SAVE_PRICE_DATES]) && $priceDates) {
+        if (ArrayHandler::hasParamTrue(Product::FLAG_TO_SAVE_PRICE_DATES, $flags) && $priceDates) {
             if ($positionPrice && end($priceDates)['price'] >= $positionPrice) {
                 return $entityId;
             }
@@ -164,70 +156,11 @@ class ProductRepository extends Repository
             && $productLastStock->getDate()->format('d.m.Y') == Config::getDateTime($lastStock[Stock::PARAM_DATE])->format('d.m.Y')
             && $productLastStock->getQty() == $lastStock[Stock::PARAM_QTY];
 
-        if (isset($flags[Product::FLAG_TO_SAVE_STOCKS]) && $stocks && !$isLastStockEqualsQty) {
+        if (ArrayHandler::hasParamTrue(Product::FLAG_TO_SAVE_STOCKS, $flags) && $stocks && !$isLastStockEqualsQty) {
             $this->stockRepository->saveStocks($entityId, $stocks);
         }
 
         return $entityId;
-    }
-
-    protected function update(array $entityData): int
-    {
-        if (!AccessRight::hasAccess('product.save')) {
-            throw new \RuntimeException('Save product is not granted');
-        }
-
-        $entityDataBuilder = $this->getEntityDataBuilder($entityData);
-
-        $query = (new QueryPdo())
-            ->update(
-                Product::TABLE_NAME,
-                $entityDataBuilder->getQueryPreparedData()
-            )
-            ->where(Product::PARAM_PRODUCT_ID, ':product_id')
-            ->where(Product::PARAM_SHOP_ID, ':shop_id')
-//            ->where(Product::PARAM_USER_ID, ':user_id')
-            ->bindParams([
-                Product::PARAM_SHOP_ID => $entityDataBuilder->getPreparedData(Product::PARAM_SHOP_ID),
-//                Product::PARAM_USER_ID => Config::getCurrentUserid(),
-                Product::PARAM_PRODUCT_ID => $entityDataBuilder->getEntityData(Product::PARAM_PRODUCT_ID),
-            ]);
-
-        try {
-            $query->execute();
-
-//            if (!$stmt->rowCount()) {
-//                throw  new \Exception('Обновлено ' . $stmt->rowCount() . ' позиций');
-//            }
-
-            return $entityDataBuilder->getEntityData(Product::PARAM_ID);
-        } catch(PDOException $e) {
-            throw new CustomPdoException('ProductRepository.update', $query, $e);
-        }
-    }
-
-    protected function create(array $entityData): int
-    {
-        if (!AccessRight::hasAccess('product.create')) {
-            throw new \RuntimeException('Create product is not granted');
-        }
-
-        $entityDataBuilder = $this->getEntityDataBuilder($entityData);
-        $entityDataBuilder->appendPreparedData([
-//            Product::PARAM_USER_ID => Config::getCurrentUserid(),
-            Product::PARAM_PRODUCT_ID => $entityDataBuilder->getEntityData(Product::PARAM_PRODUCT_ID),
-        ]);
-
-        $query = (new QueryPdo())
-            ->insert(Product::TABLE_NAME, $entityDataBuilder->getQueryPreparedData());
-
-        try {
-            $query->execute();
-
-            return $query->getLastInsertId();
-        } catch(PDOException $e) {
-            throw new CustomPdoException('ProductRepository.create', $query, $e);
-        }
     }
 
     public function changeProductIsArchive(string $productId, bool $isArchive): void
@@ -260,37 +193,6 @@ class ProductRepository extends Repository
             $query->execute();
         } catch(PDOException $e) {
             throw new CustomPdoException('ProductRepository.changeProductIsArchive', $query, $e);
-        }
-    }
-
-    public function removeByProductId($productId): bool
-    {
-        $subQuery = (new QueryPdo())
-            ->select(Entity::PARAM_ID)
-            ->from(Product::TABLE_NAME)
-            ->where(Product::PARAM_PRODUCT_ID, ':product_id')
-            ->where(Product::PARAM_SHOP_ID, ':shop_id')
-            ->where(Product::PARAM_USER_ID, ':user_id');
-
-        $query = (new QueryPdo())
-            ->update(
-                Product::TABLE_NAME,
-                [ProductUserData::PARAM_IS_ARCHIVE => TRUE]
-            )
-            ->where(ProductUserData::PARAM_PRODUCT_ID, $subQuery)
-            ->where(ProductUserData::PARAM_USER_ID, ':user_id')
-            ->bindParams([
-                ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
-                Product::PARAM_PRODUCT_ID => $productId,
-                Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
-            ]);
-
-        try {
-            $query->execute();
-
-            return true;
-        } catch(PDOException $e) {
-            throw new CustomPdoException('ProductRepository.removeByProductId', $query, $e);
         }
     }
 
@@ -334,12 +236,31 @@ class ProductRepository extends Repository
         return $this->assembleQueryToModels($query->fetchAll(), true);
     }
 
+    public function findProduct(int $productId, string $shopType = null, bool $addRelations = false):Product
+    {
+        $models = $this->findByParams(
+            [
+                Product::PARAM_PRODUCT_ID => $productId,
+                Product::PARAM_SHOP_ID => $shopType ? Config::getShopIdByType($shopType) : Config::getCurrentShopId()
+            ],
+            [
+                self::PARAM_LIMIT => 1
+            ]
+        );
+
+        if ($addRelations) {
+            $this->addOneToManyRelationsModels($models);
+        }
+
+        return reset($models);
+    }
+
     /**
      * Получаем одну модель продукта со всеми зависимостями.
      *
-     * @param int    $productId    ID продукта.
-     * @param string $shopType     Тип магазина.
-     * @param bool   $addRelations Добавить все зависимости.
+     * @param int         $productId    ID продукта.
+     * @param null|string $shopType     Тип магазина.
+     * @param bool        $addRelations Добавить все зависимости.
      *
      * @return Product|null
      *
@@ -383,20 +304,6 @@ class ProductRepository extends Repository
 
         $foundProductId = $productId;
 
-        if ($findByUser) {
-//            $subQuery = (new QueryPdo())
-//                ->select(ProductUserData::PARAM_PRODUCT_ID)
-//                ->from(ProductUserData::TABLE_NAME)
-//                ->where(ProductUserData::PARAM_PRODUCT_ID, $productId)
-//                ->where(ProductUserData::PARAM_USER_ID, ':user_id')
-//                ->bindParams([
-//                    ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
-//                ])
-//                ->limit(1);
-//
-//            $foundProductId = $subQuery->assemble();
-        }
-
         $query->where('product_id', $foundProductId);// Массив передаётся, пока ошибка будет, если через bindParams.
 
         if (is_array($productId)) {
@@ -408,6 +315,40 @@ class ProductRepository extends Repository
         }
 
         return $query;
+    }
+
+    /**
+     * @param Product[] $productModels
+     */
+    private function addOneToManyRelationsModels(array $productModels): array
+    {
+        $ids = array_map(function ($productModel) {
+            return $productModel->getId();
+        }, $productModels);
+
+        $priceDatesPull = new PriceDatePullRepository($ids);
+        $stocksPull = new StockPullRepository($ids);
+        $sameProductsPull = new StockPullRepository($ids);
+
+        return array_map(function ($productModel) use ($priceDatesPull, $stocksPull, $sameProductsPull) {
+            $productId = $productModel->getId();
+
+            $productModel->setPriceDates($priceDatesPull->getFromPull($productId));
+            $productModel->setStocks($stocksPull->getFromPull($productId));
+
+            $findSameProductId = $productModel->getBook()
+                ? 'book-' . $productModel->getBook()->getId()
+                : (
+                    $productModel->getSourceProduct()
+                        ? 'source-product-' . $productModel->getSourceProduct()->getId()
+                        : null
+                );
+
+            if ($findSameProductId) {
+                $productModel->setSameProducts($sameProductsPull->getFromPull($findSameProductId));
+            }
+
+        }, $productModels);
     }
 
     /**
@@ -484,18 +425,20 @@ class ProductRepository extends Repository
         $productData[Product::PARAM_STOCKS] = $stocksData[$productId] ?? [];
 
         $sameProducts = [];
-        if ($productBookId) {
-            $sameProducts = isset($sameProductDataRows['book-' . $productBookId])
+
+        $findSameProductId = $productBookId
+            ? 'book-' . $productBookId
+            : (
+                $productSourceProductId
+                ? 'source-product-' . $productSourceProductId
+                : null
+            );
+
+        if ($findSameProductId) {
+            $sameProducts = isset($sameProductDataRows[$findSameProductId])
                 ? $this->sameProductRepository->prepareSameProducts(
                     $productData,
-                    $sameProductDataRows['book-' . $productBookId]
-                )
-                : [];
-        } else if ($productSourceProductId) {
-            $sameProducts = isset($sameProductDataRows['source-product-' . $productSourceProductId])
-                ? $this->sameProductRepository->prepareSameProducts(
-                    $productData,
-                    $sameProductDataRows['source-product-' . $productSourceProductId]
+                    $sameProductDataRows[$findSameProductId]
                 )
                 : [];
         }
@@ -505,33 +448,15 @@ class ProductRepository extends Repository
         return new Product($productData);
     }
 
-//    private function getListQueryVariables(array $newVariables = []): array
-//    {
-//        $variables = [
-////            'shop_id' => Config::getCurrentShopId(),
-//            Product::PARAM_USER_ID => Config::getCurrentUserid(),
-//        ];
-//
-//        return array_merge($variables, $newVariables);
-//    }
-
-    protected function getEntityDataBuilder(array $data): EntityDataBuilder
-    {
-//        $data[Product::PARAM_USER_ID] = Config::getCurrentUserid();
-        $data[Product::PARAM_SHOP] = [
-            Shop::PARAM_ID => Config::getShopIdByType($data['shop_type']),
-            Shop::PARAM_TYPE => $data['shop_type'],
-        ];
-
-        return parent::getEntityDataBuilder($data);
-    }
     /**
      * Для товаров заменяем product_id, который раньше был как код 1С на id товара и записываем в code код 1С.
      *
-     * @param string $code      Код 1С.
+     * @param string $code Код 1С.
      * @param string $productId ID продукта.
      *
      * @return int
+     *
+     * @throws CustomPdoException
      */
     private function changeId(int $positionId, string $productId, string $code): int
     {
@@ -572,13 +497,12 @@ class ProductRepository extends Repository
     private function tryToChangeId(array $data)
     {
         // По ид не найдёт, если товар без кода, в ид сейчас код установлен по старой схеме.
-//        $tempPositionData = $this->getPositionData($data[Product::PARAM_CODE], $data['shop_type'], false);
         $product = $this->getProduct($data[Product::PARAM_PRODUCT_ID], $data[Product::PARAM_SHOP_TYPE]);
         if (!$product) {
             return null;
         }
 
-        $affectedCount = $this->changeId($product->getId(), $data[Product::PARAM_PRODUCT_ID], $data[Product::PARAM_CODE]);
+//        $affectedCount = $this->changeId($product->getId(), $data[Product::PARAM_PRODUCT_ID], $data[Product::PARAM_CODE]);
 
         return $product->getId();
     }

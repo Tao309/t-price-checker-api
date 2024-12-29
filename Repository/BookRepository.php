@@ -8,6 +8,10 @@ use Models\Product;
 use PDOException;
 use QueryPdo;
 
+/**
+ * @method Book find(int $id)
+ * @method Book[] findByParams(array $params, array $filters = [])
+ */
 class BookRepository extends Repository
 {
     protected string $entityModel = Book::class;

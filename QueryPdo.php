@@ -72,6 +72,28 @@ class QueryPdo
         $dbh->rollBack();
     }
 
+    /**
+     * Добавляем в запрос выборка по параметрам.
+     *
+     * @param array       $params Входящие параметры: название поля => значение.
+     * @param string|null $prefix Префикс для таблицы.
+     *
+     * @return self
+     *
+     * @throws Exception
+     */
+    public function appendWhereConditionByParams(array $params = [], string $prefix = null): self
+    {
+        $prefix = $prefix ? $prefix . '.' : '';
+
+        foreach ($params as $param => $value) {
+            $this->where($prefix . $param, ':' . $param);
+            $this->bindParam($param, is_array($value) ? implode(',',$value) : $value);
+        }
+
+        return $this;
+    }
+
     public function execute(): PDOStatement
     {
         $dbh = self::getConnect();

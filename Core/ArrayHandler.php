@@ -1,0 +1,42 @@
+<?php
+
+namespace Core;
+
+class ArrayHandler
+{
+    public static function hasParamTrue(string $param, array $array): bool
+    {
+        return self::hasParam($param, $array) && $array[$param] === true;
+    }
+
+    public static function hasParam(string $param, array $array): bool
+    {
+        return isset($array[$param]);
+    }
+
+    public static function getValueAsInt(string $param, array $array): int
+    {
+        return self::hasParam($param, $array) ? (int)$array[$param] : 0;
+    }
+
+    public static function getValueAsString(string $param, array $array): string
+    {
+        return self::hasParam($param, $array)
+            ? htmlspecialchars($array[$param], ENT_QUOTES)
+            : '';
+    }
+
+    public static function getValueAsBool(string $param, array $array): bool
+    {
+        return self::hasParam($param, $array) ? (bool)$array[$param] : false;
+    }
+
+    public static function hasParamThroughException(string $param, array $array, string $message = null): bool
+    {
+        if (!self::hasParam($param, $array)) {
+            $message = $message ?? "Required param '{$param}' not found";
+            throw new \Exception($message);
+        }
+    }
+
+}

@@ -100,14 +100,15 @@ class Storage {
             $isArchive = (bool)$data[ProductUserData::PARAM_IS_ARCHIVE];
 
             if (!$product->getProductUserData()) {
-                $this->productUserDataRepository->create([
+                $this->productUserDataRepository->processSave([
                     ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
                     ProductUserData::PARAM_PRODUCT_ID => $product->getId(),
                     ProductUserData::PARAM_AVAILABLE => true,
                     ProductUserData::PARAM_IS_ARCHIVE => $isArchive,
                 ]);
 
-                $pud = $this->productUserDataRepository->get($product->getId());
+                /** @var ProductUserData $pud */
+                $pud = $this->productUserDataRepository->find($product->getId());
 
                 $product->setProductUserData($pud);
             } else {
@@ -244,7 +245,8 @@ class Storage {
             throw $e;
         }
 
-        $model = $this->productRepository->getProduct($productData[Product::PARAM_PRODUCT_ID], null, true);
+//        $model = $this->productRepository->getProduct($productData[Product::PARAM_PRODUCT_ID], null, true);
+        $model = $this->productRepository->findProduct($productData[Product::PARAM_PRODUCT_ID], null, true);
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setMessage('Product is saved');
@@ -257,8 +259,7 @@ class Storage {
     public function importByShopType(array $productsData): void
     {
         throw new RuntimeException('ImportByShopType is not implemented');
-
-        $this->saveProducts($productsData);
+//        $this->saveProducts($productsData);
     }
 
     // api call

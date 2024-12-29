@@ -13,6 +13,10 @@ use PDO;
 use QueryPdo;
 use PDOException;
 
+/**
+ * @method SourceProduct find()
+ * @method SourceProduct[] findByParams(array $params, array $filters = [])
+ */
 class SourceProductRepository extends Repository
 {
     protected string $entityModel = SourceProduct::class;

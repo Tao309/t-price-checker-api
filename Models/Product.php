@@ -11,6 +11,7 @@ use DateTime;
  * @method int getShopId()
  * @method int|null getProductTypeId()
  * @method int|null getBookId()
+ * @method int|null getSourceProductId()
  * @method int getUserId()
  * @method string getTitle()
  * @method DateTime getDateUpdated()
@@ -21,14 +22,18 @@ use DateTime;
  * @method Book|null getBook()
  * @method int getMinPrice()
  * @method int getLastQty()
+ * @method ProductUserData getProductUserData()
+ *
  * @method PriceDate[] getPriceDates()
  * @method Stock[] getStocks()
  * @method SameProduct[] getSameProducts()
- * @method ProductUserData getProductUserData()
  *
  * @method setTitle(string $value)
  *
  * @method setProductUserData(ProductUserData $model)
+ * @method setSameProducts(array $models)
+ * @method setStocks(array $models)
+ * @method setPriceDates(array $models)
  */
 class Product extends Entity
 {
@@ -43,11 +48,12 @@ class Product extends Entity
     public const PARAM_SHOP_TYPE = 'shop_type';
     public const PARAM_USER_ID = 'user_id';
     public const PARAM_TITLE = 'title';
-    public const PARAM_STOCKS = 'stocks';
-    public const PARAM_PRICE_DATES = 'price_dates';
-    public const PARAM_PRODUCT_USER_DATA_ID = 'product_user_data_id';
     public const PARAM_DATE_UPDATED = 'date_updated';
     public const PARAM_DATE_CREATED = 'date_created';
+
+    public const PARAM_SAME_PRODUCTS = 'same_products';
+    public const PARAM_STOCKS = 'stocks';
+    public const PARAM_PRICE_DATES = 'price_dates';
 
     public const PARAM_MIN_PRICE = 'min_price';
     public const PARAM_LAST_QTY = 'last_qty';
@@ -56,7 +62,6 @@ class Product extends Entity
     public const PARAM_SOURCE_PRODUCT = 'source_product';
     public const PARAM_BOOK = 'book';
     public const PARAM_SHOP = 'shop';
-    public const PARAM_SAME_PRODUCTS = 'same_products';
     public const PARAM_PRODUCT_USER_DATA = 'product_user_data';
 
     public const FLAG_TO_SAVE_PRODUCT_USER_DATA = 'flag_to_save_product_user_data';
@@ -144,12 +149,13 @@ class Product extends Entity
     protected ?Book $book = null;
     protected ?int $minPrice = null;
     protected ?int $lastQty = null;
+
+    /** @var SameProduct[] */
+    protected array $sameProducts = [];
     /** @var PriceDate[] */
     protected array $priceDates = [];
     /** @var Stock[] */
     protected array $stocks = [];
-    /** @var SameProduct[] */
-    protected array $sameProducts = [];
 
     public function __construct(array $data)
     {

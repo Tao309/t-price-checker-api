@@ -2,6 +2,7 @@
 
 namespace Repository;
 
+use Core\ArrayHandler;
 use Core\Config;
 use Core\EntityDataBuilder;
 use Core\QueryBuilder;
@@ -17,11 +18,20 @@ abstract class Repository
     public const PARAM_RELATION_ENTITY = 'relation_entity';
     public const PARAM_RELATION_ID = 'relation_id';
     public const PARAM_RELATION_USER_id = 'relation_user_id';
+    public const PARAM_ORDER = 'order';
+    public const PARAM_ORDER_DIRECTION = 'order_direction';
+    public const PARAM_LIMIT = 'limit';
+
+    private const PARAM_SORT_DIRECTION_ASC = 'ASC';
+    private const PARAM_SORT_DIRECTION_DESC = 'DESC';
+
+    private const PARAM_METHOD_CREATE = 'create';
 
     protected string $entityModel = '';
     protected ?string $userDataRepositoryModel = null;
 
     private ReflectionClass $reflectionClass;
+    private $toSaveUserData = true;
 
     public function __construct()
     {
@@ -30,6 +40,15 @@ abstract class Repository
         }
 
         $this->reflectionClass = new ReflectionClass('\\' . $this->entityModel);
+    }
+    public function setToSaveUserData(bool $toSaveUserData): void
+    {
+        $this->toSaveUserData = $toSaveUserData;
+    }
+
+    public function getToSaveUserData(): bool
+    {
+        return $this->toSaveUserData;
     }
 
     /**
@@ -43,6 +62,7 @@ abstract class Repository
      * @throws ResponseException
      * @throws \ReflectionException
      */
+    // переименовать в save
     public function processSave(array $data): array|int
     {
         $primaryKeyNames = $this->getPrimaryKeyNames();
@@ -51,7 +71,7 @@ abstract class Repository
 
         foreach ($primaryKeyNames as $primaryKeyName) {
             if (isset($data[$primaryKeyName]) && !empty($data[$primaryKeyName])) {
-                $primaryKeysValues[] = $data[$primaryKeyName];
+                $primaryKeysValues[$primaryKeyName] = $data[$primaryKeyName];
             }
         }
 
@@ -59,24 +79,35 @@ abstract class Repository
             throw new ResponseException('Primary keys not set for many primary keys');
         }
 
-        $isNewModel = !$this->find($primaryKeysValues);
+        $isNewModel = true;
+        $countPrimaryKeysValues = count($primaryKeysValues);
 
-        $entityId = $isNewModel ? $this->processCreate($data) : $this->processUpdate($primaryKeysValues, $data);
+        if ($countPrimaryKeysValues > 0 && $countPrimaryKeysValues !== count($primaryKeysValues)) {
+            throw new ResponseException('Не соответствие primary ключей модели с их значениями');
+        }
+
+        if ($countPrimaryKeysValues) {
+            $isNewModel = !$this->find($primaryKeysValues);
+        }
+
+        if ($isNewModel) {
+            $entityId = $this->processCreate($data);
+        } else {
+            $entityId = $this->processUpdate($primaryKeysValues, $data);
+        }
 
         if ($hasManyPrimaryKeys) {
             return $entityId;
         }
 
-        $entityId = reset($entityId);
+        $entityId = $isNewModel ? $entityId : reset($entityId);
 
         // Проверка наличия UserData в модели.
         $userDataClassName = $this->getUserDataClassName();
-        if ($userDataClassName) {
+        if ($userDataClassName && $this->getToSaveUserData()) {
             $userDataRepo = $this->getUserDataRepositoryInstance();
 
             $userDataFieldName = $this->getUserDataFieldParam();
-
-            // Ранее в $data заходят другие данные.
             $data[$userDataFieldName][$this->getUserDataRelationIdParam()] = $entityId;
             $data[$userDataFieldName][$this->getUserDataRelationUserIdParam()] = Config::getCurrentUserid();
 
@@ -87,17 +118,85 @@ abstract class Repository
     }
 
     /**
+     * Получение модели по primary ключу/ключам.
+     *
+     * @param array|int $primaryId Значения primary ключа (ключей).
+     *
+     * @return Entity|null Модель.
+     *
+     * @throws ResponseException
+     * @throws \ReflectionException
+     */
+    public function find(array|int $primaryId): Entity|null
+    {
+        $rows = $this->findByParams(
+            $this->getWhereConditionsByPrimaryKeys($primaryId),
+            [
+                self::PARAM_LIMIT => 1
+            ]
+        );
+
+        if (!$rows) {
+            return null;
+        }
+
+        return reset($rows);
+    }
+
+    /**
+     * Получить модели по входящих параметрам.
+     *
+     * @param array $params Параметры для where: тип => значение.
+     * @param array $filters Фильтры (order, order_direction, limit).
+     *
+     * @return Entity[] Массив моделей.
+     *
+     * @throws ResponseException
+     * @throws \ReflectionException
+     */
+    public function findByParams(array $params, array $filters = []): array
+    {
+        $query = $this->getListQueryNew();
+        $query->appendWhereConditionByParams($params, $this->getTablePrefix());
+
+        if (ArrayHandler::hasParam(self::PARAM_ORDER, $filters)) {
+            $orderDirection = ArrayHandler::hasParam(self::PARAM_ORDER_DIRECTION, $filters)
+                ? ArrayHandler::getValueAsString(self::PARAM_ORDER_DIRECTION, $filters)
+                : self::PARAM_SORT_DIRECTION_ASC;
+
+            $query->order(ArrayHandler::getValueAsString(self::PARAM_ORDER, $filters), $orderDirection);
+        }
+
+        if (ArrayHandler::hasParam(self::PARAM_LIMIT, $filters)) {
+            $query->limit(ArrayHandler::getValueAsInt(self::PARAM_LIMIT, $filters));
+        }
+
+        $rows = $query->fetchAll();
+
+        $models = [];
+        foreach ($rows as $row) {
+            $models[] = $this->transformRowDataToModel($row);
+        }
+
+        return $models;
+    }
+
+    protected function getEntityDataBuilder(array $data): EntityDataBuilder
+    {
+        return new EntityDataBuilder($this->entityModel, $data);
+    }
+
+    /**
      * Обновление модели по входящим данным.
      *
-     * @param array $data              Входящие данные.
-     * @param array $primaryKeysValues Значения primary ключей модели.
+     * @param array|int $primaryId         Значения primary ключа (ключей).
+     * @param array     $primaryKeysValues Значения primary ключей модели.
      *
      * @return array|int Primary ключ, ключи.
      */
-    public function processUpdate(array $primaryKeysValues, array $data): array|int
+    // переименовать в update
+    public function processUpdate(array|int $primaryId, array $data): array|int
     {
-        $className = $this->getReflectionCurrentModel();
-
 //        if (!AccessRight::hasAccess(strtolower($className->getShortName()) . '.update')) {
 //            throw new \RuntimeException('Update book is not granted');
 //        }
@@ -118,14 +217,20 @@ abstract class Repository
                 $entityDataBuilder->getQueryPreparedData()
             );
 
-        $this->appendWhereConditionByPrimaryKeys($primaryKeysValues, $query);
+        $query->appendWhereConditionByParams(
+            $this->getWhereConditionsByPrimaryKeys($primaryId)
+        );
 
         try {
             $query->execute();
 
-            return $primaryKeysValues;
+            return $primaryId;
         } catch(\PDOException $e) {
-            throw new CustomPdoException($className->getShortName() . 'Repository.update', $query, $e);
+            throw new CustomPdoException(
+                $this->getReflectionCurrentModel()->getShortName() . 'Repository.update',
+                $query,
+                $e
+            );
         }
 
     }
@@ -137,10 +242,9 @@ abstract class Repository
      *
      * @return array|int Primary ключ, ключи.
      */
+    // переименовать в create
     public function processCreate(array $data): array|int
     {
-        $className = $this->getReflectionCurrentModel();
-
 //        if (!AccessRight::hasAccess(strtolower($className->getShortName()) . '.create')) {
 //            throw new \RuntimeException('Create book is not granted');
 //        }
@@ -155,49 +259,13 @@ abstract class Repository
 
             return $query->getLastInsertId();
         } catch(\PDOException $e) {
-            throw new CustomPdoException($className->getShortName() . 'Repository.create', $query, $e);
+            throw new CustomPdoException(
+                $this->getReflectionCurrentModel()->getShortName() . 'Repository.create',
+                $query,
+                $e
+            );
         }
 
-    }
-
-    /**
-     * Получение модели по primary ключу/ключам.
-     *
-     * @param array|int $primaryId Значения primary ключа (ключей).
-     *
-     * @return Entity|null Модель.
-     *
-     * @throws ResponseException
-     * @throws \ReflectionException
-     */
-    public function find(array|int $primaryId): Entity|null
-    {
-        $primaryValueIds = !is_array($primaryId) ? [$primaryId] : array_values($primaryId);
-        $query = $this->getListQueryNew();
-        $this->appendWhereConditionByPrimaryKeys($primaryValueIds, $query, $this->getTablePrefix());
-
-        $data = $query->fetch();
-
-        $entityClassName = '\\' . $this->entityModel;
-        $createMethod = 'create';
-        $hasMethod = $this->getReflectionCurrentModel()->hasMethod($createMethod);
-
-        if (!$hasMethod) {
-            throw new ResponseException('Method "' . $createMethod . '" is not found in ' . $entityClassName);
-        }
-
-        $reflectionMethod = new \ReflectionMethod($entityClassName, $createMethod);
-
-        if (!$reflectionMethod->isStatic()) {
-            throw new ResponseException('Method "' . $createMethod . '" is not static in ' . $entityClassName);
-        }
-
-        return $data ? call_user_func([$entityClassName, 'create'], $data) : null;
-    }
-
-    protected function getEntityDataBuilder(array $data): EntityDataBuilder
-    {
-        return new EntityDataBuilder($this->entityModel, $data);
     }
 
     protected function getListQueryNew(): QueryPdo
@@ -209,7 +277,9 @@ abstract class Repository
 
     /**
      * Преобразование массива полей в тип 'field_name' => ':field_name'
+     *
      * @param array $values
+     *
      * @return void
      */
     protected function assembleInsertValues(array $values): array
@@ -223,19 +293,74 @@ abstract class Repository
     }
 
     /**
-     * Добавляем в запрос условия поиска по primary ключам.
+     * Преборазование массива данных в модель.
      *
-     * @param array $primaryValueIds Значения primary ключей, как они записаны в модели.
-     * @param QueryPdo $query Запрос.
-     * @param string $prefix Префкикс таблицы.
+     * @param array $rowData Массив данных для будущем модели.
      *
-     * @return void
+     * @return Entity Модель.
      *
      * @throws ResponseException
      * @throws \ReflectionException
      */
-    private function appendWhereConditionByPrimaryKeys(array $primaryValueIds, QueryPdo $query, $prefix = null): void
+    private function transformRowDataToModel(array $rowData): Entity
     {
+        $entityClassName = '\\' . $this->entityModel;
+        $hasMethod = $this->getReflectionCurrentModel()->hasMethod(self::PARAM_METHOD_CREATE);
+
+        if (!$hasMethod) {
+            throw new ResponseException('Method "' . self::PARAM_METHOD_CREATE . '" is not found in ' . $entityClassName);
+        }
+
+        $reflectionMethod = new \ReflectionMethod($entityClassName, self::PARAM_METHOD_CREATE);
+
+        if (!$reflectionMethod->isStatic()) {
+            throw new ResponseException('Method "' . self::PARAM_METHOD_CREATE . '" is not static in ' . $entityClassName);
+        }
+
+        return call_user_func([$entityClassName, self::PARAM_METHOD_CREATE], $rowData);
+    }
+
+    /**
+     * Получение $params для подстановки в запрос.
+     *
+     * @param array|int $primaryValueIds Массив primary ключей: поле (Entity:PARAM_Id) => значение (5).
+     *
+     * @return array
+     *
+     * @throws ResponseException
+     * @throws \ReflectionException
+     */
+    private function getWhereConditionsByPrimaryKeys(array|int $primaryValueIds): array
+    {
+        if (!is_array($primaryValueIds)) {
+            return [
+                Entity::PARAM_ID => $primaryValueIds
+            ];
+        }
+
+
+        /*
+             $primaryKeyNames
+             Array
+                (
+                    [0] => id
+                )
+
+            $primaryValueIds
+            Array
+                (
+                    [id] => Array
+                        (
+                            [id] => 4202
+                        )
+
+                )
+            =>
+            Array
+                (
+                    [id] => 4202
+                )
+         */
         $primaryKeyNames = $this->getPrimaryKeyNames();
         $primaryClass = $this->getReflectionCurrentModel();
 
@@ -243,10 +368,12 @@ abstract class Repository
             throw new ResponseException('Не соответствие primary ключей модели ' . $primaryClass->getName());
         }
 
-        $prefix = $prefix ? $prefix . '.' : '';
+        $params = [];
 
-        foreach ($primaryKeyNames as $index => $primaryKeyName) {
-            if (!isset($primaryValueIds[$index])) {
+        if (count($primaryKeyNames) === 1) {
+            $primaryKeyName = reset($primaryKeyNames);
+
+            if (!isset($primaryValueIds[$primaryKeyName])) {
                 throw new ResponseException(
                     sprintf(
                         'Не найден в модели %s primary ключ для поля %s',
@@ -256,9 +383,26 @@ abstract class Repository
                 );
             }
 
-            $query->where($prefix . $primaryKeyName, ':' . $primaryKeyName);
-            $query->bindParam($primaryKeyName, $primaryValueIds[$index]);
+            $params[$primaryKeyName] = $primaryValueIds[$primaryKeyName];
+
+            return $params;
         }
+
+        foreach ($primaryKeyNames as $primaryKeyName) {
+            if (!isset($primaryValueIds[$primaryKeyName])) {
+                throw new ResponseException(
+                    sprintf(
+                        'Не найден в модели %s primary ключ для поля %s',
+                        $primaryClass->getName(),
+                        $primaryKeyName
+                    )
+                );
+            }
+
+            $params[$primaryKeyName] = $primaryValueIds[$primaryKeyName];
+        }
+
+        return $params;
     }
 
     /**

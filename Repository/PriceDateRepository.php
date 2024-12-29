@@ -8,6 +8,10 @@ use Models\PriceDate;
 use QueryPdo;
 use Models\Entity;
 
+/**
+ * @method PriceDate find()
+ * @method PriceDate[] findByParams(array $params, array $filters = [])
+ */
 class PriceDateRepository extends Repository
 {
     protected string $entityModel = PriceDate::class;
@@ -46,6 +50,19 @@ class PriceDateRepository extends Repository
         } catch(\PDOException $e) {
             throw new CustomPdoException('PriceDateRepository.savePriceDates', $query, $e);
         }
+    }
+
+    public function getByProductIds(array $ids)
+    {
+        return $this->findByParams(
+            [
+                PriceDate::PARAM_ID => $ids,
+                PriceDate::PARAM_USER_ID => Config::getCurrentUserid(),
+            ],
+            [
+                self::PARAM_ORDER => PriceDate::PARAM_DATE
+            ]
+        );
     }
 
     /**

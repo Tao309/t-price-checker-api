@@ -8,6 +8,10 @@ use Models\Stock;
 use QueryPdo;
 use Models\Entity;
 
+/**
+ * @method Stock find()
+ * @method Stock[] findByParams(array $params, array $filters = [])
+ */
 class StockRepository extends Repository
 {
     protected string $entityModel = Stock::class;
@@ -48,6 +52,19 @@ class StockRepository extends Repository
         } catch(\PDOException $e) {
             throw new CustomPdoException('StockRepository.saveStocks', $query, $e);
         }
+    }
+
+    public function getByProductIds(array $ids): array
+    {
+        return $this->findByParams(
+            [
+                Stock::PARAM_ID => $ids,
+                Stock::PARAM_USER_ID => Config::getCurrentUserid(),
+            ],
+            [
+                self::PARAM_ORDER => Stock::PARAM_DATE
+            ]
+        );
     }
 
     /**
