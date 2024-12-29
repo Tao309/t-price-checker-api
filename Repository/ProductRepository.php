@@ -13,6 +13,7 @@ use Models\ProductUserData;
 use Models\Stock;
 use PDOException;
 use PullRepository\PriceDatePullRepository;
+use PullRepository\SameProductPullRepository;
 use PullRepository\StockPullRepository;
 use QueryPdo;
 
@@ -282,7 +283,7 @@ class ProductRepository extends Repository
 
         $priceDatesPull = new PriceDatePullRepository($ids);
         $stocksPull = new StockPullRepository($ids);
-        $sameProductsPull = new StockPullRepository($ids);
+        $sameProductsPull = new SameProductPullRepository($ids);
 
         array_map(function ($productModel) use ($priceDatesPull, $stocksPull, $sameProductsPull) {
             $productId = $productModel->getId();
@@ -291,10 +292,10 @@ class ProductRepository extends Repository
             $productModel->setStocks($stocksPull->getFromPull($productId));
 
             $findSameProductId = $productModel->getBook()
-                ? 'book-' . $productModel->getBook()->getId()
+                ? SameProductPullRepository::BOOK_PREFIX . $productModel->getBook()->getId()
                 : (
                 $productModel->getSourceProduct()
-                    ? 'source-product-' . $productModel->getSourceProduct()->getId()
+                    ? SameProductPullRepository::SP_PREFIX . $productModel->getSourceProduct()->getId()
                     : null
                 );
 
