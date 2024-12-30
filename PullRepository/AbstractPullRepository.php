@@ -13,7 +13,7 @@ abstract class AbstractPullRepository
         $this->fillPull();
     }
 
-    public function getFromPull($id)
+    public function getFromPull($id): array
     {
         return $this->pull[$id] ?? [];
     }

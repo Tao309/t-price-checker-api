@@ -6,10 +6,10 @@ namespace Models;
  * @method string getShopProductId()
  * @method string getShopProductCode()
  * @method int getMinPrice()
-* // * @method bool getAvailable()
  * @method int getBookId()
  * @method int getSourceProductId()
  *
+ * @method ProductUserData getProductUserData()
  * @method Shop getShop()
  */
 class SameProduct extends Entity
@@ -21,7 +21,6 @@ class SameProduct extends Entity
         self::PARAM_ID => 'ID',
         Product::PARAM_SHOP_PRODUCT_ID => 'ID товара с магазина',
         Product::PARAM_SHOP_PRODUCT_CODE => 'Код 1С',
-        ProductUserData::PARAM_AVAILABLE => 'Доступен',
         Product::PARAM_BOOK_ID => 'ID книги',
         Product::PARAM_SOURCE_PRODUCT_ID => 'ID источника товара',
     ];
@@ -32,27 +31,21 @@ class SameProduct extends Entity
             'relation_entity' => Shop::class,
             'relation_id' => Entity::PARAM_ID,
         ],
+        Product::PARAM_PRODUCT_USER_DATA => [
+            'parent_id' => Entity::PARAM_ID,
+            'relation_entity' => ProductUserData::class,
+            'relation_id' => ProductUserData::PARAM_PRODUCT_ID,
+            'relation_user_id' => ProductUserData::PARAM_USER_ID,
+        ],
     ];
 
     protected string $shopProductId;
     protected ?string $shopProductCode;
-//    protected bool $available;
     protected ?int $minPrice;
+    // Поля ниже нужны для сортировки минимальной цену по магазину, где ищется товар.
     protected ?int $bookId;
     protected ?int $sourceProductId;
 
+    protected ?ProductUserData $productUserData = null;
     protected Shop $shop;
-
-    public function toArray(): array
-    {
-        $m = parent::toArray();
-
-        $m[Product::PARAM_SHOP_TYPE] = $this->getShop()->getType();
-
-        unset(
-            $m[Product::PARAM_SHOP]
-        );
-
-        return $m;
-    }
 }

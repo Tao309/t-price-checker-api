@@ -300,7 +300,7 @@ class ProductRepository extends Repository
                 );
 
             if ($findSameProductId) {
-                $productModel->setSameProducts($sameProductsPull->getFromPull($findSameProductId));
+                $productModel->setSameProducts($sameProductsPull->getFromPullSortMin($productModel, $findSameProductId));
             }
 
         }, $productModels);

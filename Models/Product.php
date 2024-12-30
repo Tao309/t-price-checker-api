@@ -175,20 +175,6 @@ class Product extends Entity
         }
     }
 
-    public function toArray(): array
-    {
-        $m = parent::toArray();
-
-        // Изначально так было в моделе продукта на фронтенде.
-        $m[self::PARAM_SHOP_TYPE] = $this->getShop()->getType();
-
-        unset(
-            $m[self::PARAM_SHOP]
-        );
-
-        return $m;
-    }
-
     public function getUrl(): string|null
     {
         switch ($this->getShop()?->getType()) {
