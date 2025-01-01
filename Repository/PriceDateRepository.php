@@ -36,6 +36,7 @@ class PriceDateRepository extends Repository
                 'price = VALUES(price)'
             );
 
+        QueryPdo::beginTransaction();
         try {
             foreach($priceDates as $priceDate) {
                 $query->bindParams([
@@ -47,7 +48,9 @@ class PriceDateRepository extends Repository
 
                 $query->execute();
             }
+            QueryPdo::commit();
         } catch(\PDOException $e) {
+            QueryPdo::rollBack();
             throw new CustomPdoException('PriceDateRepository.savePriceDates', $query, $e);
         }
     }

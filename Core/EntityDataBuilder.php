@@ -24,7 +24,6 @@ class EntityDataBuilder
     private string $entityModel;
     private array $entityData;
     private array $preparedData;
-    private array $preparedReadData;
 
     public function __construct(string $entityModel, array $entityData)
     {
@@ -34,41 +33,9 @@ class EntityDataBuilder
         $this->processEntityData();
     }
 
-    public function getQueryKeysVariables(): array
-    {
-        $vars = [];
-
-        foreach ($this->preparedData as $key => $value) {
-            $vars[$key] = ':' . $key;
-        }
-
-        return $vars;
-    }
-
     public function getQueryPreparedData(): array
     {
         return $this->preparedData;
-    }
-
-    public function appendPreparedData(array $newPreparedData): void
-    {
-        $preparedData = $this->preparedData;
-
-        array_walk($newPreparedData, function ($value, $key) use (&$preparedData) {
-            $preparedData[$key] = $value;
-        });
-
-        $this->preparedData = $preparedData;
-    }
-
-    // Получение значения из данных на сохранение.
-    public function getPreparedData(string $param): mixed
-    {
-        if (!isset($this->preparedData[$param])) {
-            throw new \Exception('Property ' . $param . ' is not found in Prepared Entity Data');
-        }
-
-        return $this->preparedData[$param];
     }
 
     /**
@@ -80,28 +47,28 @@ class EntityDataBuilder
      *
      * @throws \ReflectionException
      */
-    public function getEntityData(string|array $param): mixed
-    {
-        if (!isset($this->entityData[$param])) {
-            throw new \Exception('Property ' . $param . ' is not found in Entity Data');
-        }
-
-        $primaryClass = new \ReflectionClass('\\' . $this->entityModel);
-        $camelCaseParam = Entity::toCamelCase($param);
-        if (!$primaryClass->hasProperty($camelCaseParam)) {
-            throw new \Exception('Property ' . $param . ' is not exist in Entity');
-        }
-
-        $param = is_array($param) ? $param : [$param];
-
-        $values = [];
-        foreach ($param as $paramValue) {
-            $property = $primaryClass->getProperty($camelCaseParam);
-            $values[] = $this->prepareValue($property->getType()->getName(), $this->entityData[$paramValue]);
-        }
-
-        return count($values) > 1 ? $values: reset($values);
-    }
+//    public function getEntityData(string|array $param): mixed
+//    {
+//        if (!isset($this->entityData[$param])) {
+//            throw new \Exception('Property ' . $param . ' is not found in Entity Data');
+//        }
+//
+//        $primaryClass = new \ReflectionClass('\\' . $this->entityModel);
+//        $camelCaseParam = Entity::toCamelCase($param);
+//        if (!$primaryClass->hasProperty($camelCaseParam)) {
+//            throw new \Exception('Property ' . $param . ' is not exist in Entity');
+//        }
+//
+//        $param = is_array($param) ? $param : [$param];
+//
+//        $values = [];
+//        foreach ($param as $paramValue) {
+//            $property = $primaryClass->getProperty($camelCaseParam);
+//            $values[] = $this->prepareValue($property->getType()->getName(), $this->entityData[$paramValue]);
+//        }
+//
+//        return count($values) > 1 ? $values: reset($values);
+//    }
 
     private function processEntityData(): void
     {
@@ -147,6 +114,7 @@ class EntityDataBuilder
                 continue;
             }
 
+            // Для существующей модели запрещаем обновление полей только для чтения
             if (!$isNewModel && is_array($onlyReadProps) && in_array($param, $onlyReadProps)) {
                 continue;
             }

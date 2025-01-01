@@ -5,13 +5,10 @@ namespace Repository;
 use Core\AccessRight\AccessRight;
 use Core\ArrayHandler;
 use Core\Config;
-use Core\QueryBuilder;
-use Exception\CustomPdoException;
 use Models\Entity;
 use Models\Product;
 use Models\ProductUserData;
 use Models\Stock;
-use PDOException;
 use PullRepository\PriceDatePullRepository;
 use PullRepository\SameProductPullRepository;
 use PullRepository\StockPullRepository;
@@ -30,7 +27,6 @@ class ProductRepository extends Repository
     private SourceProductRepository $sourceProductRepository;
     private StockRepository $stockRepository;
     private PriceDateRepository $priceDateRepository;
-    private SameProductRepository $sameProductRepository;
 
     public function __construct()
     {
@@ -40,37 +36,34 @@ class ProductRepository extends Repository
         $this->sourceProductRepository = new SourceProductRepository();
         $this->stockRepository = new StockRepository();
         $this->priceDateRepository = new PriceDateRepository();
-        $this->sameProductRepository = new SameProductRepository();
     }
 
-    public function save(array $entityData): int
+    public function saveProduct(array $data): int
     {
-        ArrayHandler::hasParamThroughException(Product::PARAM_SHOP_PRODUCT_ID, $entityData, 'shop_product_id is required');
-        // Убрать проверку на shop_type, и всегда брать текущий, откуда запрос приходит.
-//        ArrayHandler::hasParamThroughException(Product::PARAM_SHOP_TYPE, $entityData, 'shop_type is required');
+        ArrayHandler::hasParamThroughException(Product::PARAM_SHOP_PRODUCT_ID, $data, 'shop_product_id is required');
 
         if (Config::isWildberriesShopType()) {
             ArrayHandler::hasParamThroughException(
                 Product::PARAM_SHOP_PRODUCT_CODE,
-                $entityData,
+                $data,
                 'shop_product_code is required'
             );
         }
 
-        $entityData[Product::PARAM_SHOP_ID] = Config::getCurrentShopId();
+        $data[Product::PARAM_SHOP_ID] = Config::getCurrentShopId();
 
-        $stocks = $entityData[Product::PARAM_STOCKS] ?? [];
-        $priceDates = $entityData[Product::PARAM_PRICE_DATES] ?? [];
-        $flags = $entityData[Product::PARAM_FLAGS] ?? [];
+        $stocks = $data[Product::PARAM_STOCKS] ?? [];
+        $priceDates = $data[Product::PARAM_PRICE_DATES] ?? [];
+        $flags = $data[Product::PARAM_FLAGS] ?? [];
 
         $entityId = null;
         $positionPrice = null;
-        $product = $this->findProduct($entityData[Product::PARAM_SHOP_PRODUCT_ID]);
+        $product = $this->findProduct($data[Product::PARAM_SHOP_PRODUCT_ID]);
 
         if ($product) {
             $entityId = $product->getId();
             $positionPrice = $product->getMinPrice();
-            $entityData[Entity::PARAM_ID] = $entityId;
+            $data[Entity::PARAM_ID] = $entityId;
         }
 
         $toChangeId = ArrayHandler::hasParamTrue(Product::FLAG_TO_CHANGE_ID, $flags) && Config::isWildberriesShopType();
@@ -80,7 +73,7 @@ class ProductRepository extends Repository
          * Сохранение не производим, передаваемые ид неверны.
          */
         if ($toChangeId && !$entityId) {
-            $entityId = $this->tryToChangeId($entityData);
+            $entityId = $this->tryToChangeId($data);
 
             if ($entityId) {
                 return $entityId;
@@ -94,11 +87,11 @@ class ProductRepository extends Repository
 
             ArrayHandler::hasParamThroughException(
                 Product::PARAM_BOOK,
-                $entityData,
+                $data,
                 'Не найдена книга в товаре для линка.'
             );
 
-            $this->bookRepository->linkBookToProduct($entityId, $entityData[Product::PARAM_BOOK][Entity::PARAM_ID]);
+            $this->bookRepository->linkBookToProduct($entityId, $data[Product::PARAM_BOOK][Entity::PARAM_ID]);
 
             return $entityId;
         }
@@ -120,11 +113,11 @@ class ProductRepository extends Repository
 
             ArrayHandler::hasParamThroughException(
                 Product::PARAM_SOURCE_PRODUCT,
-                $entityData,
+                $data,
                 'Не найден источник товара в товаре для линка.'
             );
 
-            $this->sourceProductRepository->linkToProduct($entityId, $entityData[Product::PARAM_SOURCE_PRODUCT][Entity::PARAM_ID]);
+            $this->sourceProductRepository->linkToProduct($entityId, $data[Product::PARAM_SOURCE_PRODUCT][Entity::PARAM_ID]);
 
             return $entityId;
         }
@@ -140,9 +133,9 @@ class ProductRepository extends Repository
         }
 
         $this->setToSaveUserData(ArrayHandler::hasParamTrue(Product::FLAG_TO_SAVE_PRODUCT_USER_DATA, $flags)
-            && ArrayHandler::hasParam(Product::PARAM_PRODUCT_USER_DATA, $entityData));
+            && ArrayHandler::hasParam(Product::PARAM_PRODUCT_USER_DATA, $data));
 
-        $entityId = $this->processSave($entityData);
+        $entityId = $this->save($data);
 
         if (!$entityId) {
             throw new \Exception('Entity is not exists for save priceDates or stocks.');

@@ -37,6 +37,7 @@ class StockRepository extends Repository
                 'qty = VALUES(qty), log = VALUES(log)'
             );
 
+        QueryPdo::beginTransaction();
         try {
             foreach($stocks as $stock) {
                 $query->bindParams([
@@ -49,7 +50,9 @@ class StockRepository extends Repository
 
                 $query->execute();
             }
+            QueryPdo::commit();
         } catch(\PDOException $e) {
+            QueryPdo::rollBack();
             throw new CustomPdoException('StockRepository.saveStocks', $query, $e);
         }
     }

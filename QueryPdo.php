@@ -146,6 +146,13 @@ class QueryPdo
         return $this;
     }
 
+    /**
+     * Добавить htmlspecialchars?
+     *
+     * @param string $value
+     *
+     * @return string
+     */
     public static function escapeString(string $value): string
     {
         return addslashes(stripslashes($value));
@@ -452,6 +459,8 @@ class QueryPdo
         if (is_array($value)) {
             return $name . ' IN (' . implode(",", array_values($value)) . ')';
         }
+
+        $value = QueryPdo::escapeString($value);
 
         if (is_bool($value)) {
             return $name . ' = ' . (int)$value;

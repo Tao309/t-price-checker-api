@@ -88,8 +88,7 @@ class Product extends Entity
     // Свойства, только для чтения, нельзя перезаписывать.
     protected const ONLY_READ_PROPERTIES = [
         self::PARAM_ID,
-//        self::PARAM_SHOP_PRODUCT_ID,
-//        self::PARAM_SHOP_ID,
+        self::PARAM_SHOP_PRODUCT_ID,
         self::PARAM_DATE_UPDATED,
         self::PARAM_DATE_CREATED,
     ];

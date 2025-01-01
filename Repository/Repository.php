@@ -84,8 +84,7 @@ abstract class Repository
      * @throws ResponseException
      * @throws \ReflectionException
      */
-    // переименовать в save
-    public function processSave(array $data): array|int
+    public function save(array $data): array|int
     {
         $primaryKeyNames = $this->getPrimaryKeyNames();
         $hasManyPrimaryKeys = count($primaryKeyNames) > 1;
@@ -113,9 +112,9 @@ abstract class Repository
         }
 
         if ($isNewModel) {
-            $entityId = $this->processCreate($data);
+            $entityId = $this->create($data);
         } else {
-            $entityId = $this->processUpdate($primaryKeysValues, $data);
+            $entityId = $this->update($primaryKeysValues, $data);
         }
 
         if ($hasManyPrimaryKeys) {
@@ -133,7 +132,7 @@ abstract class Repository
             $data[$userDataFieldName][$this->getUserDataRelationIdParam()] = $entityId;
             $data[$userDataFieldName][$this->getUserDataRelationUserIdParam()] = Config::getCurrentUserid();
 
-            $userDataRepo->processSave($data[$userDataFieldName]);
+            $userDataRepo->save($data[$userDataFieldName]);
         }
 
         return $entityId;
@@ -230,8 +229,7 @@ abstract class Repository
      *
      * @return array|int Primary ключ, ключи.
      */
-    // переименовать в update
-    public function processUpdate(array|int $primaryId, array $data): array|int
+    public function update(array|int $primaryId, array $data): array|int
     {
 //        if (!AccessRight::hasAccess(strtolower($className->getShortName()) . '.update')) {
 //            throw new \RuntimeException('Update book is not granted');
@@ -278,8 +276,7 @@ abstract class Repository
      *
      * @return array|int Primary ключ, ключи.
      */
-    // переименовать в create
-    public function processCreate(array $data): array|int
+    public function create(array $data): array|int
     {
 //        if (!AccessRight::hasAccess(strtolower($className->getShortName()) . '.create')) {
 //            throw new \RuntimeException('Create book is not granted');
@@ -600,16 +597,16 @@ abstract class Repository
             throw new ResponseException('Method find does not exist in ' . $userDataRepoClassName);
         }
 
-        if (!method_exists($userDataRepo, 'processSave')) {
-            throw new ResponseException('Method processSave does not exist in ' . $userDataRepoClassName);
+        if (!method_exists($userDataRepo, 'save')) {
+            throw new ResponseException('Method save does not exist in ' . $userDataRepoClassName);
         }
 
-        if (!method_exists($userDataRepo, 'processUpdate')) {
-            throw new ResponseException('Method processUpdate does not exist in ' . $userDataRepoClassName);
+        if (!method_exists($userDataRepo, 'update')) {
+            throw new ResponseException('Method update does not exist in ' . $userDataRepoClassName);
         }
 
-        if (!method_exists($userDataRepo, 'processCreate')) {
-            throw new ResponseException('Method processCreate does not exist in ' . $userDataRepoClassName);
+        if (!method_exists($userDataRepo, 'create')) {
+            throw new ResponseException('Method create does not exist in ' . $userDataRepoClassName);
         }
 
         return $userDataRepo;

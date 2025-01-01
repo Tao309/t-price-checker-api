@@ -87,15 +87,13 @@ class Storage {
         ArrayHandler::hasParamThroughException(ProductUserData::PARAM_IS_ARCHIVE, $data, 'Not found is_archive');
 
         $shopProductId = ArrayHandler::getValueAsString(Product::PARAM_SHOP_PRODUCT_ID, $data);
-
-        // В таком случае может ли не быть getProductUserData?
         $product = $this->productRepository->findProduct($shopProductId, true);
 
         if ($product) {
             $isArchive = ArrayHandler::getValueAsBool(ProductUserData::PARAM_IS_ARCHIVE, $data);
 
             if (!$product->getProductUserData()) {
-                $this->productUserDataRepository->processSave([
+                $this->productUserDataRepository->save([
                     ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
                     ProductUserData::PARAM_PRODUCT_ID => $product->getId(),
                     ProductUserData::PARAM_AVAILABLE => true,
@@ -158,7 +156,7 @@ class Storage {
     {
         QueryPdo::beginTransaction();
         try {
-            $entityId = $this->bookRepository->processSave($modelData);
+            $entityId = $this->bookRepository->save($modelData);
 
             QueryPdo::commit();
         } catch(\Throwable $e) {
@@ -186,7 +184,7 @@ class Storage {
     {
         QueryPdo::beginTransaction();
         try {
-            $entityId = $this->sourceProductRepository->processSave($modelData);
+            $entityId = $this->sourceProductRepository->save($modelData);
 
             QueryPdo::commit();
         } catch(\Throwable $e) {
@@ -213,7 +211,7 @@ class Storage {
     {
         QueryPdo::beginTransaction();
         try {
-            $this->productRepository->save($productData);
+            $this->productRepository->saveProduct($productData);
 
             QueryPdo::commit();
         } catch(\Throwable $e) {
@@ -261,7 +259,7 @@ class Storage {
             try {
                 QueryPdo::beginTransaction();
                 try {
-                    $this->productRepository->save($productData);
+                    $this->productRepository->saveProduct($productData);
 
                     QueryPdo::commit();
                 } catch(\Throwable $e) {
