@@ -10,7 +10,9 @@ use Core\QueryBuilder;
 use Exception\CustomPdoException;
 use Exception\NoRightsException;
 use Exception\ResponseException;
+use Models\Book;
 use Models\Entity;
+use Models\Product;
 use QueryPdo;
 use ReflectionClass;
 
@@ -114,8 +116,6 @@ abstract class Repository
             $isNewModel = !$this->find($primaryKeysValues);
         }
 
-        $entityId = null;
-
         try {
             if ($isNewModel) {
                 $entityId = $this->create($data);
@@ -127,6 +127,8 @@ abstract class Repository
             if ($isNewModel) {
                 throw $e;
             }
+
+            $entityId = reset($primaryKeysValues);
         }
 
         if ($hasManyPrimaryKeys) {
@@ -248,7 +250,12 @@ abstract class Repository
      */
     public function update(array|int $primaryId, array $data): array|int
     {
-        AccessRight::checkAccess(strtolower($this->getReflectionCurrentModel()->getShortName()) . '.update');
+        if (in_array($this->getReflectionCurrentModel()->getName(), [
+            Book::class,
+            Product::class,
+        ])) {
+            AccessRight::checkAccess(strtolower($this->getReflectionCurrentModel()->getShortName()) . '.update');
+        }
 
         // Убираем из данных на обновления primary ключи.
         $primaryKeyNames = $this->getPrimaryKeyNames();
@@ -298,7 +305,12 @@ abstract class Repository
      */
     public function create(array $data): array|int
     {
-        AccessRight::checkAccess(strtolower($this->getReflectionCurrentModel()->getShortName()) . '.create');
+        if (in_array($this->getReflectionCurrentModel()->getName(), [
+            Book::class,
+            Product::class,
+        ])) {
+            AccessRight::checkAccess(strtolower($this->getReflectionCurrentModel()->getShortName()) . '.create');
+        }
 
         $entityDataBuilder = $this->getEntityDataBuilder($data);
         $preparedData = $entityDataBuilder->getQueryPreparedData();
