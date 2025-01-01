@@ -87,9 +87,14 @@ class EntityDataBuilder
 
         // Проверяем новая ли модель по входящим главным ключам модели.
         foreach ($primaryKeys as $primaryKey) {
-            if (empty($this->entityData[$primaryKey])) {
+            if (!empty($this->entityData[$primaryKey])) {
                 $isNewModel = false;
             }
+        }
+
+        // Для двойных ключей, всегда передаются ключи.
+        if (count($primaryKeys) > 0) {
+            $isNewModel = true;
         }
 
         foreach ($this->entityData as $param => $value) {

@@ -283,9 +283,23 @@ abstract class Repository
 //        }
 
         $entityDataBuilder = $this->getEntityDataBuilder($data);
+        $preparedData = $entityDataBuilder->getQueryPreparedData();
+
+        $requiredFields = $this->getReflectionCurrentModel()->getConstant('WHEN_CREATE_REQUIRED_PROPERTIES');
+        if (is_array($requiredFields)) {
+            foreach ($requiredFields as $requiredField) {
+                if (empty($preparedData[$requiredField])) {
+                    throw new ResponseException(sprintf(
+                        'Property %s is required for %s',
+                        $requiredField,
+                        $this->getReflectionCurrentModel()->getShortName()
+                    ));
+                }
+            }
+        }
 
         $query = (new QueryPdo())
-            ->insert($this->getTableName(), $entityDataBuilder->getQueryPreparedData());
+            ->insert($this->getTableName(), $preparedData);
 
         try {
             $query->execute();

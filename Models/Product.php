@@ -45,7 +45,6 @@ class Product extends Entity
     public const PARAM_SOURCE_PRODUCT_ID = 'source_product_id';
     public const PARAM_BOOK_ID = 'book_id';
     public const PARAM_SHOP_ID = 'shop_id';
-    public const PARAM_SHOP_TYPE = 'shop_type';
     public const PARAM_USER_ID = 'user_id';
     public const PARAM_TITLE = 'title';
     public const PARAM_DATE_UPDATED = 'date_updated';
@@ -91,6 +90,11 @@ class Product extends Entity
         self::PARAM_SHOP_PRODUCT_ID,
         self::PARAM_DATE_UPDATED,
         self::PARAM_DATE_CREATED,
+    ];
+
+    protected const WHEN_CREATE_REQUIRED_PROPERTIES = [
+        self::PARAM_SHOP_PRODUCT_ID,
+        self::PARAM_TITLE,
     ];
 
     protected const RELATION_TO_ONE = [

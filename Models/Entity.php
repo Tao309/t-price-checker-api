@@ -21,6 +21,9 @@ abstract class Entity
     // Свойства, только для чтения, нельзя перезаписывать.
     protected const ONLY_READ_PROPERTIES = [];
 
+    // Свойства, обязательные при создании.
+    protected const WHEN_CREATE_REQUIRED_PROPERTIES = [];
+
     // Связь к одному.
     protected const RELATION_TO_ONE = [];
 

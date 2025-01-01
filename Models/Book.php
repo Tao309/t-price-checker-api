@@ -89,6 +89,11 @@ class Book extends Entity
         self::PARAM_DATE_CREATED,
     ];
 
+    protected const WHEN_CREATE_REQUIRED_PROPERTIES = [
+        self::PARAM_TITLE,
+        self::PARAM_AUTHOR,
+    ];
+
     protected const RELATION_TO_ONE = [
         self::PARAM_BINDING_TYPE => [
             Repository::PARAM_PARENT_ID => self::PARAM_BINDING_TYPE_ID,
