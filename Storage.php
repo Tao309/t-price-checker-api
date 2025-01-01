@@ -88,7 +88,7 @@ class Storage {
 
         $shopProductId = ArrayHandler::getValueAsString(Product::PARAM_SHOP_PRODUCT_ID, $data);
 
-        // Сначала получаем, потом сейвим или создаём новый?
+        // В таком случае может ли не быть getProductUserData?
         $product = $this->productRepository->findProduct($shopProductId, true);
 
         if ($product) {
@@ -102,13 +102,11 @@ class Storage {
                     ProductUserData::PARAM_IS_ARCHIVE => $isArchive,
                 ]);
 
-                /** @var ProductUserData $pud */
                 $pud = $this->productUserDataRepository->find($product->getId());
 
                 $product->setProductUserData($pud);
             } else {
-                $this->productRepository->changeProductIsArchive($shopProductId, $isArchive);
-
+                $this->productUserDataRepository->changeIsArchive($product->getId(), $isArchive);
                 $product->getProductUserData()->setIsArchive($isArchive);
             }
         }
@@ -147,7 +145,6 @@ class Storage {
             throw new \Exception('Не корректен передаваемый массив ID товаров.');
         }
 
-//        $products = $this->productRepository->getProductsByShopProductIdsOld($productIds);
         $products = $this->productRepository->getProductsByShopProductIds($productIds);
 
         $this->tResponse->setSuccess(true);

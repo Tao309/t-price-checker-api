@@ -49,6 +49,14 @@ class ProductRepository extends Repository
         // Убрать проверку на shop_type, и всегда брать текущий, откуда запрос приходит.
 //        ArrayHandler::hasParamThroughException(Product::PARAM_SHOP_TYPE, $entityData, 'shop_type is required');
 
+        if (Config::isWildberriesShopType()) {
+            ArrayHandler::hasParamThroughException(
+                Product::PARAM_SHOP_PRODUCT_CODE,
+                $entityData,
+                'shop_product_code is required'
+            );
+        }
+
         $entityData[Product::PARAM_SHOP_ID] = Config::getCurrentShopId();
 
         $stocks = $entityData[Product::PARAM_STOCKS] ?? [];
@@ -160,35 +168,6 @@ class ProductRepository extends Repository
         }
 
         return $entityId;
-    }
-
-    public function changeProductIsArchive(string $shopProductId, bool $isArchive): void
-    {
-        $subQuery = (new QueryPdo())
-            ->select(Entity::PARAM_ID)
-            ->from(Product::TABLE_NAME)
-            ->where(Product::PARAM_SHOP_PRODUCT_ID, ':shop_product_id')
-            ->where(Product::PARAM_SHOP_ID, ':shop_id')
-            ->limit(1);
-
-        $query = (new QueryPdo())
-            ->update(
-                ProductUserData::TABLE_NAME,
-                [ProductUserData::PARAM_IS_ARCHIVE => $isArchive]
-            )
-            ->where(ProductUserData::PARAM_PRODUCT_ID, $subQuery)
-            ->where(ProductUserData::PARAM_USER_ID, ':user_id')
-            ->bindParams([
-                ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
-                Product::PARAM_SHOP_PRODUCT_ID => $shopProductId,
-                Product::PARAM_SHOP_ID => Config::getCurrentShopId(),
-            ]);
-
-        try {
-            $query->execute();
-        } catch(PDOException $e) {
-            throw new CustomPdoException('ProductRepository.changeProductIsArchive', $query, $e);
-        }
     }
 
     /**
