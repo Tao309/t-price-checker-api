@@ -2,6 +2,7 @@
 
 namespace Core\AccessRight;
 
+use Exception\NoRightsException;
 use Exception\ResponseException;
 use Models\Entity;
 use Models\User;
@@ -30,13 +31,13 @@ class AccessRight
      */
     private const ACCESS_LIST = [
         'product' => [
-            'save',
+            'update',
             'create',
             'limit_enabled',
             'limit',
         ],
         'book' => [
-            'save',
+            'update',
             'create',
             'limit',
         ],
@@ -93,25 +94,26 @@ class AccessRight
         return self::$userRole;
     }
 
-    public static function hasAccess(string $path, $defaultValue = null): bool
+    public static function checkAccess(string $rightPath): void
     {
-        return true;
+        $errorMessage = 'Access rights not found for ' . $rightPath;
 
-        $path = explode('.', $path);
+        $path = explode('.', $rightPath);
         $rightsConfig = self::getRights();
-        $currentConfig = null;
 
         foreach ($path as $part) {
             $part = trim($part);
 
             if (!isset($rightsConfig[$part])) {
-                return $defaultValue;
+                throw new NoRightsException($errorMessage);
             }
 
-            $currentConfig = $rightsConfig[$part];
+            $rightsConfig = $rightsConfig[$part];
         }
 
-        return $currentConfig ?? $defaultValue;
+        if (!$rightsConfig) {
+            throw new NoRightsException($errorMessage);
+        }
     }
 
     public static function getRights(): array

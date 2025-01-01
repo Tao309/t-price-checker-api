@@ -9,7 +9,7 @@ class UserAccess extends AccessRight implements UserAccessInterface, AdminAccess
         return false;
     }
 
-    public function getProductSave(): bool
+    public function getProductUpdate(): bool
     {
         return false;
     }
@@ -24,7 +24,7 @@ class UserAccess extends AccessRight implements UserAccessInterface, AdminAccess
         return 200;
     }
 
-    public function getBookSave(): bool
+    public function getBookUpdate(): bool
     {
         return false;
     }

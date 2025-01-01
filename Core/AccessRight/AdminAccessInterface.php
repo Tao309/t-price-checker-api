@@ -6,11 +6,11 @@ interface AdminAccessInterface
 {
     public function getProductCreate(): bool;
 
-    public function getProductSave(): bool;
+    public function getProductUpdate(): bool;
 
     public function getProductLimitEnabled(): bool;
 
-    public function getBookSave(): bool;
+    public function getBookUpdate(): bool;
 
     public function getBookCreate(): bool;
 

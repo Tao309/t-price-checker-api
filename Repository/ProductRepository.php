@@ -38,7 +38,16 @@ class ProductRepository extends Repository
         $this->priceDateRepository = new PriceDateRepository();
     }
 
-    public function saveProduct(array $data): int
+    /**
+     * @param array $data
+     *
+     * @return array|int
+     *
+     * @throws \Exception\CustomPdoException
+     * @throws \Exception\ResponseException
+     * @throws \ReflectionException
+     */
+    public function saveProduct(array $data): array|int
     {
         ArrayHandler::hasParamThroughException(Product::PARAM_SHOP_PRODUCT_ID, $data, 'shop_product_id is required');
 

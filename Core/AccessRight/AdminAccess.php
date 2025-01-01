@@ -9,7 +9,7 @@ class AdminAccess extends AccessRight implements AdminAccessInterface
         return true;
     }
 
-    public function getProductSave(): bool
+    public function getProductUpdate(): bool
     {
         return true;
     }
@@ -19,7 +19,7 @@ class AdminAccess extends AccessRight implements AdminAccessInterface
         return false;
     }
 
-    public function getBookSave(): bool
+    public function getBookUpdate(): bool
     {
         return true;
     }

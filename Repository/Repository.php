@@ -2,11 +2,13 @@
 
 namespace Repository;
 
+use Core\AccessRight\AccessRight;
 use Core\ArrayHandler;
 use Core\Config;
 use Core\EntityDataBuilder;
 use Core\QueryBuilder;
 use Exception\CustomPdoException;
+use Exception\NoRightsException;
 use Exception\ResponseException;
 use Models\Entity;
 use QueryPdo;
@@ -83,6 +85,7 @@ abstract class Repository
      * @throws CustomPdoException
      * @throws ResponseException
      * @throws \ReflectionException
+     * @throws NoRightsException
      */
     public function save(array $data): array|int
     {
@@ -111,10 +114,19 @@ abstract class Repository
             $isNewModel = !$this->find($primaryKeysValues);
         }
 
-        if ($isNewModel) {
-            $entityId = $this->create($data);
-        } else {
-            $entityId = $this->update($primaryKeysValues, $data);
+        $entityId = null;
+
+        try {
+            if ($isNewModel) {
+                $entityId = $this->create($data);
+            } else {
+                $entityId = $this->update($primaryKeysValues, $data);
+            }
+        } catch (NoRightsException $e) {
+            // Для новой модели, должны быть права на create, иначе не к чему привязывать userData потом.
+            if ($isNewModel) {
+                throw $e;
+            }
         }
 
         if ($hasManyPrimaryKeys) {
@@ -228,12 +240,15 @@ abstract class Repository
      * @param array     $primaryKeysValues Значения primary ключей модели.
      *
      * @return array|int Primary ключ, ключи.
+     *
+     * @throws CustomPdoException
+     * @throws NoRightsException
+     * @throws ResponseException
+     * @throws \ReflectionException
      */
     public function update(array|int $primaryId, array $data): array|int
     {
-//        if (!AccessRight::hasAccess(strtolower($className->getShortName()) . '.update')) {
-//            throw new \RuntimeException('Update book is not granted');
-//        }
+        AccessRight::checkAccess(strtolower($this->getReflectionCurrentModel()->getShortName()) . '.update');
 
         // Убираем из данных на обновления primary ключи.
         $primaryKeyNames = $this->getPrimaryKeyNames();
@@ -275,12 +290,15 @@ abstract class Repository
      * @param array $data Входящие данные.
      *
      * @return array|int Primary ключ, ключи.
+     *
+     * @throws CustomPdoException
+     * @throws NoRightsException
+     * @throws ResponseException
+     * @throws \ReflectionException
      */
     public function create(array $data): array|int
     {
-//        if (!AccessRight::hasAccess(strtolower($className->getShortName()) . '.create')) {
-//            throw new \RuntimeException('Create book is not granted');
-//        }
+        AccessRight::checkAccess(strtolower($this->getReflectionCurrentModel()->getShortName()) . '.create');
 
         $entityDataBuilder = $this->getEntityDataBuilder($data);
         $preparedData = $entityDataBuilder->getQueryPreparedData();
