@@ -460,8 +460,6 @@ class QueryPdo
             return $name . ' IN (' . implode(",", array_values($value)) . ')';
         }
 
-        $value = QueryPdo::escapeString($value);
-
         if (is_bool($value)) {
             return $name . ' = ' . (int)$value;
         }
@@ -471,13 +469,13 @@ class QueryPdo
         }
 
         if (strpos($value, ':') === 0) {
-            return $name . ' = ' . trim($value);
+            return $name . ' = ' . trim(QueryPdo::escapeString($value));
         }
 
         return match ($value) {
             self::EXPR_IS_NULL => $name . ' IS NULL',
             self::EXPR_IS_NOT_NULL => $name . ' IS NOT NULL',
-            default => $name . ' = "' . trim($value) . '"',
+            default => $name . ' = "' . trim(QueryPdo::escapeString($value)) . '"',
         };
     }
 

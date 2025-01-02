@@ -93,20 +93,32 @@ class Storage {
         if ($product) {
             $isArchive = ArrayHandler::getValueAsBool(ProductUserData::PARAM_IS_ARCHIVE, $data);
 
-            if (!$product->getProductUserData()) {
-                $this->productUserDataRepository->save([
-                    ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
-                    ProductUserData::PARAM_PRODUCT_ID => $product->getId(),
-                    ProductUserData::PARAM_AVAILABLE => true,
-                    ProductUserData::PARAM_IS_ARCHIVE => $isArchive,
-                ]);
+            QueryPdo::beginTransaction();
+            try {
+                if (!$product->getProductUserData()) {
+                    $this->productUserDataRepository->save([
+                        ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
+                        ProductUserData::PARAM_PRODUCT_ID => $product->getId(),
+                        ProductUserData::PARAM_AVAILABLE => true,
+                        ProductUserData::PARAM_IS_ARCHIVE => $isArchive,
+                    ]);
 
-                $pud = $this->productUserDataRepository->find($product->getId());
+                    $pud = $this->productUserDataRepository->find([
+                        Config::getCurrentUserid(),
+                        $product->getId()
+                    ]);
 
-                $product->setProductUserData($pud);
-            } else {
-                $this->productUserDataRepository->changeIsArchive($product->getId(), $isArchive);
-                $product->getProductUserData()->setIsArchive($isArchive);
+                    $product->setProductUserData($pud);
+                } else {
+                    $this->productUserDataRepository->changeIsArchive($product->getId(), $isArchive);
+                    $product->getProductUserData()->setIsArchive($isArchive);
+                }
+
+                QueryPdo::commit();
+            } catch (\Throwable $e) {
+                QueryPdo::rollBack();
+
+                throw $e;
             }
         }
 
