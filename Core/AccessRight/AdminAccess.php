@@ -38,4 +38,9 @@ class AdminAccess extends AccessRight implements AdminAccessInterface
     {
         return true;
     }
+
+    public function getSourceProductUpdate(): bool
+    {
+        return true;
+    }
 }

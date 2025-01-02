@@ -44,6 +44,7 @@ class AccessRight
         'source_product' => [
             'enabled',
             'create',
+            'update',
             'limit',
         ]
     ];

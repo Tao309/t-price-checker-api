@@ -17,4 +17,6 @@ interface AdminAccessInterface
     public function getSourceProductEnabled(): bool;
 
     public function getSourceProductCreate(): bool;
+
+    public function getSourceProductUpdate(): bool;
 }

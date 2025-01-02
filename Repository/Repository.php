@@ -128,7 +128,8 @@ abstract class Repository
                 throw $e;
             }
 
-            $entityId = reset($primaryKeysValues);
+            // При update возвращается массив.
+            $entityId = $primaryKeysValues;
         }
 
         if ($hasManyPrimaryKeys) {

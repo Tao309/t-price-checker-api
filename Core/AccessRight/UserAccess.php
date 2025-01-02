@@ -49,6 +49,11 @@ class UserAccess extends AccessRight implements UserAccessInterface, AdminAccess
         return false;
     }
 
+    public function getSourceProductUpdate(): bool
+    {
+        return false;
+    }
+
     public function getSourceProductLimit(): int
     {
         return 20;
