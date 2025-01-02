@@ -12,8 +12,11 @@ use Repository\SourceProductRepository;
 use Repository\StockRepository;
 use Repository\ProductUserDataRepository;
 use Core\ArrayHandler;
+use Repository\BookUserDataRepository;
+use Models\BookUserData;
 
 class Storage {
+    private BookUserDataRepository $bookUserDataRepository;
     private ProductUserDataRepository $productUserDataRepository;
     private ProductRepository $productRepository;
     private BookRepository $bookRepository;
@@ -23,6 +26,7 @@ class Storage {
 
     public function __construct(tResponse $tResponse)
     {
+        $this->bookUserDataRepository = new BookUserDataRepository();
         $this->productUserDataRepository = new ProductUserDataRepository();
         $this->productRepository = new ProductRepository();
         $this->bookRepository = new BookRepository();
@@ -114,6 +118,20 @@ class Storage {
                     $product->getProductUserData()->setIsArchive($isArchive);
                 }
 
+                if ($product->getBook() && !$product->getBook()->getBookUserData()) {
+                    $this->bookUserDataRepository->save([
+                        BookUserData::PARAM_USER_ID => Config::getCurrentUserid(),
+                        BookUserData::PARAM_BOOK_ID => $product->getBook()->getId(),
+                    ]);
+
+                    $bud = $this->bookUserDataRepository->find([
+                        Config::getCurrentUserid(),
+                        $product->getBook()->getId()
+                    ]);
+
+                    $product->getBook()->setBookUserData($bud);
+                }
+
                 QueryPdo::commit();
             } catch (\Throwable $e) {
                 QueryPdo::rollBack();
@@ -157,6 +175,7 @@ class Storage {
         }
 
         $products = $this->productRepository->getProductsByShopProductIds($productIds);
+        $this->productRepository->checkUserDataForProducts($products);
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
@@ -209,14 +228,14 @@ class Storage {
         $model = $this->sourceProductRepository->find($entityId);
 
         if (!$model) {
-            throw new \Exception('Not found sourceProduct by id '. $entityId);
+            throw new \Exception('Not found SourceProduct by id '. $entityId);
         }
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
             'entity' => $model->toArray()
         ]);
-        $this->tResponse->setMessage('Book is saved');
+        $this->tResponse->setMessage('SourceProduct is saved');
     }
 
     // api call

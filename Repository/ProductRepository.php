@@ -254,6 +254,22 @@ class ProductRepository extends Repository
     }
 
     /**
+     * Обработка товаров перед выводом.
+     *
+     * @param Product[] $productModels
+     */
+    public function checkUserDataForProducts(array $productModels): void
+    {
+        foreach ($productModels as $productModel) {
+            if ($productModel->getBook() && !$productModel->getBook()->getBookUserData()) {
+                $productModel->setBook(null);
+
+                $productModel->getProductUserData()->setIsArchive(true);
+            }
+        }
+    }
+
+    /**
      * @param Product[] $productModels
      */
     private function addOneToManyRelationsModels(array $productModels): void

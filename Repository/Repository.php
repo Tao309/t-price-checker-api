@@ -13,6 +13,7 @@ use Exception\ResponseException;
 use Models\Book;
 use Models\Entity;
 use Models\Product;
+use Models\SourceProduct;
 use QueryPdo;
 use ReflectionClass;
 
@@ -283,8 +284,9 @@ abstract class Repository
         if (in_array($this->getReflectionCurrentModel()->getName(), [
             Book::class,
             Product::class,
+            SourceProduct::class,
         ])) {
-            AccessRight::checkAccess(strtolower($this->getReflectionCurrentModel()->getShortName()) . '.update');
+            AccessRight::checkAccess(Entity::toSnakeCase($this->getReflectionCurrentModel()->getShortName()) . '.update');
         }
 
         // Убираем из данных на обновления primary ключи.
@@ -341,8 +343,9 @@ abstract class Repository
         if (in_array($this->getReflectionCurrentModel()->getName(), [
             Book::class,
             Product::class,
+            SourceProduct::class,
         ])) {
-            AccessRight::checkAccess(strtolower($this->getReflectionCurrentModel()->getShortName()) . '.create');
+            AccessRight::checkAccess(Entity::toSnakeCase($this->getReflectionCurrentModel()->getShortName()) . '.create');
         }
 
         $entityDataBuilder = $this->getEntityDataBuilder($data);

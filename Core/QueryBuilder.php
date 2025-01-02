@@ -93,13 +93,6 @@ class QueryBuilder
                 );
 
                 $joinType = 'leftJoin';
-
-//                $this->getQueryPdo()
-//                    ->where(sprintf(
-//                        '%s.%s',
-//                        $tablePrefix,
-//                        $relData[Repository::PARAM_RELATION_ID]
-//                    ));
             }
 
             $this->getQueryPdo()

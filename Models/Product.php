@@ -30,7 +30,8 @@ use DateTime;
  *
  * @method setTitle(string $value)
  *
- * @method setProductUserData(ProductUserData $model)
+ * @method setBook(Book|null $model)
+ * @method setProductUserData(null|ProductUserData $model)
  * @method setSameProducts(array $models)
  * @method setStocks(array $models)
  * @method setPriceDates(array $models)

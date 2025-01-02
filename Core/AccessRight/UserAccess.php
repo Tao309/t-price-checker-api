@@ -43,17 +43,17 @@ class UserAccess extends AccessRight implements UserAccessInterface, AdminAccess
 
     public function getSourceProductEnabled(): bool
     {
-        return false;
+        return true;
     }
 
     public function getSourceProductCreate(): bool
     {
-        return false;
+        return true;
     }
 
     public function getSourceProductUpdate(): bool
     {
-        return false;
+        return true;
     }
 
     public function getSourceProductLimit(): int

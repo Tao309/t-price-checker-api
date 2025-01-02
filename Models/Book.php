@@ -36,6 +36,8 @@ use Repository\Repository;
  * @method self setFantlabId(int $value)
  * @method self setLivelibRating(int $value)
  * @method self setGoodreadsRating(int $value)
+ *
+ * @method self setBookUserData(BookUserData $value)
  */
 class Book extends Entity
 {
