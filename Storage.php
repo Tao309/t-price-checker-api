@@ -44,7 +44,8 @@ class Storage {
                 'source_product_types' => Config::getSourceProductTypes(),
                 'book_binding_types' => Config::getBookBindingTypes(),
             ],
-            'access_rights' => AccessRight::getRights()
+            'access_rights' => AccessRight::getRights(),
+            'app_version' => Config::APP_VERSION
         ]);
     }
 

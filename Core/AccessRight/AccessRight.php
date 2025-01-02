@@ -67,7 +67,8 @@ class AccessRight
         }
 
         self::$userRole = match ($userData[User::PARAM_USERNAME]) {
-            self::USER_NAME_ADMIN, self::USER_NAME_TAO309 => self::USER_ADMIN_ROLE,
+            self::USER_NAME_ADMIN,
+            self::USER_NAME_TAO309 => self::USER_ADMIN_ROLE,
             self::USER_NAME_SOLOGUB => self::USER_USER_ROLE,
             default => throw new(tResponse::MESSAGE_ACCESS_LIMITED),
         };
@@ -130,8 +131,6 @@ class AccessRight
 
             foreach ($actionList as $action) {
                 $methodName = Entity::toCamelCase('get_' . $type . '_' . $action);
-
-                // в статику перекинуть?
                 $result[$type][$action] = method_exists($this, $methodName) ? $this->$methodName() : null;
             }
         }
