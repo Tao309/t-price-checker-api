@@ -5,6 +5,7 @@ namespace Core;
 use Core\AccessRight\AccessRight;
 use Core\AccessRight\AdminAccess;
 use Core\AccessRight\UserAccess;
+use Exception\NoRightsException;
 use Exception\ResponseException;
 use Models\BindingType;
 use Models\Entity;
@@ -70,7 +71,7 @@ class Config
         return self::$shopTypes[$shopType];
     }
 
-    public static function checkHeaders(): void
+    public static function checkHeadersAndApplyAccess(): void
     {
         $headers = getallheaders();
 
@@ -88,8 +89,17 @@ class Config
         match (AccessRight::getCurrentUserRole()) {
             AccessRight::USER_ADMIN_ROLE => new AdminAccess(),
             AccessRight::USER_USER_ROLE => new UserAccess(),
-            default => throw new \Exception('Role for user is not found')
+            default => throw new NoRightsException('Role for user is not found')
         };
+
+        if (!in_array(Config::getCurrentShopType(), AccessRight::getAccessConfig('shop.list', []))) {
+            throw new NoRightsException(
+                sprintf(
+                    'Current shop %s is not allowed.',
+                    Config::getCurrentShopType()
+                )
+            );
+        }
     }
 
     public static function initShopType(string $shopType): void

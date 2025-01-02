@@ -46,6 +46,9 @@ class AccessRight
             'create',
             'update',
             'limit',
+        ],
+        'shop' => [
+            'list'
         ]
     ];
 
@@ -64,7 +67,7 @@ class AccessRight
         $userData = $authTokenRepository->getUserDataByAuthToken($userToken);
 
         if (!$userData || empty($userData[Entity::PARAM_ID]) || empty($userData[User::PARAM_USERNAME])) {
-            throw new ResponseException('User is not found by token');
+            throw new NoRightsException('User is not found by token');
         }
 
         self::$userRole = match ($userData[User::PARAM_USERNAME]) {
@@ -98,8 +101,15 @@ class AccessRight
 
     public static function checkAccess(string $rightPath): void
     {
-        $errorMessage = 'Access rights not found for ' . $rightPath;
+        $rightsConfig = self::getAccessConfig($rightPath, false);
 
+        if (!$rightsConfig) {
+            throw new NoRightsException('Access rights not found for ' . $rightPath);
+        }
+    }
+
+    public static function getAccessConfig(string $rightPath, $defaultValue = null)
+    {
         $path = explode('.', $rightPath);
         $rightsConfig = self::getRights();
 
@@ -107,15 +117,13 @@ class AccessRight
             $part = trim($part);
 
             if (!isset($rightsConfig[$part])) {
-                throw new NoRightsException($errorMessage);
+                return $defaultValue;
             }
 
             $rightsConfig = $rightsConfig[$part];
         }
 
-        if (!$rightsConfig) {
-            throw new NoRightsException($errorMessage);
-        }
+        return $rightsConfig;
     }
 
     public static function getRights(): array

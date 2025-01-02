@@ -19,4 +19,6 @@ interface AdminAccessInterface
     public function getSourceProductCreate(): bool;
 
     public function getSourceProductUpdate(): bool;
+
+    public function getShopList(): array;
 }

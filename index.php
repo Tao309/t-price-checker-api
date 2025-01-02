@@ -2,6 +2,9 @@
 
 use Core\Config;
 use Core\Cache;
+use Core\ArrayHandler;
+use Exception\NoRightsException;
+use Exception\CustomPdoException;
 
 define('init', true);
 
@@ -20,17 +23,18 @@ try {
         throw new RuntimeException('Unable to parse the environment file.');
     }
 
+    Config::initShopType(ArrayHandler::getValueAsString('shop_type', $_POST));
+
     $tResponse = new tResponse();
     $cache = new Cache();
 
-    Config::checkHeaders();
+    Config::checkHeadersAndApplyAccess();
 
     $tResponse->checkPostData($_POST);
 
-    Config::initShopType($_POST['shop_type']);
     Config::initSourceProductTypes();
 
-    $actionMethod = $_POST['action'];
+    $actionMethod = ArrayHandler::getValueAsString('action', $_POST);
     $data = json_decode($_POST['data'], true);
 
     $storage = new Storage($tResponse);
@@ -47,8 +51,11 @@ try {
     $storage->preDispatch($actionMethod, $data);
     $storage->$actionMethod($data);
     $storage->postDispatch($actionMethod, $data);
-} catch(\Exception\CustomPdoException $e) {
+} catch(CustomPdoException $e) {
     processPdoException($e);
+}  catch(NoRightsException $e) {
+    $tResponse->setSuccess(false);
+    $tResponse->setMessage($e->getMessage());
 } catch(\Throwable $e) {
     $tResponse->setSuccess(false);
     $tResponse->setMessage($e->getMessage());
@@ -57,8 +64,6 @@ try {
     if ($e->getPrevious()) {
         $tResponse->setPreviousTrace($e->getPrevious()->getTraceAsString());
     }
-
-//    logMe($e);
 }
 
 echo $tResponse;

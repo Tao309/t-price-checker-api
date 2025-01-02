@@ -2,6 +2,8 @@
 
 namespace Core\AccessRight;
 
+use Core\Config;
+
 class UserAccess extends AccessRight implements UserAccessInterface, AdminAccessInterface
 {
     public function getProductCreate(): bool
@@ -57,5 +59,12 @@ class UserAccess extends AccessRight implements UserAccessInterface, AdminAccess
     public function getSourceProductLimit(): int
     {
         return 20;
+    }
+
+    public function getShopList(): array
+    {
+        return [
+            Config::TYPE_WILDBERRIES,
+        ];
     }
 }
