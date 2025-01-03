@@ -28,10 +28,9 @@ try {
     $tResponse = new tResponse();
     $cache = new Cache();
 
-    Config::checkHeadersAndApplyAccess();
-
     $tResponse->checkPostData($_POST);
 
+    Config::checkHeadersAndApplyAccess();
     Config::initSourceProductTypes();
 
     $actionMethod = ArrayHandler::getValueAsString('action', $_POST);

@@ -30,6 +30,7 @@ use DateTime;
  *
  * @method setTitle(string $value)
  *
+ * @method setSourceProduct(SourceProduct|null $model)
  * @method setBook(Book|null $model)
  * @method setProductUserData(null|ProductUserData $model)
  * @method setSameProducts(array $models)
@@ -176,6 +177,14 @@ class Product extends Entity
         if ($this->getStocks()) {
             $stocks = $this->getStocks();
             $this->lastQty = end($stocks) ? end($stocks)->getQty() : null;
+        }
+
+        if ($this->getBook() && !$this->getBook()->getBookUserData()) {
+            $this->getProductUserData()->setIsArchive(true);
+        }
+
+        if ($this->getSourceProduct() && !$this->getSourceProduct()->getSourceProductUserData()) {
+            $this->getProductUserData()->setIsArchive(true);
         }
     }
 

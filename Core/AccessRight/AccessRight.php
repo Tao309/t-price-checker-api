@@ -2,6 +2,7 @@
 
 namespace Core\AccessRight;
 
+use Core\ArrayHandler;
 use Exception\NoRightsException;
 use Exception\ResponseException;
 use Models\Entity;
@@ -66,11 +67,21 @@ class AccessRight
 
         $userData = $authTokenRepository->getUserDataByAuthToken($userToken);
 
-        if (!$userData || empty($userData[Entity::PARAM_ID]) || empty($userData[User::PARAM_USERNAME])) {
+        if (!$userData
+            || empty(ArrayHandler::getValueAsInt(User::PARAM_ID, $userData))
+            || empty(ArrayHandler::getValueAsString(User::PARAM_USERNAME, $userData))
+        ) {
             throw new NoRightsException('User is not found by token');
         }
 
-        self::$userRole = match ($userData[User::PARAM_USERNAME]) {
+        if (!ArrayHandler::getValueAsBool(User::PARAM_IS_ACTIVE, $userData)) {
+            throw new NoRightsException(sprintf(
+                'User %s is not active',
+                ArrayHandler::getValueAsString(User::PARAM_USERNAME, $userData)
+            ));
+        }
+
+        self::$userRole = match (ArrayHandler::getValueAsString(User::PARAM_USERNAME, $userData)) {
             self::USER_NAME_ADMIN,
             self::USER_NAME_TAO309 => self::USER_ADMIN_ROLE,
             self::USER_NAME_SOLOGUB => self::USER_USER_ROLE,

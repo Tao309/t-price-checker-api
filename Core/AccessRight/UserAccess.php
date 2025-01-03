@@ -23,7 +23,7 @@ class UserAccess extends AccessRight implements UserAccessInterface, AdminAccess
 
     public function getProductLimit(): int
     {
-        return 200;
+        return 50;
     }
 
     public function getBookUpdate(): bool

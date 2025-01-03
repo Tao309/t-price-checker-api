@@ -6,6 +6,7 @@ use Models\Book;
 use Models\Product;
 use Models\SourceProduct;
 use Models\ProductUserData;
+use Models\SourceProductUserData;
 use Repository\BookRepository;
 use Repository\ProductRepository;
 use Repository\SourceProductRepository;
@@ -14,8 +15,10 @@ use Repository\ProductUserDataRepository;
 use Core\ArrayHandler;
 use Repository\BookUserDataRepository;
 use Models\BookUserData;
+use Repository\SourceProductUserDataRepository;
 
 class Storage {
+    private SourceProductUserDataRepository $sourceProductUserDataRepository;
     private BookUserDataRepository $bookUserDataRepository;
     private ProductUserDataRepository $productUserDataRepository;
     private ProductRepository $productRepository;
@@ -26,6 +29,7 @@ class Storage {
 
     public function __construct(tResponse $tResponse)
     {
+        $this->sourceProductUserDataRepository = new SourceProductUserDataRepository();
         $this->bookUserDataRepository = new BookUserDataRepository();
         $this->productUserDataRepository = new ProductUserDataRepository();
         $this->productRepository = new ProductRepository();
@@ -132,6 +136,20 @@ class Storage {
                     $product->getBook()->setBookUserData($bud);
                 }
 
+                if ($product->getSourceProduct() && !$product->getSourceProduct()->getSourceProductUserData()) {
+                    $this->sourceProductUserDataRepository->save([
+                        SourceProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
+                        SourceProductUserData::PARAM_SOURCE_PRODUCT => $product->getSourceProduct()->getId(),
+                    ]);
+
+                    $spud = $this->sourceProductUserDataRepository->find([
+                        Config::getCurrentUserid(),
+                        $product->getSourceProduct()->getId()
+                    ]);
+
+                    $product->getSourceProduct()->setSourceProductUserData($spud);
+                }
+
                 QueryPdo::commit();
             } catch (\Throwable $e) {
                 QueryPdo::rollBack();
@@ -175,7 +193,6 @@ class Storage {
         }
 
         $products = $this->productRepository->getProductsByShopProductIds($productIds);
-        $this->productRepository->checkUserDataForProducts($products);
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([

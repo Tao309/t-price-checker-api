@@ -27,16 +27,12 @@ class AuthTokenRepository extends Repository
                 ),
                 [
                     'u.' . User::PARAM_ID,
+                    'u.' . User::PARAM_IS_ACTIVE,
                     'u.' . User::PARAM_USERNAME
                 ]
             )
             ->where(AuthToken::PARAM_AUTH_TOKEN, $authToken);
 
-        $row = $query->fetch();
-
-        return [
-            User::PARAM_ID => $row[User::PARAM_ID] ?? null,
-            User::PARAM_USERNAME => $row[User::PARAM_USERNAME] ?? null,
-        ];
+        return $query->fetch();
     }
 }

@@ -13,6 +13,8 @@ use DateTime;
  * @method SourceProductUserData getSourceProductUserData()
  *
  * @method self setTitle(string $value)
+ *
+ * @method setSourceProductUserData(SourceProductUserData $model)
  */
 class SourceProduct extends Entity
 {
@@ -61,5 +63,5 @@ class SourceProduct extends Entity
 
     // Приватные свойства не попадают в обходе у родителя. __call в родителе.
     protected SourceProductType $sourceProductType;
-    protected SourceProductUserData $sourceProductUserData;
+    protected ?SourceProductUserData $sourceProductUserData = null;
 }
