@@ -53,7 +53,7 @@ class UserAccess extends AccessHandler implements UserAccessInterface, AdminAcce
 
     public function getSourceProductUpdate(): bool
     {
-        return true;
+        return false;
     }
 
     public function getSourceProductLimit(): int
