@@ -4,9 +4,9 @@ namespace Repository;
 
 use Core\Config;
 use Exception\CustomPdoException;
-use Models\PriceDate;
-use QueryPdo;
 use Models\Entity;
+use Models\PriceDate;
+use Query\QueryPdo;
 
 /**
  * @method PriceDate find()

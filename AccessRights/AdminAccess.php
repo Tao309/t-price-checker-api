@@ -1,11 +1,10 @@
 <?php
 
-namespace Core\AccessRight;
+namespace AccessRights;
 
 use Core\Config;
-use Models\Shop;
 
-class AdminAccess extends AccessRight implements AdminAccessInterface
+class AdminAccess extends AccessHandler implements AdminAccessInterface
 {
     public function getProductCreate(): bool
     {

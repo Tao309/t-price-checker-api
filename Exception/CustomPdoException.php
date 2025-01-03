@@ -2,8 +2,8 @@
 
 namespace Exception;
 
+use Query\QueryPdo;
 use Throwable;
-use QueryPdo;
 
 class CustomPdoException extends \Exception
 {

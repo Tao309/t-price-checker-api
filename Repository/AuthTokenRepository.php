@@ -5,7 +5,7 @@ namespace Repository;
 use Models\AuthToken;
 use Models\Entity;
 use Models\User;
-use QueryPdo;
+use Query\QueryPdo;
 
 class AuthTokenRepository extends Repository
 {

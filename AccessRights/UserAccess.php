@@ -1,10 +1,10 @@
 <?php
 
-namespace Core\AccessRight;
+namespace AccessRights;
 
 use Core\Config;
 
-class UserAccess extends AccessRight implements UserAccessInterface, AdminAccessInterface
+class UserAccess extends AccessHandler implements UserAccessInterface, AdminAccessInterface
 {
     public function getProductCreate(): bool
     {
@@ -23,7 +23,7 @@ class UserAccess extends AccessRight implements UserAccessInterface, AdminAccess
 
     public function getProductLimit(): int
     {
-        return 50;
+        return AccessHandler::VALUE_DEFAULT_PRODUCT_LIMIT;
     }
 
     public function getBookUpdate(): bool

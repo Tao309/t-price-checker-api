@@ -4,11 +4,8 @@ namespace Repository;
 
 use Models\PriceDate;
 use Models\Product;
-use Models\ProductUserData;
 use Models\SameProduct;
-use PullRepository\SameProductPullRepository;
-use QueryPdo;
-use Core\Config;
+use Query\QueryPdo;
 
 class SameProductRepository extends Repository
 {

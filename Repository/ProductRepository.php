@@ -2,7 +2,7 @@
 
 namespace Repository;
 
-use Core\AccessRight\AccessRight;
+use AccessRights\AccessHandler;
 use Core\ArrayHandler;
 use Core\Config;
 use Models\Entity;
@@ -12,7 +12,7 @@ use Models\Stock;
 use PullRepository\PriceDatePullRepository;
 use PullRepository\SameProductPullRepository;
 use PullRepository\StockPullRepository;
-use QueryPdo;
+use Query\QueryPdo;
 
 /**
  * @method Product find(int $id)
@@ -197,15 +197,20 @@ class ProductRepository extends Repository
 
         if (count($shopProductIds) === 1) {
             $filters[self::PARAM_LIMIT] = 1;
-        } else if (!AccessRight::isAdmin()) {
-            $filters[self::PARAM_LIMIT] = 100;
+        } else if (AccessHandler::getAccessConfig('product.limit_enabled', true)) {
+            $filters[self::PARAM_LIMIT] = AccessHandler::getAccessConfig(
+                'product.limit',
+                AccessHandler::VALUE_DEFAULT_PRODUCT_LIMIT
+            );
+        } else {
+            // По умолчанию для всех, кто без лимита.
+            $filters[self::PARAM_LIMIT] = 300;
         }
 
         if (Config::isWildberriesShopType()) {
             $params[Product::PARAM_SHOP_PRODUCT_CODE] = QueryPdo::EXPR_IS_NOT_NULL;
         }
 
-//        $this->enableDebugQuery(); // Потом убрать.
         $models = $this->findByParams($params, $filters);
         $this->addOneToManyRelationsModels($models);
 

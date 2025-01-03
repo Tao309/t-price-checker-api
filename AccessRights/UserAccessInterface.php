@@ -1,6 +1,6 @@
 <?php
 
-namespace Core\AccessRight;
+namespace AccessRights;
 
 interface UserAccessInterface
 {

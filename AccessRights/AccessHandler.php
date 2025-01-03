@@ -1,29 +1,28 @@
 <?php
 
-namespace Core\AccessRight;
+namespace AccessRights;
 
 use Core\ArrayHandler;
+use Core\tResponse;
 use Exception\NoRightsException;
-use Exception\ResponseException;
 use Models\Entity;
 use Models\User;
 use Repository\AuthTokenRepository;
-use tResponse;
 
-class AccessRight
+class AccessHandler
 {
     public const USER_ADMIN_ROLE = 'admin';
     public const USER_USER_ROLE = 'user';
-
-    private static int $userId = 0;
-
-    private static string|null $userRole = null;
+    public const VALUE_DEFAULT_PRODUCT_LIMIT = 50;
 
     private const USER_NAME_ADMIN = 'admin';
     private const USER_NAME_TAO309 = 'tao309';
     private const USER_NAME_SOLOGUB = 'a.sologub';
 
-    static $rights = [];
+    private static int $userId = 0;
+    private static string|null $userRole = null;
+
+    static array $rights = [];
 
     /**
      * Список для обработки в ролях пользователей.
@@ -99,7 +98,7 @@ class AccessRight
     public static function getCurrentUserId(): int
     {
         if (empty(self::$userId)) {
-            throw new ResponseException('Current user is not authenticated');
+            throw new NoRightsException('Current user is not authenticated');
         }
 
         return self::$userId;

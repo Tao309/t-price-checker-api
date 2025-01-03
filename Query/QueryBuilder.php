@@ -1,10 +1,10 @@
 <?php
 
-namespace Core;
+namespace Query;
 
+use Core\Config;
 use Models\Entity;
 use Models\User;
-use QueryPdo;
 use Repository\Repository;
 
 class QueryBuilder

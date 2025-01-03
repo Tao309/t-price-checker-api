@@ -4,9 +4,9 @@ namespace Repository;
 
 use Core\Config;
 use Exception\CustomPdoException;
-use Models\Stock;
-use QueryPdo;
 use Models\Entity;
+use Models\Stock;
+use Query\QueryPdo;
 
 /**
  * @method Stock find()

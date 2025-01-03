@@ -5,7 +5,7 @@ namespace Repository;
 use Core\Config;
 use Exception\CustomPdoException;
 use Models\ProductUserData;
-use QueryPdo;
+use Query\QueryPdo;
 
 /**
  * @method ProductUserData find(array $primaryIds) // [$userId, $productId]

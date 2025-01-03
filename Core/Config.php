@@ -2,17 +2,16 @@
 
 namespace Core;
 
-use Core\AccessRight\AccessRight;
-use Core\AccessRight\AdminAccess;
-use Core\AccessRight\UserAccess;
+use AccessRights\AccessHandler;
+use AccessRights\AdminAccess;
+use AccessRights\UserAccess;
 use Exception\NoRightsException;
 use Exception\ResponseException;
 use Models\BindingType;
 use Models\Entity;
 use Models\Shop;
 use Models\SourceProductType;
-use QueryPdo;
-use tResponse;
+use Query\QueryPdo;
 
 class Config
 {
@@ -41,7 +40,7 @@ class Config
 
     public static function getCurrentUserid(): int
     {
-        return AccessRight::getCurrentUserId();
+        return AccessHandler::getCurrentUserId();
     }
 
     public static function getCurrentShopType(): string
@@ -84,15 +83,15 @@ class Config
             die(tResponse::MESSAGE_ACCESS_LIMITED);
         }
 
-        AccessRight::applyUserAccess($headers['t-price-checker-id']);
+        AccessHandler::applyUserAccess($headers['t-price-checker-id']);
 
-        match (AccessRight::getCurrentUserRole()) {
-            AccessRight::USER_ADMIN_ROLE => new AdminAccess(),
-            AccessRight::USER_USER_ROLE => new UserAccess(),
+        match (AccessHandler::getCurrentUserRole()) {
+            AccessHandler::USER_ADMIN_ROLE => new AdminAccess(),
+            AccessHandler::USER_USER_ROLE => new UserAccess(),
             default => throw new NoRightsException('Role for user is not found')
         };
 
-        if (!in_array(Config::getCurrentShopType(), AccessRight::getAccessConfig('shop.list', []))) {
+        if (!in_array(Config::getCurrentShopType(), AccessHandler::getAccessConfig('shop.list', []))) {
             throw new NoRightsException(
                 sprintf(
                     'Current shop %s is not allowed.',

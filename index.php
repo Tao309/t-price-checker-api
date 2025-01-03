@@ -1,10 +1,12 @@
 <?php
 
-use Core\Config;
-use Core\Cache;
+use Core\ApiCaller;
 use Core\ArrayHandler;
-use Exception\NoRightsException;
+use Core\Cache;
+use Core\Config;
+use Core\tResponse;
 use Exception\CustomPdoException;
+use Exception\NoRightsException;
 
 define('init', true);
 
@@ -36,7 +38,7 @@ try {
     $actionMethod = ArrayHandler::getValueAsString('action', $_POST);
     $data = json_decode($_POST['data'], true);
 
-    $storage = new Storage($tResponse);
+    $storage = new ApiCaller($tResponse);
 
     if (!method_exists($storage, $actionMethod)) {
         throw new RuntimeException("The called method " . $actionMethod . " is not exists.");

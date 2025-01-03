@@ -1,9 +1,8 @@
 <?php
 
-namespace Core;
+namespace Query;
 
 use Models\Entity;
-use QueryPdo;
 use Repository\Repository;
 
 class EntityDataBuilder
@@ -37,38 +36,6 @@ class EntityDataBuilder
     {
         return $this->preparedData;
     }
-
-    /**
-     * Получение значения из входящих данных по названию поля.
-     *
-     * @param string|array $param Входящие названия поля, полей.
-     *
-     * @return array|false|mixed Найденные значения.
-     *
-     * @throws \ReflectionException
-     */
-//    public function getEntityData(string|array $param): mixed
-//    {
-//        if (!isset($this->entityData[$param])) {
-//            throw new \Exception('Property ' . $param . ' is not found in Entity Data');
-//        }
-//
-//        $primaryClass = new \ReflectionClass('\\' . $this->entityModel);
-//        $camelCaseParam = Entity::toCamelCase($param);
-//        if (!$primaryClass->hasProperty($camelCaseParam)) {
-//            throw new \Exception('Property ' . $param . ' is not exist in Entity');
-//        }
-//
-//        $param = is_array($param) ? $param : [$param];
-//
-//        $values = [];
-//        foreach ($param as $paramValue) {
-//            $property = $primaryClass->getProperty($camelCaseParam);
-//            $values[] = $this->prepareValue($property->getType()->getName(), $this->entityData[$paramValue]);
-//        }
-//
-//        return count($values) > 1 ? $values: reset($values);
-//    }
 
     private function processEntityData(): void
     {

@@ -2,16 +2,11 @@
 
 namespace Repository;
 
-use Core\Config;
 use Exception\CustomPdoException;
-use Models\Entity;
 use Models\Product;
 use Models\SourceProduct;
-use Models\SourceProductUserData;
-use Models\Stock;
-use PDO;
-use QueryPdo;
 use PDOException;
+use Query\QueryPdo;
 
 /**
  * @method SourceProduct find(int $id)

@@ -1,23 +1,25 @@
 <?php
 
-use Core\AccessRight\AccessRight;
-use Core\Config;
-use Models\Book;
-use Models\Product;
-use Models\SourceProduct;
-use Models\ProductUserData;
-use Models\SourceProductUserData;
-use Repository\BookRepository;
-use Repository\ProductRepository;
-use Repository\SourceProductRepository;
-use Repository\StockRepository;
-use Repository\ProductUserDataRepository;
-use Core\ArrayHandler;
-use Repository\BookUserDataRepository;
-use Models\BookUserData;
-use Repository\SourceProductUserDataRepository;
+namespace Core;
 
-class Storage {
+use AccessRights\AccessHandler;
+use Models\Book;
+use Models\BookUserData;
+use Models\Product;
+use Models\ProductUserData;
+use Models\SourceProduct;
+use Models\SourceProductUserData;
+use Query\QueryPdo;
+use Repository\BookRepository;
+use Repository\BookUserDataRepository;
+use Repository\ProductRepository;
+use Repository\ProductUserDataRepository;
+use Repository\SourceProductRepository;
+use Repository\SourceProductUserDataRepository;
+use Repository\StockRepository;
+
+class ApiCaller
+{
     private SourceProductUserDataRepository $sourceProductUserDataRepository;
     private BookUserDataRepository $bookUserDataRepository;
     private ProductUserDataRepository $productUserDataRepository;
@@ -52,7 +54,7 @@ class Storage {
                 'source_product_types' => Config::getSourceProductTypes(),
                 'book_binding_types' => Config::getBookBindingTypes(),
             ],
-            'access_rights' => AccessRight::getRights(),
+            'access_rights' => AccessHandler::getRights(),
             'app_version' => Config::APP_VERSION
         ]);
     }
@@ -175,7 +177,7 @@ class Storage {
 
         $countRemoved = $this->stockRepository->deleteStock($stockData);
         $this->tResponse->setSuccess(true);
-        $this->tResponse->setMessage('Stock is removed, affected: '. $countRemoved);
+        $this->tResponse->setMessage('Stock is removed, affected: ' . $countRemoved);
     }
 
     // api call
@@ -196,7 +198,9 @@ class Storage {
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
-            'items' =>  array_map(function ($product) {return $product->toArray();}, $products)
+            'items' => array_map(function ($product) {
+                return $product->toArray();
+            }, $products)
         ]);
     }
 
@@ -208,7 +212,7 @@ class Storage {
             $entityId = $this->bookRepository->save($modelData);
 
             QueryPdo::commit();
-        } catch(\Throwable $e) {
+        } catch (\Throwable $e) {
             QueryPdo::rollBack();
 
             throw $e;
@@ -218,7 +222,7 @@ class Storage {
         $model = $this->bookRepository->find($entityId);
 
         if (!$model) {
-            throw new \Exception('Not found book by id '. $entityId);
+            throw new \Exception('Not found book by id ' . $entityId);
         }
 
         $this->tResponse->setSuccess(true);
@@ -236,7 +240,7 @@ class Storage {
             $entityId = $this->sourceProductRepository->save($modelData);
 
             QueryPdo::commit();
-        } catch(\Throwable $e) {
+        } catch (\Throwable $e) {
             QueryPdo::rollBack();
 
             throw $e;
@@ -245,7 +249,7 @@ class Storage {
         $model = $this->sourceProductRepository->find($entityId);
 
         if (!$model) {
-            throw new \Exception('Not found SourceProduct by id '. $entityId);
+            throw new \Exception('Not found SourceProduct by id ' . $entityId);
         }
 
         $this->tResponse->setSuccess(true);
@@ -263,7 +267,7 @@ class Storage {
             $this->productRepository->saveProduct($productData);
 
             QueryPdo::commit();
-        } catch(\Throwable $e) {
+        } catch (\Throwable $e) {
             QueryPdo::rollBack();
 
             throw $e;
@@ -283,7 +287,7 @@ class Storage {
     // api call
     public function importByShopType(array $productsData): void
     {
-        throw new RuntimeException('ImportByShopType is not implemented');
+        throw new \RuntimeException('ImportByShopType is not implemented');
     }
 
     // api call
@@ -311,7 +315,7 @@ class Storage {
                     $this->productRepository->saveProduct($productData);
 
                     QueryPdo::commit();
-                } catch(\Throwable $e) {
+                } catch (\Throwable $e) {
                     QueryPdo::rollBack();
 
                     throw $e;

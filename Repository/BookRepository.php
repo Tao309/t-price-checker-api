@@ -6,7 +6,7 @@ use Exception\CustomPdoException;
 use Models\Book;
 use Models\Product;
 use PDOException;
-use QueryPdo;
+use Query\QueryPdo;
 
 /**
  * @method Book find(int $id)

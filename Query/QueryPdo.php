@@ -1,5 +1,10 @@
 <?php
 
+namespace Query;
+
+use PDO;
+use PDOStatement;
+
 class QueryPdo
 {
     public const EXPR_IS_NULL = 'is_null';
@@ -10,7 +15,7 @@ class QueryPdo
     private const QUERY_TYPE_INSERT = 'insert_type';
     private const QUERY_TYPE_DELETE = 'delete_type';
 
-    static $connect;
+    static ?PDO $connect = null;
 
     private ?string $tableName = null;
     private ?string $queryType = null;
@@ -20,13 +25,13 @@ class QueryPdo
     private array $tablePrefixes = [];
     private ?PDOStatement $stmt;
 
-    private $fields = [];
-    private $fromTable = [];
-    private $joins = [];
-    private $where = [];
-    private $group = [];
-    private $limit = [];
-    private $order = [];
+    private array $fields = [];
+    private array $fromTable = [];
+    private array $joins = [];
+    private array $where = [];
+    private array $group = [];
+    private array $limit = [];
+    private array $order = [];
 
     public function __construct()
     {
@@ -78,9 +83,7 @@ class QueryPdo
      * @param array       $params Входящие параметры: название поля => значение.
      * @param string|null $prefix Префикс для таблицы.
      *
-     * @return self
-     *
-     * @throws Exception
+     * @return $this
      */
     public function appendWhereConditionByParams(array $params = [], string $prefix = null): self
     {
@@ -339,7 +342,7 @@ class QueryPdo
                 $value = 'FALSE';
             } elseif ($value === true) {
                 $value = 'TRUE';
-            } elseif(is_string($value)) {
+            } elseif (is_string($value)) {
                 $value = '"' . $value . '"';
             }
 
@@ -365,9 +368,9 @@ class QueryPdo
         $this->preparedData = $preparedData;
 
         foreach ($preparedData as $index => $preparedValue) {
-            if (is_string($preparedValue)) {
+//            if (is_string($preparedValue)) {
 //                $preparedValue = '"' . $preparedValue . '"';
-            }
+//            }
 
             if ($preparedValue === null) {
                 $preparedValue = 'null';
@@ -399,7 +402,7 @@ class QueryPdo
         $stmt = $this->prepareFetch();
         try {
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch(\Throwable $e) {
+        } catch (\Throwable $e) {
             echo "\nfetchAll:\n";
             echo $e->getMessage() . "\n";
             echo $stmt->queryString . "\n";
@@ -413,7 +416,7 @@ class QueryPdo
         $stmt = $this->prepareFetch();
         try {
             return $stmt->fetchColumn();
-        } catch(\Throwable $e) {
+        } catch (\Throwable $e) {
             echo "\nfetchColumn:\n";
             echo $e->getMessage() . "\n";
             echo $stmt->queryString . "\n";
@@ -493,7 +496,7 @@ class QueryPdo
             $stmt->execute();
 
             return $stmt;
-        } catch(\Throwable $e) {
+        } catch (\Throwable $e) {
             echo "\prepareFetch:\n";
             echo $e->getMessage() . "\n";
             echo $stmt->queryString . "\n";
@@ -515,7 +518,7 @@ class QueryPdo
             $query .= ' AS ' . $firstKey;
         }
 
-        foreach ($this->joins AS $join) {
+        foreach ($this->joins as $join) {
             $query .= $br;
             $firstKey = array_key_first($join['table']);
             $query .= $join['type'] . ' ' . $join['table'][$firstKey];
@@ -565,7 +568,7 @@ class QueryPdo
 
         $values = [];
         foreach ($this->getPreparedData() as $index => $value) {
-            $values[] = $index . ' = '. $value;
+            $values[] = $index . ' = ' . $value;
         }
 
         $query .= implode(', ', $values);

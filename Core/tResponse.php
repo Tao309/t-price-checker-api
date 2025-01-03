@@ -1,8 +1,12 @@
 <?php
 
+namespace Core;
+
+use Exception\NoRightsException;
 use Models\Entity;
 
-class tResponse {
+class tResponse
+{
     public const PARAM_SUCCESS = 'success';
     public const PARAM_MESSAGE = 'message';
     public const PARAM_TRACE = 'trace';
@@ -15,7 +19,7 @@ class tResponse {
         'saveProduct',
         'saveProducts',
         'getProductsByShopType',
-        'importByShopType', // нужен только в начале
+//        'importByShopType', // нужен только в начале
         'getBooksByTitle',
         'saveBook',
         'removeStock',
@@ -45,11 +49,11 @@ class tResponse {
     public function checkPostData(array $post = []): void
     {
         if (empty($post['action']) || empty($post['data']) || empty($post['shop_type'])) {
-            throw new RuntimeException(self::MESSAGE_ACCESS_LIMITED);
+            throw new NoRightsException(self::MESSAGE_ACCESS_LIMITED);
         }
 
         if (!in_array($post['action'], self::AVAILABLE_REQUEST_METHODS)) {
-            throw new RuntimeException(tResponse::MESSAGE_ACCESS_LIMITED);
+            throw new NoRightsException(tResponse::MESSAGE_ACCESS_LIMITED);
         }
     }
 

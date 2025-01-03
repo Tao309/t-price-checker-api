@@ -2,11 +2,9 @@
 
 namespace Repository;
 
-use Core\AccessRight\AccessRight;
+use AccessRights\AccessHandler;
 use Core\ArrayHandler;
 use Core\Config;
-use Core\EntityDataBuilder;
-use Core\QueryBuilder;
 use Exception\CustomPdoException;
 use Exception\NoRightsException;
 use Exception\ResponseException;
@@ -14,7 +12,9 @@ use Models\Book;
 use Models\Entity;
 use Models\Product;
 use Models\SourceProduct;
-use QueryPdo;
+use Query\EntityDataBuilder;
+use Query\QueryBuilder;
+use Query\QueryPdo;
 use ReflectionClass;
 
 abstract class Repository
@@ -286,7 +286,7 @@ abstract class Repository
             Product::class,
             SourceProduct::class,
         ])) {
-            AccessRight::checkAccess(Entity::toSnakeCase($this->getReflectionCurrentModel()->getShortName()) . '.update');
+            AccessHandler::checkAccess(Entity::toSnakeCase($this->getReflectionCurrentModel()->getShortName()) . '.update');
         }
 
         // Убираем из данных на обновления primary ключи.
@@ -345,7 +345,7 @@ abstract class Repository
             Product::class,
             SourceProduct::class,
         ])) {
-            AccessRight::checkAccess(Entity::toSnakeCase($this->getReflectionCurrentModel()->getShortName()) . '.create');
+            AccessHandler::checkAccess(Entity::toSnakeCase($this->getReflectionCurrentModel()->getShortName()) . '.create');
         }
 
         $entityDataBuilder = $this->getEntityDataBuilder($data);
