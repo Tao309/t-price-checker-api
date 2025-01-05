@@ -5,7 +5,7 @@ namespace Repository;
 use Models\BookUserData;
 
 /**
- * @method BookUserData find(array $primaryIds) // [$userId, $bookId]
+ * @method BookUserData find($userId, $bookId)
  */
 class BookUserDataRepository extends Repository
 {

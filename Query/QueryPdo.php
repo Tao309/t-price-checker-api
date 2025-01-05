@@ -256,7 +256,11 @@ class QueryPdo
 
     public function where(string $name, $value = ''): self
     {
-        if (!empty($value) || is_bool($value) || is_int($value) || ($value instanceof QueryPdo)) {
+        $toProcessCondition = !empty($value)
+            || is_array($value) || is_bool($value) || is_int($value)
+            || ($value instanceof QueryPdo);
+
+        if ($toProcessCondition) {
             $this->where[] = ['AND', $this->processWhereCondition($name, $value)];
         } else {
             $this->where[] = ['AND', $name];

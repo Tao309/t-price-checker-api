@@ -63,7 +63,7 @@ class ProductRepository extends Repository
 
         $entityId = null;
         $positionPrice = null;
-        $product = $this->findProduct($data[Product::PARAM_SHOP_PRODUCT_ID]);
+        $product = $this->findProduct(ArrayHandler::getValueAsString(Product::PARAM_SHOP_PRODUCT_ID, $data));
 
         if ($product) {
             $entityId = $product->getId();
@@ -248,7 +248,7 @@ class ProductRepository extends Repository
     private function tryToChangeId(array $data)
     {
         // По ид не найдёт, если товар без кода, в ид сейчас код установлен по старой схеме.
-        $product = $this->findProduct($data[Product::PARAM_SHOP_PRODUCT_ID]);
+        $product = $this->findProduct(ArrayHandler::getValueAsString(Product::PARAM_SHOP_PRODUCT_ID, $data));
         if (!$product) {
             return null;
         }

@@ -5,7 +5,7 @@ namespace Repository;
 use Models\SourceProductUserData;
 
 /**
- * @method SourceProductUserData find(array $primaryIds) // [$userId, $sourceProductId]
+ * @method SourceProductUserData find($userId, $sourceProductId)
  */
 class SourceProductUserDataRepository extends Repository
 {

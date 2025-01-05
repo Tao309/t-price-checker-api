@@ -99,21 +99,21 @@ abstract class Repository
         // Проставляю ключи из входящих данных в массив primary ключей по индексу.
         foreach ($primaryKeyNames as $index => $primaryKeyName) {
             if (isset($data[$primaryKeyName]) && !empty($data[$primaryKeyName])) {
-                $primaryKeysValues[$index] = $data[$primaryKeyName];
+                $primaryKeysValues[$primaryKeyName] = $data[$primaryKeyName];
             }
         }
 
         $isNewModel = true;
 
         if (count($primaryKeysValues)) {
-            $isNewModel = !$this->find($primaryKeysValues);
+            $isNewModel = !$this->findByParams($primaryKeysValues);
         }
 
         try {
             if ($isNewModel) {
                 $entityId = $this->create($data);
             } else {
-                $entityId = $this->update($primaryKeysValues, $data);
+                $entityId = $this->update($data, $primaryKeysValues);
             }
         } catch (NoRightsException $e) {
             // Для новой модели, должны быть права на create, иначе не к чему привязывать userData потом.
@@ -129,7 +129,10 @@ abstract class Repository
             return $entityId;
         }
 
-        $entityId = $isNewModel ? $entityId : reset($entityId);
+        // При update отдаётся массив, при insert всегда одно значение.
+        if (!$isNewModel) {
+            $entityId = reset($entityId);
+        }
 
         // Проверка наличия UserData в модели.
         $userDataClassName = $this->getUserDataClassName();
@@ -149,25 +152,32 @@ abstract class Repository
     /**
      * Преобразует входящие ключи в массив: название поля => значение.
      *
-     * @param array|int $primaryIds
+     * @param array $primaryId
      *
      * @return array<string, int>
      *
      * @throws ResponseException
      * @throws \ReflectionException
      */
-    private function preparePrimaryKeys(array|int $primaryIds): array
+    private function preparePrimaryKeys(array $primaryId): array
     {
-        $primaryIds = is_array($primaryIds) ? $primaryIds : [$primaryIds];
-
         $primaryKeyNames = $this->getPrimaryKeyNames();
         $hasManyPrimaryKeys = count($primaryKeyNames) > 1;
         $primaryKeysValues = [];
         $countPrimaryKeysValues = count($primaryKeysValues);
 
+        $isStringKey = false;
+        // Переданы как "название поля" => "значение".
+        if (is_string(array_key_first($primaryId))) {
+            $isStringKey = true;
+        }
+
         foreach ($primaryKeyNames as $index => $primaryKeyName) {
-            if (isset($primaryIds[$index]) && !empty($primaryIds[$index])) {
-                $primaryKeysValues[$primaryKeyName] = (int)$primaryIds[$index];
+            // Ищем по строке или цифре как ключу.
+            $searchingKey = $isStringKey ? $primaryKeyName : $index;
+
+            if (isset($primaryId[$searchingKey]) && !empty($primaryId[$searchingKey])) {
+                $primaryKeysValues[$primaryKeyName] = (int)$primaryId[$searchingKey];
             }
         }
 
@@ -184,15 +194,16 @@ abstract class Repository
 
     /**
      * Получение модели по primary ключу/ключам.
+     * Использовать только с ... значениями.
      *
-     * @param array|int $primaryId Значения primary ключа (ключей).
+     * @param ...$primaryId $primaryId Значения primary ключа (ключей).
      *
      * @return Entity|null Модель.
      *
      * @throws ResponseException
      * @throws \ReflectionException
      */
-    public function find(array|int $primaryId): Entity|null
+    public function find(...$primaryId): Entity|null
     {
 //        if (!is_array($primaryId)) {
 //            $cacheModel = $this->getCacheModel($primaryId);
@@ -269,17 +280,17 @@ abstract class Repository
     /**
      * Обновление модели по входящим данным.
      *
-     * @param array|int $primaryId         Значения primary ключа (ключей).
-     * @param array     $primaryKeysValues Значения primary ключей модели.
+     * @param array $data      Данные для обновления.
+     * @param array $primaryId Значения primary ключа (ключей).
      *
-     * @return array|int Primary ключ, ключи.
+     * @return array Primary ключ, ключи.
      *
      * @throws CustomPdoException
      * @throws NoRightsException
      * @throws ResponseException
      * @throws \ReflectionException
      */
-    public function update(array|int $primaryId, array $data): array|int
+    public function update(array $data, array $primaryId): array
     {
         if (in_array($this->getReflectionCurrentModel()->getName(), [
             Book::class,
@@ -304,7 +315,6 @@ abstract class Repository
                 $this->getTableName(),
                 $entityDataBuilder->getQueryPreparedData()
             );
-
 
         $primaryId = $this->preparePrimaryKeys($primaryId);
 
@@ -433,32 +443,34 @@ abstract class Repository
     /**
      * Получение $params для подстановки в запрос.
      *
-     * @param array|int $primaryValueIds Массив primary ключей: поле (Entity:PARAM_Id) => значение (5).
+     * @param array $primaryValueId Массив primary ключей: поле (Entity:PARAM_Id) => значение (5).
      *
      * @return array
      *
      * @throws ResponseException
      * @throws \ReflectionException
      */
-    private function getWhereConditionsByPrimaryKeys(array|int $primaryValueIds): array
+    private function getWhereConditionsByPrimaryKeys(array $primaryValueId): array
     {
-        if (!is_array($primaryValueIds)) {
-            // Добавить получение этого поля primary ключа?
+        $countPrimaryKeys = count($primaryValueId);
+        $primaryKeyNames = $this->getPrimaryKeyNames();
+
+
+        if ($countPrimaryKeys === 1) {
             return [
-                Entity::PARAM_ID => $primaryValueIds
+                reset($primaryKeyNames) => reset($primaryValueId)
             ];
         }
 
-        $primaryKeyNames = $this->getPrimaryKeyNames();
         $primaryClass = $this->getReflectionCurrentModel();
 
-        if (count($primaryValueIds) != count($primaryKeyNames)) {
+        if ($countPrimaryKeys != count($primaryKeyNames)) {
             throw new ResponseException('Не соответствие primary ключей модели ' . $primaryClass->getName());
         }
 
         $params = [];
         foreach ($primaryKeyNames as $index => $primaryKeyName) {
-            if (!isset($primaryValueIds[$primaryKeyName])) {
+            if (!isset($primaryValueId[$primaryKeyName])) {
                 throw new ResponseException(
                     sprintf(
                         'Не найден в модели %s primary ключ для поля %s (index: %s) (multiple)',
@@ -469,7 +481,7 @@ abstract class Repository
                 );
             }
 
-            $params[$primaryKeyName] = $primaryValueIds[$primaryKeyName];
+            $params[$primaryKeyName] = $primaryValueId[$primaryKeyName];
         }
 
         return $params;

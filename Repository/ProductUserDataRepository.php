@@ -8,7 +8,7 @@ use Models\ProductUserData;
 use Query\QueryPdo;
 
 /**
- * @method ProductUserData find(array $primaryIds) // [$userId, $productId]
+ * @method ProductUserData find($userId, $productId)
  */
 class ProductUserDataRepository extends Repository
 {

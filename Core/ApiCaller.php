@@ -62,7 +62,7 @@ class ApiCaller
         $sourceProductRepository = new SourceProductRepository();
         $sourceProductUserDataRepository = new SourceProductUserDataRepository();
 
-        $spud = $sourceProductUserDataRepository->find([Config::getCurrentUserId(), $sourceProductId]);
+        $spud = $sourceProductUserDataRepository->find(Config::getCurrentUserId(), $sourceProductId);
 
         if (!$spud) {
             $sourceProductUserDataRepository->create([
@@ -97,7 +97,7 @@ class ApiCaller
         $sourceProductRepository = new SourceProductRepository();
         $sourceProductUserDataRepository = new SourceProductUserDataRepository();
 
-        $spud = $sourceProductUserDataRepository->find([Config::getCurrentUserId(), $sourceProductId]);
+        $spud = $sourceProductUserDataRepository->find(Config::getCurrentUserId(), $sourceProductId);
 
         if (!$spud) {
             throw new \Exception('SourceProductUserData is not found. Has no access to unlink sourceProduct.');
@@ -126,7 +126,7 @@ class ApiCaller
         $bookRepository = new BookRepository();
         $bookUserDataRepository = new BookUserDataRepository();
 
-        $bud = $bookUserDataRepository->find([Config::getCurrentUserId(), $bookId]);
+        $bud = $bookUserDataRepository->find(Config::getCurrentUserId(), $bookId);
 
         if (!$bud) {
             $bookUserDataRepository->create([
@@ -161,7 +161,7 @@ class ApiCaller
         $bookRepository = new BookRepository();
         $bookUserDataRepository = new BookUserDataRepository();
 
-        $bud = $bookUserDataRepository->find([Config::getCurrentUserId(), $bookId]);
+        $bud = $bookUserDataRepository->find(Config::getCurrentUserId(), $bookId);
 
         if (!$bud) {
             throw new \Exception('BookUserData is not found. Has no access to unlink book.');
@@ -232,10 +232,10 @@ class ApiCaller
                         ProductUserData::PARAM_IS_ARCHIVE => $isArchive,
                     ]);
 
-                    $pud = $productUserDataRepository->find([
+                    $pud = $productUserDataRepository->find(
                         Config::getCurrentUserid(),
                         $product->getId()
-                    ]);
+                    );
 
                     $product->setProductUserData($pud);
                 } else {
@@ -251,10 +251,10 @@ class ApiCaller
                         BookUserData::PARAM_BOOK_ID => $product->getBook()->getId(),
                     ]);
 
-                    $bud = $bookUserDataRepository->find([
+                    $bud = $bookUserDataRepository->find(
                         Config::getCurrentUserid(),
                         $product->getBook()->getId()
-                    ]);
+                    );
 
                     $product->getBook()->setBookUserData($bud);
                 }
@@ -267,10 +267,10 @@ class ApiCaller
                         SourceProductUserData::PARAM_SOURCE_PRODUCT => $product->getSourceProduct()->getId(),
                     ]);
 
-                    $spud = $sourceProductUserDataRepository->find([
+                    $spud = $sourceProductUserDataRepository->find(
                         Config::getCurrentUserid(),
                         $product->getSourceProduct()->getId()
-                    ]);
+                    );
 
                     $product->getSourceProduct()->setSourceProductUserData($spud);
                 }
