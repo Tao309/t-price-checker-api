@@ -23,8 +23,6 @@ class ProductRepository extends Repository
     protected string $entityModel = Product::class;
     protected ?string $userDataRepositoryModel = ProductUserDataRepository::class;
 
-    private BookRepository $bookRepository;
-    private SourceProductRepository $sourceProductRepository;
     private StockRepository $stockRepository;
     private PriceDateRepository $priceDateRepository;
 
@@ -32,8 +30,6 @@ class ProductRepository extends Repository
     {
         parent::__construct();
 
-        $this->bookRepository = new BookRepository();
-        $this->sourceProductRepository = new SourceProductRepository();
         $this->stockRepository = new StockRepository();
         $this->priceDateRepository = new PriceDateRepository();
     }
@@ -89,60 +85,10 @@ class ProductRepository extends Repository
             }
         }
 
-        if (ArrayHandler::hasParamTrue(Product::FLAG_TO_LINK_BOOK, $flags)) {
-            if (!$entityId) {
-                throw new \Exception('При привязки книги не найден товар.');
-            }
-
-            ArrayHandler::hasParamThroughException(
-                Product::PARAM_BOOK,
-                $data,
-                'Не найдена книга в товаре для линка.'
-            );
-
-            $this->bookRepository->linkBookToProduct($entityId, $data[Product::PARAM_BOOK][Entity::PARAM_ID]);
-
-            return $entityId;
-        }
-
-        if (ArrayHandler::hasParamTrue(Product::FLAG_TO_UNLINK_BOOK, $flags)) {
-            if (!$entityId) {
-                throw new \Exception('При отвязки книги не найден товар.');
-            }
-
-            $this->bookRepository->unlinkBookFromProduct($entityId);
-
-            return $entityId;
-        }
-
-        if (ArrayHandler::hasParamTrue(Product::FLAG_TO_LINK_SOURCE_PRODUCT, $flags)) {
-            if (!$entityId) {
-                throw new \Exception('При привязки источника товара не найден товар.');
-            }
-
-            ArrayHandler::hasParamThroughException(
-                Product::PARAM_SOURCE_PRODUCT,
-                $data,
-                'Не найден источник товара в товаре для линка.'
-            );
-
-            $this->sourceProductRepository->linkToProduct($entityId, $data[Product::PARAM_SOURCE_PRODUCT][Entity::PARAM_ID]);
-
-            return $entityId;
-        }
-
-        if (ArrayHandler::hasParamTrue(Product::FLAG_TO_UNLINK_SOURCE_PRODUCT, $flags)) {
-            if (!$entityId) {
-                throw new \Exception('При отвязки источника товара не найден товар.');
-            }
-
-            $this->sourceProductRepository->unlinkFromProduct($entityId);
-
-            return $entityId;
-        }
-
-        $this->setToSaveUserData(ArrayHandler::hasParamTrue(Product::FLAG_TO_SAVE_PRODUCT_USER_DATA, $flags)
-            && ArrayHandler::hasParam(Product::PARAM_PRODUCT_USER_DATA, $data));
+        $this->setToSaveUserData(
+            ArrayHandler::hasParamTrue(Product::FLAG_TO_SAVE_PRODUCT_USER_DATA, $flags)
+            && ArrayHandler::hasParam(Product::PARAM_PRODUCT_USER_DATA, $data)
+        );
 
         $entityId = $this->save($data);
 

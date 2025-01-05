@@ -20,25 +20,10 @@ use Repository\StockRepository;
 
 class ApiCaller
 {
-    private SourceProductUserDataRepository $sourceProductUserDataRepository;
-    private BookUserDataRepository $bookUserDataRepository;
-    private ProductUserDataRepository $productUserDataRepository;
-    private ProductRepository $productRepository;
-    private BookRepository $bookRepository;
-    private SourceProductRepository $sourceProductRepository;
-    private StockRepository $stockRepository;
     private tResponse $tResponse;
 
     public function __construct(tResponse $tResponse)
     {
-        $this->sourceProductUserDataRepository = new SourceProductUserDataRepository();
-        $this->bookUserDataRepository = new BookUserDataRepository();
-        $this->productUserDataRepository = new ProductUserDataRepository();
-        $this->productRepository = new ProductRepository();
-        $this->bookRepository = new BookRepository();
-        $this->sourceProductRepository = new SourceProductRepository();
-        $this->stockRepository = new StockRepository();
-
         $this->tResponse = $tResponse;
     }
 
@@ -55,16 +40,145 @@ class ApiCaller
                 'book_binding_types' => Config::getBookBindingTypes(),
             ],
             'access_rights' => AccessHandler::getRights(),
-            'app_version' => Config::APP_VERSION
+            'app_version' => getenv('APP_VERSION') ?? 'not-found-version'
         ]);
+    }
+
+    // api call
+    public function linkSourceProduct(array $data): void
+    {
+        ArrayHandler::hasParamThroughException('product_id', $data);
+        ArrayHandler::hasParamThroughException('source_product_id', $data);
+
+        $productId = ArrayHandler::getValueAsInt('product_id', $data);
+        $sourceProductId = ArrayHandler::getValueAsInt('source_product_id', $data);
+        $productRepository = new ProductRepository();
+        $product = $productRepository->findProduct($productId);
+
+        if (!$product) {
+            throw new \RuntimeException('Product is not found for link sourceProduct');
+        }
+
+        $sourceProductRepository = new SourceProductRepository();
+        $sourceProductUserDataRepository = new SourceProductUserDataRepository();
+
+        $spud = $sourceProductUserDataRepository->find([Config::getCurrentUserId(), $sourceProductId]);
+
+        if (!$spud) {
+            $sourceProductUserDataRepository->create([
+                SourceProductUserData::PARAM_USER_ID => Config::getCurrentUserId(),
+                SourceProductUserData::PARAM_SOURCE_PRODUCT => $sourceProductId,
+            ]);
+        }
+
+        $sourceProductRepository->linkToProduct($productId, $sourceProductId);
+
+        $this->tResponse->setSuccess(true);
+        $this->tResponse->setData([
+            'product' => $productRepository->findProduct($productId)->toArray(),
+        ]);
+    }
+
+    // api call
+    public function unlinkSourceProduct(array $data): void
+    {
+        ArrayHandler::hasParamThroughException('product_id', $data);
+        ArrayHandler::hasParamThroughException('source_product_id', $data);
+
+        $productId = ArrayHandler::getValueAsInt('product_id', $data);
+        $sourceProductId = ArrayHandler::getValueAsInt('source_product_id', $data);
+        $productRepository = new ProductRepository();
+        $product = $productRepository->findProduct($productId);
+
+        if (!$product) {
+            throw new \RuntimeException('Product is not found for unlink sourceProduct');
+        }
+
+        $sourceProductRepository = new SourceProductRepository();
+        $sourceProductUserDataRepository = new SourceProductUserDataRepository();
+
+        $spud = $sourceProductUserDataRepository->find([Config::getCurrentUserId(), $sourceProductId]);
+
+        if (!$spud) {
+            throw new \Exception('SourceProductUserData is not found. Has no access to unlink sourceProduct.');
+        }
+
+        $sourceProductRepository->unlinkFromProduct($productId);
+
+        $this->tResponse->setSuccess(true);
+    }
+
+    // api call
+    public function linkBook(array $data): void
+    {
+        ArrayHandler::hasParamThroughException('product_id', $data);
+        ArrayHandler::hasParamThroughException('book_id', $data);
+
+        $productId = ArrayHandler::getValueAsInt('product_id', $data);
+        $bookId = ArrayHandler::getValueAsInt('book_id', $data);
+        $productRepository = new ProductRepository();
+        $product = $productRepository->findProduct($productId);
+
+        if (!$product) {
+            throw new \RuntimeException('Product not found for link book');
+        }
+
+        $bookRepository = new BookRepository();
+        $bookUserDataRepository = new BookUserDataRepository();
+
+        $bud = $bookUserDataRepository->find([Config::getCurrentUserId(), $bookId]);
+
+        if (!$bud) {
+            $bookUserDataRepository->create([
+                BookUserData::PARAM_USER_ID => Config::getCurrentUserId(),
+                BookUserData::PARAM_BOOK_ID => $bookId,
+            ]);
+        }
+
+        $bookRepository->linkBookToProduct($productId, $bookId);
+
+        $this->tResponse->setSuccess(true);
+        $this->tResponse->setData([
+            'product' => $productRepository->findProduct($productId)->toArray(),
+        ]);
+    }
+
+    // api call
+    public function unlinkBook(array $data): void
+    {
+        ArrayHandler::hasParamThroughException('product_id', $data);
+        ArrayHandler::hasParamThroughException('book_id', $data);
+
+        $productId = ArrayHandler::getValueAsInt('product_id', $data);
+        $bookId = ArrayHandler::getValueAsInt('book_id', $data);
+        $productRepository = new ProductRepository();
+        $product = $productRepository->findProduct($productId);
+
+        if (!$product) {
+            throw new \RuntimeException('Product is not found for unlink book');
+        }
+
+        $bookRepository = new BookRepository();
+        $bookUserDataRepository = new BookUserDataRepository();
+
+        $bud = $bookUserDataRepository->find([Config::getCurrentUserId(), $bookId]);
+
+        if (!$bud) {
+            throw new \Exception('BookUserData is not found. Has no access to unlink book.');
+        }
+
+        $bookRepository->unlinkBookFromProduct($productId);
+
+        $this->tResponse->setSuccess(true);
     }
 
     // api call
     public function getBooksByTitle(array $data): void
     {
         ArrayHandler::hasParamThroughException(Book::PARAM_TITLE, $data, 'Not found title');
+        $bookRepository = new BookRepository();
 
-        $result = $this->bookRepository->getBooksByTitle(ArrayHandler::getValueAsString(Book::PARAM_TITLE, $data));
+        $result = $bookRepository->getBooksByTitle(ArrayHandler::getValueAsString(Book::PARAM_TITLE, $data));
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
@@ -79,7 +193,9 @@ class ApiCaller
     {
         ArrayHandler::hasParamThroughException(SourceProduct::PARAM_TITLE, $data, 'Not found title');
 
-        $result = $this->sourceProductRepository->getSourceProductsByTitle(
+        $sourceProductRepository = new SourceProductRepository();
+
+        $result = $sourceProductRepository->getSourceProductsByTitle(
             ArrayHandler::getValueAsString(SourceProduct::PARAM_TITLE, $data)
         );
 
@@ -97,40 +213,45 @@ class ApiCaller
         ArrayHandler::hasParamThroughException(Product::PARAM_SHOP_PRODUCT_ID, $data, 'Not found shop_product_id');
         ArrayHandler::hasParamThroughException(ProductUserData::PARAM_IS_ARCHIVE, $data, 'Not found is_archive');
 
+        $productRepository = new ProductRepository();
+
         $shopProductId = ArrayHandler::getValueAsString(Product::PARAM_SHOP_PRODUCT_ID, $data);
-        $product = $this->productRepository->findProduct($shopProductId, true);
+        $product = $productRepository->findProduct($shopProductId, true);
 
         if ($product) {
+            $productUserDataRepository = new ProductUserDataRepository();
             $isArchive = ArrayHandler::getValueAsBool(ProductUserData::PARAM_IS_ARCHIVE, $data);
 
             QueryPdo::beginTransaction();
             try {
                 if (!$product->getProductUserData()) {
-                    $this->productUserDataRepository->save([
+                    $productUserDataRepository->save([
                         ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
                         ProductUserData::PARAM_PRODUCT_ID => $product->getId(),
                         ProductUserData::PARAM_AVAILABLE => true,
                         ProductUserData::PARAM_IS_ARCHIVE => $isArchive,
                     ]);
 
-                    $pud = $this->productUserDataRepository->find([
+                    $pud = $productUserDataRepository->find([
                         Config::getCurrentUserid(),
                         $product->getId()
                     ]);
 
                     $product->setProductUserData($pud);
                 } else {
-                    $this->productUserDataRepository->changeIsArchive($product->getId(), $isArchive);
+                    $productUserDataRepository->changeIsArchive($product->getId(), $isArchive);
                     $product->getProductUserData()->setIsArchive($isArchive);
                 }
 
                 if ($product->getBook() && !$product->getBook()->getBookUserData()) {
-                    $this->bookUserDataRepository->save([
+                    $bookUserDataRepository = new BookUserDataRepository();
+
+                    $bookUserDataRepository->save([
                         BookUserData::PARAM_USER_ID => Config::getCurrentUserid(),
                         BookUserData::PARAM_BOOK_ID => $product->getBook()->getId(),
                     ]);
 
-                    $bud = $this->bookUserDataRepository->find([
+                    $bud = $bookUserDataRepository->find([
                         Config::getCurrentUserid(),
                         $product->getBook()->getId()
                     ]);
@@ -139,12 +260,14 @@ class ApiCaller
                 }
 
                 if ($product->getSourceProduct() && !$product->getSourceProduct()->getSourceProductUserData()) {
-                    $this->sourceProductUserDataRepository->save([
+                    $sourceProductUserDataRepository = new SourceProductUserDataRepository();
+
+                    $sourceProductUserDataRepository->save([
                         SourceProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
                         SourceProductUserData::PARAM_SOURCE_PRODUCT => $product->getSourceProduct()->getId(),
                     ]);
 
-                    $spud = $this->sourceProductUserDataRepository->find([
+                    $spud = $sourceProductUserDataRepository->find([
                         Config::getCurrentUserid(),
                         $product->getSourceProduct()->getId()
                     ]);
@@ -169,13 +292,14 @@ class ApiCaller
     // api call
     public function removeStock(array $stockData): void
     {
-        $foundStock = $this->stockRepository->getStock($stockData);
+        $stockRepository = new StockRepository();
+        $foundStock = $stockRepository->getStock($stockData);
 
         if (!$foundStock) {
             throw new \Exception('Stock is not found');
         }
 
-        $countRemoved = $this->stockRepository->deleteStock($stockData);
+        $countRemoved = $stockRepository->deleteStock($stockData);
         $this->tResponse->setSuccess(true);
         $this->tResponse->setMessage('Stock is removed, affected: ' . $countRemoved);
     }
@@ -194,7 +318,8 @@ class ApiCaller
             throw new \Exception('Не корректен передаваемый массив ID товаров.');
         }
 
-        $products = $this->productRepository->getProductsByShopProductIds($productIds);
+        $productRepository = new ProductRepository();
+        $products = $productRepository->getProductsByShopProductIds($productIds);
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
@@ -207,9 +332,11 @@ class ApiCaller
     // api call
     public function saveBook(array $modelData): void
     {
+        $bookRepository = new BookRepository();
+
         QueryPdo::beginTransaction();
         try {
-            $entityId = $this->bookRepository->save($modelData);
+            $entityId = $bookRepository->save($modelData);
 
             QueryPdo::commit();
         } catch (\Throwable $e) {
@@ -219,7 +346,7 @@ class ApiCaller
         }
 
         /** @var Book $model */
-        $model = $this->bookRepository->find($entityId);
+        $model = $bookRepository->find($entityId);
 
         if (!$model) {
             throw new \Exception('Not found book by id ' . $entityId);
@@ -235,9 +362,11 @@ class ApiCaller
     // api call
     public function saveSourceProduct(array $modelData): void
     {
+        $sourceProductRepository = new SourceProductRepository();
+
         QueryPdo::beginTransaction();
         try {
-            $entityId = $this->sourceProductRepository->save($modelData);
+            $entityId = $sourceProductRepository->save($modelData);
 
             QueryPdo::commit();
         } catch (\Throwable $e) {
@@ -246,7 +375,7 @@ class ApiCaller
             throw $e;
         }
 
-        $model = $this->sourceProductRepository->find($entityId);
+        $model = $sourceProductRepository->find($entityId);
 
         if (!$model) {
             throw new \Exception('Not found SourceProduct by id ' . $entityId);
@@ -262,9 +391,11 @@ class ApiCaller
     // api call
     public function saveProduct(array $productData): void
     {
+        $productRepository  = new ProductRepository();
+
         QueryPdo::beginTransaction();
         try {
-            $this->productRepository->saveProduct($productData);
+            $productRepository->saveProduct($productData);
 
             QueryPdo::commit();
         } catch (\Throwable $e) {
@@ -273,7 +404,7 @@ class ApiCaller
             throw $e;
         }
 
-        $model = $this->productRepository->findProduct(
+        $model = $productRepository->findProduct(
             ArrayHandler::getValueAsString(Product::PARAM_SHOP_PRODUCT_ID, $productData)
         );
 
@@ -305,6 +436,7 @@ class ApiCaller
         $errorsCount = 0;
         $savedCount = 0;
         $message = [];
+        $productRepository  = new ProductRepository();
 
         foreach ($productsData as $productData) {
             $productsCount++;
@@ -312,7 +444,7 @@ class ApiCaller
             try {
                 QueryPdo::beginTransaction();
                 try {
-                    $this->productRepository->saveProduct($productData);
+                    $productRepository->saveProduct($productData);
 
                     QueryPdo::commit();
                 } catch (\Throwable $e) {

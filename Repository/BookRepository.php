@@ -17,7 +17,7 @@ class BookRepository extends Repository
     protected string $entityModel = Book::class;
     protected ?string $userDataRepositoryModel = BookUserDataRepository::class;
 
-    public function linkBookToProduct(int $entityId, int $bookId): void
+    public function linkBookToProduct(int $productId, int $bookId): void
     {
         $query = (new QueryPdo())
             ->update(
@@ -27,7 +27,7 @@ class BookRepository extends Repository
                 ]
             )
             ->where(Product::PARAM_ID, ':id')
-            ->bindParam(Product::PARAM_ID, $entityId);
+            ->bindParam(Product::PARAM_ID, $productId);
 
         try {
             $query->execute();
@@ -36,7 +36,7 @@ class BookRepository extends Repository
         }
     }
 
-    public function unlinkBookFromProduct(int $entityId): void
+    public function unlinkBookFromProduct(int $productId): void
     {
         $query = (new QueryPdo())
             ->update(
@@ -46,7 +46,7 @@ class BookRepository extends Repository
                 ]
             )
             ->where(Product::PARAM_ID, ':id')
-            ->bindParam(Product::PARAM_ID, $entityId);
+            ->bindParam(Product::PARAM_ID, $productId);
 
         try {
             $query->execute();

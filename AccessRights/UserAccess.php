@@ -8,7 +8,7 @@ class UserAccess extends AccessHandler implements UserAccessInterface, AdminAcce
 {
     public function getProductCreate(): bool
     {
-        return false;
+        return true;
     }
 
     public function getProductUpdate(): bool
@@ -65,6 +65,7 @@ class UserAccess extends AccessHandler implements UserAccessInterface, AdminAcce
     {
         return [
             Config::TYPE_WILDBERRIES,
+            Config::TYPE_OZON,
         ];
     }
 }

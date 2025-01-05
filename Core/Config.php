@@ -15,16 +15,13 @@ use Query\QueryPdo;
 
 class Config
 {
-    // Версия плагина, для сравнения с фронтом.
-    public const APP_VERSION = '20250102';
-
     public const TYPE_OZON = 'ozon';//www.ozon.ru
     public const TYPE_WILDBERRIES = 'wildberries';//www.wildberries.ru
     public const TYPE_CHITAI_GOROD = 'chitai-gorod';//www.chitai-gorod.ru
     public const TYPE_FFAN = 'ffan';//ffan.ru
     public const TYPE_KNIGOFAN = 'knigofan';//knigofan.ru
 
-    private const AVAILABLES_TYPES = [
+    private const AVAILABLE_TYPES = [
         self::TYPE_OZON,
         self::TYPE_WILDBERRIES,
         self::TYPE_CHITAI_GOROD,
@@ -103,7 +100,7 @@ class Config
 
     public static function initShopType(string $shopType): void
     {
-        if (!in_array($shopType, self::AVAILABLES_TYPES)) {
+        if (!in_array($shopType, self::AVAILABLE_TYPES)) {
             throw new \Exception('Type ' . $shopType . ' is not exists.');
         }
 

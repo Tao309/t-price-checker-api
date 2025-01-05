@@ -17,7 +17,7 @@ class SourceProductRepository extends Repository
     protected string $entityModel = SourceProduct::class;
     protected ?string $userDataRepositoryModel = SourceProductUserDataRepository::class;
 
-    public function linkToProduct(int $entityId, int $sourceProductId): void
+    public function linkToProduct(int $productId, int $sourceProductId): void
     {
         $query = (new QueryPdo())
             ->update(
@@ -27,7 +27,7 @@ class SourceProductRepository extends Repository
                 ]
             )
             ->where(Product::PARAM_ID, ':id')
-            ->bindParam(Product::PARAM_ID, $entityId);
+            ->bindParam(Product::PARAM_ID, $productId);
 
         try {
             $query->execute();
@@ -36,7 +36,7 @@ class SourceProductRepository extends Repository
         }
     }
 
-    public function unlinkFromProduct(int $entityId): void
+    public function unlinkFromProduct(int $productId): void
     {
         $query = (new QueryPdo())
             ->update(
@@ -46,7 +46,7 @@ class SourceProductRepository extends Repository
                 ]
             )
             ->where(Product::PARAM_ID, ':id')
-            ->bindParam(Product::PARAM_ID, $entityId);
+            ->bindParam(Product::PARAM_ID, $productId);
 
         try {
             $query->execute();

@@ -16,6 +16,10 @@ class tResponse
     public const MESSAGE_ACCESS_LIMITED = 'Access limited';
 
     private const AVAILABLE_REQUEST_METHODS = [
+        'linkSourceProduct',
+        'unlinkSourceProduct',
+        'linkBook',
+        'unlinkBook',
         'saveProduct',
         'saveProducts',
         'getProductsByShopType',

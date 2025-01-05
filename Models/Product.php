@@ -66,13 +66,8 @@ class Product extends Entity
     public const PARAM_PRODUCT_USER_DATA = 'product_user_data';
 
     public const FLAG_TO_SAVE_PRODUCT_USER_DATA = 'flag_to_save_product_user_data';
-    public const FLAG_TO_SAVE_PRODUCT = 'flag_to_save_product';
     public const FLAG_TO_SAVE_PRICE_DATES = 'flag_to_save_price_dates';
     public const FLAG_TO_SAVE_STOCKS = 'flag_to_save_stocks';
-    public const FLAG_TO_LINK_BOOK = 'flag_to_link_book';
-    public const FLAG_TO_UNLINK_BOOK = 'flag_to_unlink_book';
-    public const FLAG_TO_LINK_SOURCE_PRODUCT = 'flag_to_link_source_product';
-    public const FLAG_TO_UNLINK_SOURCE_PRODUCT = 'flag_to_unlink_source_product';
     public const FLAG_TO_CHANGE_ID = 'flag_to_change_id';
 
     protected const PROPERTIES = [
@@ -179,11 +174,13 @@ class Product extends Entity
             $this->lastQty = end($stocks) ? end($stocks)->getQty() : null;
         }
 
-        if ($this->getBook() && !$this->getBook()->getBookUserData()) {
+        if ($this->getBook() && !$this->getBook()->getBookUserData()
+            && $this->getProductUserData()) {
             $this->getProductUserData()->setIsArchive(true);
         }
 
-        if ($this->getSourceProduct() && !$this->getSourceProduct()->getSourceProductUserData()) {
+        if ($this->getSourceProduct() && !$this->getSourceProduct()->getSourceProductUserData()
+            && $this->getProductUserData()) {
             $this->getProductUserData()->setIsArchive(true);
         }
     }
