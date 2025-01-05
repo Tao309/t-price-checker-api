@@ -213,9 +213,9 @@ class ProductRepository extends Repository
             return $productModel->getId();
         }, $productModels);
 
-        $priceDatesPull = new PriceDatePullRepository($ids);
-        $stocksPull = new StockPullRepository($ids);
-        $sameProductsPull = new SameProductPullRepository($ids);
+        $priceDatesPull = $ids ? new PriceDatePullRepository($ids) : [];
+        $stocksPull = $ids ? new StockPullRepository($ids) : [];
+        $sameProductsPull = $ids ? new SameProductPullRepository($ids) : [];
 
         array_map(function ($productModel) use ($priceDatesPull, $stocksPull, $sameProductsPull) {
             $productId = $productModel->getId();

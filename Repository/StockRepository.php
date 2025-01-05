@@ -76,6 +76,10 @@ class StockRepository extends Repository
      */
     public function getStocksForProducts(array $ids = []): array
     {
+        if (!$ids) {
+            return [];
+        }
+
         $query = $this->getQuery();
 
         $query
