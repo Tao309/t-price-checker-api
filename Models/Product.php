@@ -146,6 +146,7 @@ class Product extends Entity
     protected int $shopId;
     protected ?int $sourceProductId;
     protected ?int $bookId;
+    protected ?int $authorUserId;
     protected string $title;
     protected DateTime $dateCreated;
     protected DateTime $dateUpdated;

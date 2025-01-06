@@ -123,6 +123,7 @@ class Book extends Entity
     protected ?int $circulation;
     protected ?string $size;
     protected ?int $publishYear;
+    protected ?int $authorUserId;
     protected DateTime $dateUpdated;
     protected DateTime $dateCreated;
     protected ?int $livelibId;

@@ -64,6 +64,7 @@ class SourceProduct extends Entity
     ];
 
     protected string $title;
+    protected ?int $authorUserId;
     protected DateTime $dateUpdated;
     protected DateTime $dateCreated;
 
