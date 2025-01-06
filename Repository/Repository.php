@@ -358,6 +358,10 @@ abstract class Repository
             AccessHandler::checkAccess(Entity::toSnakeCase($this->getReflectionCurrentModel()->getShortName()) . '.create');
         }
 
+        if ($this->getReflectionCurrentModel()->hasProperty(Entity::toCamelCase(Entity::PARAM_AUTHOR_USER))) {
+            $data[Entity::PARAM_AUTHOR_USER_ID] = Config::getCurrentUserid();
+        }
+
         $entityDataBuilder = $this->getEntityDataBuilder($data);
         $preparedData = $entityDataBuilder->getQueryPreparedData();
 

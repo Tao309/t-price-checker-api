@@ -23,6 +23,7 @@ use Repository\Repository;
  *
  * @method BindingType getBindingType()
  * @method BookUserData getBookUserData()
+ * @method User getAuthorUser()
  *
  * @method self setTitle(string $value)
  * @method self setAuthor(string $value)
@@ -108,6 +109,11 @@ class Book extends Entity
             Repository::PARAM_RELATION_ID => BookUserData::PARAM_BOOK_ID,
             Repository::PARAM_RELATION_USER_ID => BookUserData::PARAM_USER_ID,
         ],
+        Entity::PARAM_AUTHOR_USER => [
+            'parent_id' => Entity::PARAM_AUTHOR_USER_ID,
+            'relation_entity' => User::class,
+            'relation_id' => Entity::PARAM_ID,
+        ],
     ];
 
     protected string $title;
@@ -126,6 +132,7 @@ class Book extends Entity
     protected ?float $goodreadsRating;
 
     // Приватные свойства не попадают в обходе у родителя. __call в родителе.
+    protected ?User $authorUser = null;
     protected ?BookUserData $bookUserData = null;
     protected ?BindingType $bindingType = null;
 

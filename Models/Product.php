@@ -23,6 +23,7 @@ use DateTime;
  * @method int getMinPrice()
  * @method int getLastQty()
  * @method ProductUserData getProductUserData()
+ * @method User getAuthorUser()
  *
  * @method PriceDate[] getPriceDates()
  * @method Stock[] getStocks()
@@ -58,8 +59,9 @@ class Product extends Entity
 
     public const PARAM_MIN_PRICE = 'min_price';
     public const PARAM_LAST_QTY = 'last_qty';
-
     public const PARAM_FLAGS = 'flags';
+
+    // От зависимых моделей.
     public const PARAM_SOURCE_PRODUCT = 'source_product';
     public const PARAM_BOOK = 'book';
     public const PARAM_SHOP = 'shop';
@@ -117,6 +119,11 @@ class Product extends Entity
             'relation_id' => ProductUserData::PARAM_PRODUCT_ID,
             'relation_user_id' => ProductUserData::PARAM_USER_ID,
         ],
+        Entity::PARAM_AUTHOR_USER => [
+            'parent_id' => Entity::PARAM_AUTHOR_USER_ID,
+            'relation_entity' => User::class,
+            'relation_id' => Entity::PARAM_ID,
+        ],
     ];
 
     protected const RELATION_TO_MANY = [
@@ -143,6 +150,7 @@ class Product extends Entity
     protected DateTime $dateCreated;
     protected DateTime $dateUpdated;
 
+    protected ?User $authorUser = null;
     protected ?ProductUserData $productUserData = null;
     protected Shop $shop;
     protected ?SourceProduct $sourceProduct = null;

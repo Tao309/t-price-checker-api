@@ -12,6 +12,9 @@ abstract class Entity
     public const TABLE_PREFIX = null;
     public const TABLE_NAME = null;
 
+    public const PARAM_AUTHOR_USER = 'author_user';
+    public const PARAM_AUTHOR_USER_ID = 'author_user_id';
+
     // По каким полям находить модель.
     protected const PRIMARY_KEY = self::PARAM_ID;
 

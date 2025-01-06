@@ -11,6 +11,7 @@ use DateTime;
  *
  * @method SourceProductType getSourceProductType()
  * @method SourceProductUserData getSourceProductUserData()
+ * @method User getAuthorUser()
  *
  * @method self setTitle(string $value)
  *
@@ -55,6 +56,11 @@ class SourceProduct extends Entity
             'relation_id' => SourceProductUserData::PARAM_SOURCE_PRODUCT,
             'relation_user_id' => SourceProductUserData::PARAM_USER_ID,
         ],
+        Entity::PARAM_AUTHOR_USER => [
+            'parent_id' => Entity::PARAM_AUTHOR_USER_ID,
+            'relation_entity' => User::class,
+            'relation_id' => Entity::PARAM_ID,
+        ],
     ];
 
     protected string $title;
@@ -62,6 +68,7 @@ class SourceProduct extends Entity
     protected DateTime $dateCreated;
 
     // Приватные свойства не попадают в обходе у родителя. __call в родителе.
+    protected ?User $authorUser = null;
     protected SourceProductType $sourceProductType;
     protected ?SourceProductUserData $sourceProductUserData = null;
 }
