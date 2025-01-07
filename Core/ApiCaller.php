@@ -53,7 +53,7 @@ class ApiCaller
         $productId = ArrayHandler::getValueAsInt('product_id', $data);
         $sourceProductId = ArrayHandler::getValueAsInt('source_product_id', $data);
         $productRepository = new ProductRepository();
-        $product = $productRepository->findProduct($productId);
+        $product = $productRepository->find($productId);
 
         if (!$product) {
             throw new \RuntimeException('Product is not found for link sourceProduct');
@@ -75,7 +75,7 @@ class ApiCaller
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
-            'product' => $productRepository->findProduct($productId)->toArray(),
+            'product' => $productRepository->find($productId)->toArray(),
         ]);
     }
 
@@ -88,7 +88,7 @@ class ApiCaller
         $productId = ArrayHandler::getValueAsInt('product_id', $data);
         $sourceProductId = ArrayHandler::getValueAsInt('source_product_id', $data);
         $productRepository = new ProductRepository();
-        $product = $productRepository->findProduct($productId);
+        $product = $productRepository->find($productId);
 
         if (!$product) {
             throw new \RuntimeException('Product is not found for unlink sourceProduct');
@@ -117,7 +117,7 @@ class ApiCaller
         $productId = ArrayHandler::getValueAsInt('product_id', $data);
         $bookId = ArrayHandler::getValueAsInt('book_id', $data);
         $productRepository = new ProductRepository();
-        $product = $productRepository->findProduct($productId);
+        $product = $productRepository->find($productId);
 
         if (!$product) {
             throw new \RuntimeException('Product not found for link book');
@@ -139,7 +139,7 @@ class ApiCaller
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
-            'product' => $productRepository->findProduct($productId)->toArray(),
+            'product' => $productRepository->find($productId)->toArray(),
         ]);
     }
 
@@ -152,7 +152,7 @@ class ApiCaller
         $productId = ArrayHandler::getValueAsInt('product_id', $data);
         $bookId = ArrayHandler::getValueAsInt('book_id', $data);
         $productRepository = new ProductRepository();
-        $product = $productRepository->findProduct($productId);
+        $product = $productRepository->find($productId);
 
         if (!$product) {
             throw new \RuntimeException('Product is not found for unlink book');
