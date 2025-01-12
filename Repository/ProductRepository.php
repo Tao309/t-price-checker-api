@@ -129,6 +129,11 @@ class ProductRepository extends Repository
      */
     public function getProductsByShopProductIds(array $shopProductIds): array
     {
+        // проверить как приходит пустой массив
+        if (empty($shopProductIds)) {
+            return [];
+        }
+
         $params = [
             Product::PARAM_SHOP_PRODUCT_ID => $shopProductIds,
             Product::PARAM_SHOP_ID => Config::getCurrentShopId(),

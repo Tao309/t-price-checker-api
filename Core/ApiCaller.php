@@ -318,14 +318,19 @@ class ApiCaller
             throw new \Exception('Не корректен передаваемый массив ID товаров.');
         }
 
-        $productRepository = new ProductRepository();
-        $products = $productRepository->getProductsByShopProductIds($productIds);
+        $items = [];
+
+        if (!empty($productIds)) {
+            $productRepository = new ProductRepository();
+            $products = $productRepository->getProductsByShopProductIds($productIds);
+            $items = array_map(function ($product) {
+                return $product->toArray();
+            }, $products);
+        }
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
-            'items' => array_map(function ($product) {
-                return $product->toArray();
-            }, $products)
+            'items' => $items
         ]);
     }
 
