@@ -141,7 +141,7 @@ class Product extends Entity
         ],
     ];
 
-    protected int $shopProductId;
+    protected string $shopProductId;
     protected ?string $shopProductCode;
     protected int $shopId;
     protected ?int $sourceProductId;
