@@ -75,7 +75,7 @@ class ApiCaller
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
-            'product' => $productRepository->find($productId)->toArray(),
+            'product' => $productRepository->findProduct($product->getShopProductId(), true)->toArray(),
         ]);
     }
 
@@ -139,7 +139,7 @@ class ApiCaller
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
-            'product' => $productRepository->find($productId)->toArray(),
+            'product' => $productRepository->findProduct($product->getShopProductId(), true)->toArray(),
         ]);
     }
 
