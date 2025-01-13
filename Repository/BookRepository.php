@@ -60,22 +60,32 @@ class BookRepository extends Repository
      */
     public function getBooksByTitle(string $title): array
     {
+        $title = strtolower(trim($title));
+
         $query = $this->getQuery();
 
         $query
             ->where('LOWER('.Book::TABLE_PREFIX.'.title) LIKE :title')
-            ->limit(7);
+            ->limit(5);
 
         $fetchData = [
-            Book::PARAM_TITLE => '%'.strtolower(trim($title)).'%'
+            Book::PARAM_TITLE => '%'.$title.'%'
         ];
 
-        $explodeTitle = explode('.', $title);
-        $splitTitle = reset($explodeTitle);
+        if (str_contains($title, '.')) {
+            $explodeTitle = explode('.', $title);
+            $splitTitle = reset($explodeTitle);
 
-        if (!empty($splitTitle)) {
-            $query->orWhere('LOWER('.Book::TABLE_PREFIX.'.title) LIKE :split_title');
-            $fetchData['split_title'] = '%'.strtolower(trim($splitTitle)).'%';
+            $query->orWhere('LOWER('.Book::TABLE_PREFIX.'.title) LIKE :title_split_dot');
+            $fetchData['title_split_dot'] = '%'.$splitTitle.'%';
+        }
+
+        if (str_contains($title, ' ')) {
+            $explodeTitle = explode(' ', $title);
+            $splitTitles = array_slice($explodeTitle, 0, 2);
+
+            $query->orWhere('LOWER('.Book::TABLE_PREFIX.'.title) LIKE :title_split_space');
+            $fetchData['title_split_space'] = '%'.implode(' ', $splitTitles).'%';
         }
 
         $query->bindParams($fetchData);

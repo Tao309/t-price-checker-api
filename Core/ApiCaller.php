@@ -410,7 +410,8 @@ class ApiCaller
         }
 
         $model = $productRepository->findProduct(
-            ArrayHandler::getValueAsString(Product::PARAM_SHOP_PRODUCT_ID, $productData)
+            ArrayHandler::getValueAsString(Product::PARAM_SHOP_PRODUCT_ID, $productData),
+            true
         );
 
         $this->tResponse->setSuccess(true);
