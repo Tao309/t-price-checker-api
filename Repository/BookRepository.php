@@ -72,6 +72,14 @@ class BookRepository extends Repository
             Book::PARAM_TITLE => '%'.$title.'%'
         ];
 
+        if (str_contains($title, ':')) {
+            $explodeTitle = explode(':', $title);
+            $splitTitle = reset($explodeTitle);
+
+            $query->orWhere('LOWER('.Book::TABLE_PREFIX.'.title) LIKE :title_split_colon');
+            $fetchData['title_split_colon'] = '%'.$splitTitle.'%';
+        }
+
         if (str_contains($title, '.')) {
             $explodeTitle = explode('.', $title);
             $splitTitle = reset($explodeTitle);

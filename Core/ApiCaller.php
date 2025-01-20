@@ -75,7 +75,7 @@ class ApiCaller
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
-            'product' => $productRepository->findProduct($product->getShopProductId(), true)->toArray(),
+            'product' => $productRepository->findProduct($product->getShopProductId())->toArray(),
         ]);
     }
 
@@ -139,7 +139,7 @@ class ApiCaller
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
-            'product' => $productRepository->findProduct($product->getShopProductId(), true)->toArray(),
+            'product' => $productRepository->findProduct($product->getShopProductId())->toArray(),
         ]);
     }
 
@@ -216,7 +216,7 @@ class ApiCaller
         $productRepository = new ProductRepository();
 
         $shopProductId = ArrayHandler::getValueAsString(Product::PARAM_SHOP_PRODUCT_ID, $data);
-        $product = $productRepository->findProduct($shopProductId, true);
+        $product = $productRepository->findProduct($shopProductId);
 
         if ($product) {
             $productUserDataRepository = new ProductUserDataRepository();
@@ -410,8 +410,7 @@ class ApiCaller
         }
 
         $model = $productRepository->findProduct(
-            ArrayHandler::getValueAsString(Product::PARAM_SHOP_PRODUCT_ID, $productData),
-            true
+            ArrayHandler::getValueAsString(Product::PARAM_SHOP_PRODUCT_ID, $productData)
         );
 
         $this->tResponse->setSuccess(true);

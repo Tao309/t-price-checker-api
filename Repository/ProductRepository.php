@@ -168,7 +168,7 @@ class ProductRepository extends Repository
         return $models;
     }
 
-    public function findProduct(string $shopProductId, bool $addRelations = false): null|Product
+    public function findProduct(string $shopProductId): null|Product
     {
         $models = $this->findByParams(
             [
@@ -180,9 +180,8 @@ class ProductRepository extends Repository
             ]
         );
 
-        if ($addRelations) {
-            $this->addOneToManyRelationsModels($models);
-        }
+        // Всегда надо добавлять stocks и priceDates.
+        $this->addOneToManyRelationsModels($models, false);
 
         return $models ? reset($models) : null;
     }
@@ -210,9 +209,12 @@ class ProductRepository extends Repository
     }
 
     /**
-     * @param Product[] $productModels
+     * @param array $productModels
+     * @param bool $addSameProducts
+     *
+     * @return void
      */
-    private function addOneToManyRelationsModels(array $productModels): void
+    private function addOneToManyRelationsModels(array $productModels, bool $addSameProducts = true): void
     {
         $ids = array_map(function ($productModel) {
             return $productModel->getId();
@@ -220,7 +222,7 @@ class ProductRepository extends Repository
 
         $priceDatesPull = $ids ? new PriceDatePullRepository($ids) : [];
         $stocksPull = $ids ? new StockPullRepository($ids) : [];
-        $sameProductsPull = $ids ? new SameProductPullRepository($ids) : [];
+        $sameProductsPull = $ids && $addSameProducts ? new SameProductPullRepository($ids) : [];
 
         array_map(function ($productModel) use ($priceDatesPull, $stocksPull, $sameProductsPull) {
             $productId = $productModel->getId();
@@ -236,7 +238,7 @@ class ProductRepository extends Repository
                     : null
                 );
 
-            if ($findSameProductId) {
+            if ($findSameProductId  && !empty($sameProductsPull)) {
                 $productModel->setSameProducts($sameProductsPull->getFromPullSortMin($productModel, $findSameProductId));
             }
 

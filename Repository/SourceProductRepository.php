@@ -60,22 +60,38 @@ class SourceProductRepository extends Repository
      */
     public function getSourceProductsByTitle(string $title): array
     {
+        $title = strtolower(trim($title));
+
         $query = $this->getQuery()
             ->where('LOWER('.SourceProduct::TABLE_PREFIX.'.title) LIKE :title')
-//            ->where(SourceProduct::PARAM_USER_ID, ':user_id')
-            ->limit(7);
+            ->limit(5);
 
         $fetchData = [
-            'title' => '%'.strtolower(trim($title)).'%',
-//            SourceProduct::PARAM_USER_ID => Config::getCurrentUserid()
+            'title' => '%'.$title.'%'
         ];
 
-        $explodeTitle = explode(' ', $title);
-        $splitTitle = reset($explodeTitle);
+        if (str_contains($title, ':')) {
+            $explodeTitle = explode(':', $title);
+            $splitTitle = reset($explodeTitle);
 
-        if (!empty($splitTitle)) {
-            $query->orWhere('LOWER('.SourceProduct::TABLE_PREFIX.'.title) LIKE :split_title');
-            $fetchData['split_title'] = '%'.strtolower(trim($splitTitle)).'%';
+            $query->orWhere('LOWER('.SourceProduct::TABLE_PREFIX.'.title) LIKE :title_split_colon');
+            $fetchData['title_split_colon'] = '%'.$splitTitle.'%';
+        }
+
+        if (str_contains($title, '.')) {
+            $explodeTitle = explode('.', $title);
+            $splitTitle = reset($explodeTitle);
+
+            $query->orWhere('LOWER('.SourceProduct::TABLE_PREFIX.'.title) LIKE :title_split_dot');
+            $fetchData['title_split_dot'] = '%'.$splitTitle.'%';
+        }
+
+        if (str_contains($title, ' ')) {
+            $explodeTitle = explode(' ', $title);
+            $splitTitles = array_slice($explodeTitle, 0, 2);
+
+            $query->orWhere('LOWER('.SourceProduct::TABLE_PREFIX.'.title) LIKE :title_split_space');
+            $fetchData['title_split_space'] = '%'.implode(' ', $splitTitles).'%';
         }
 
         $query->bindParams($fetchData);
