@@ -7,17 +7,12 @@ use Core\tResponse;
 use Exception\NoRightsException;
 use Models\Entity;
 use Models\User;
+use Models\UserRole;
 use Repository\AuthTokenRepository;
 
 class AccessHandler
 {
-    public const USER_ADMIN_ROLE = 'admin';
-    public const USER_USER_ROLE = 'user';
     public const VALUE_DEFAULT_PRODUCT_LIMIT = 50;
-
-    private const USER_NAME_ADMIN = 'admin';
-    private const USER_NAME_TAO309 = 'tao309';
-    private const USER_NAME_SOLOGUB = 'a.sologub';
 
     private static int $userId = 0;
     private static string|null $userRole = null;
@@ -64,35 +59,51 @@ class AccessHandler
 
         $authTokenRepository = new AuthTokenRepository();
 
-        $userData = $authTokenRepository->getUserDataByAuthToken($userToken);
+        $user = $authTokenRepository->getUserByAuthToken($userToken);
 
-        if (!$userData
-            || empty(ArrayHandler::getValueAsInt(User::PARAM_ID, $userData))
-            || empty(ArrayHandler::getValueAsString(User::PARAM_USERNAME, $userData))
-        ) {
+        if (!$user) {
             throw new NoRightsException('User is not found by token');
         }
 
-        if (!ArrayHandler::getValueAsBool(User::PARAM_IS_ACTIVE, $userData)) {
+        if (!$user->getIsActive()) {
             throw new NoRightsException(sprintf(
                 'User %s is not active',
-                ArrayHandler::getValueAsString(User::PARAM_USERNAME, $userData)
+                $user->getUsername()
             ));
         }
 
-        self::$userRole = match (ArrayHandler::getValueAsString(User::PARAM_USERNAME, $userData)) {
-            self::USER_NAME_ADMIN,
-            self::USER_NAME_TAO309 => self::USER_ADMIN_ROLE,
-            self::USER_NAME_SOLOGUB => self::USER_USER_ROLE,
-            default => throw new(tResponse::MESSAGE_ACCESS_LIMITED),
-        };
+        self::$userRole = $user->getUserRole()->getCode();
+        self::$userId = $user->getId();
 
-        self::$userId = $userData[Entity::PARAM_ID];
+//        $userData = $authTokenRepository->getUserDataByAuthToken($userToken);
+//
+//        if (!$userData
+//            || empty(ArrayHandler::getValueAsInt(User::PARAM_ID, $userData))
+//            || empty(ArrayHandler::getValueAsString(User::PARAM_USERNAME, $userData))
+//        ) {
+//            throw new NoRightsException('User is not found by token');
+//        }
+//
+//        if (!ArrayHandler::getValueAsBool(User::PARAM_IS_ACTIVE, $userData)) {
+//            throw new NoRightsException(sprintf(
+//                'User %s is not active',
+//                ArrayHandler::getValueAsString(User::PARAM_USERNAME, $userData)
+//            ));
+//        }
+//
+//        self::$userRole = match (ArrayHandler::getValueAsString(User::PARAM_USERNAME, $userData)) {
+//            self::USER_NAME_ADMIN,
+//            self::USER_NAME_TAO309 => self::USER_ADMIN_ROLE,
+//            self::USER_NAME_SOLOGUB => self::USER_USER_ROLE,
+//            default => throw new(tResponse::MESSAGE_ACCESS_LIMITED),
+//        };
+//
+//        self::$userId = $userData[Entity::PARAM_ID];
     }
 
     public static function isAdmin(): bool
     {
-        return self::$userRole === self::USER_ADMIN_ROLE;
+        return self::$userRole === UserRole::USER_ADMIN_ROLE;
     }
 
     public static function getCurrentUserId(): int

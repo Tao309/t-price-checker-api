@@ -5,6 +5,7 @@ namespace Query;
 use Core\Config;
 use Models\Entity;
 use Models\User;
+use Models\UserRole;
 use Repository\Repository;
 
 class QueryBuilder
@@ -47,7 +48,10 @@ class QueryBuilder
         $tableName = $primaryClass->getConstant('TABLE_NAME');
         $tablePrefix = $primaryClass->getConstant('TABLE_PREFIX') ?? $tableName;
 
-        if ($tableName === User::TABLE_NAME && $parentTablePrefix) {
+        if (
+            in_array($tableName, [User::TABLE_NAME, UserRole::TABLE_NAME])
+            && $parentTablePrefix
+        ) {
             $tablePrefix = implode(self::PREFIX_LINK, [
                 $parentTablePrefix,
                 $tablePrefix

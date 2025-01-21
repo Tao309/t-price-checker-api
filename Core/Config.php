@@ -11,6 +11,7 @@ use Models\BindingType;
 use Models\Entity;
 use Models\Shop;
 use Models\SourceProductType;
+use Models\UserRole;
 use Query\QueryPdo;
 
 class Config
@@ -83,8 +84,8 @@ class Config
         AccessHandler::applyUserAccess($headers['t-price-checker-id']);
 
         match (AccessHandler::getCurrentUserRole()) {
-            AccessHandler::USER_ADMIN_ROLE => new AdminAccess(),
-            AccessHandler::USER_USER_ROLE => new UserAccess(),
+            UserRole::USER_ADMIN_ROLE => new AdminAccess(),
+            UserRole::USER_USER_ROLE => new UserAccess(),
             default => throw new NoRightsException('Role for user is not found')
         };
 
