@@ -9,6 +9,7 @@ use Exception\NoRightsException;
 use Exception\ResponseException;
 use Models\BindingType;
 use Models\Entity;
+use Models\PublishingHouse;
 use Models\Shop;
 use Models\SourceProductType;
 use Models\UserRole;
@@ -34,7 +35,8 @@ class Config
     private static ?string $currentShopType = null;
     private static ?array $shopTypes = null;
     private static ?array $sourceProductTypes = null;
-    private static ?array $bookBindingtTypes = null;
+    private static ?array $bookBindingTypes = null;
+    private static ?array $bookPublishingHouses = null;
 
     public static function getCurrentUserid(): int
     {
@@ -175,11 +177,11 @@ class Config
 
     public static function initBookBindingTypes(): void
     {
-        if (!is_null(self::$bookBindingtTypes)) {
+        if (!is_null(self::$bookBindingTypes)) {
             return;
         }
 
-        self::$bookBindingtTypes = [];
+        self::$bookBindingTypes = [];
 
         $cacheId = BindingType::TABLE_NAME;
         if (!Cache::isCacheExists($cacheId)) {
@@ -188,7 +190,26 @@ class Config
         }
 
         foreach (Cache::getCache($cacheId, Cache::TYPE_ARRAY) as $row) {
-            self::$bookBindingtTypes[$row[Entity::PARAM_ID]] = $row;
+            self::$bookBindingTypes[$row[Entity::PARAM_ID]] = $row;
+        }
+    }
+
+    public static function initPublishingHouses(): void
+    {
+        if (!is_null(self::$bookPublishingHouses)) {
+            return;
+        }
+
+        self::$bookPublishingHouses = [];
+
+        $cacheId = PublishingHouse::TABLE_NAME;
+        if (!Cache::isCacheExists($cacheId)) {
+            $query = (new QueryPdo())->select('*')->from(PublishingHouse::TABLE_NAME);
+            Cache::saveCache($cacheId, $query->fetchAll());
+        }
+
+        foreach (Cache::getCache($cacheId, Cache::TYPE_ARRAY) as $row) {
+            self::$bookPublishingHouses[$row[Entity::PARAM_ID]] = $row;
         }
     }
 
@@ -196,7 +217,20 @@ class Config
     {
         self::initBookBindingTypes();
 
-        return self::$bookBindingtTypes;
+        return self::$bookBindingTypes;
+    }
+
+    public static function getPublishingHouses(): array
+    {
+        self::initPublishingHouses();
+
+        $houses = self::$bookPublishingHouses;
+
+        usort($houses, function($a, $b) {
+            return $a['name'] <=> $b['name'];
+        });
+
+        return $houses;
     }
 
     public static function isWildberriesShopType(): bool

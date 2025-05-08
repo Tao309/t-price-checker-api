@@ -38,6 +38,7 @@ class ApiCaller
             'config' => [
                 'source_product_types' => Config::getSourceProductTypes(),
                 'book_binding_types' => Config::getBookBindingTypes(),
+                'book_publishing_houses' => Config::getPublishingHouses(),
             ],
             'access_rights' => AccessHandler::getRights(),
             'app_version' => getenv('APP_VERSION') ?? 'not-found-version',

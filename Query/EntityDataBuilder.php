@@ -101,7 +101,7 @@ class EntityDataBuilder
             ) {
                 $toData = true;
                 $param = $relToOne[$currentParam]['parent_id'];
-                $value = $value[$relToOne[$currentParam]['relation_id']];
+                $value = $value[$relToOne[$currentParam]['relation_id']] ?? null;
             } elseif (in_array($propertyType, self::ALLOWABLE_PROPS_TYPES)) {
                 $toData = true;
                 $value = $this->prepareValue($propertyType, $value);
