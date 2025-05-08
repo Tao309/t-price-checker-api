@@ -105,7 +105,7 @@ class Product extends Entity
         self::PARAM_BOOK => [
             'parent_id' => self::PARAM_BOOK_ID,
             'relation_entity' => Book::class,
-            'relation_id' => Entity::PARAM_ID
+            'relation_id' => Entity::PARAM_ID,
         ],
         self::PARAM_SHOP => [
             'parent_id' => self::PARAM_SHOP_ID,
@@ -123,6 +123,7 @@ class Product extends Entity
             'parent_id' => Entity::PARAM_AUTHOR_USER_ID,
             'relation_entity' => User::class,
             'relation_id' => Entity::PARAM_ID,
+            'foreign' => true,
         ],
     ];
 
@@ -151,9 +152,9 @@ class Product extends Entity
     protected DateTime $dateCreated;
     protected DateTime $dateUpdated;
 
+    protected Shop $shop;
     protected ?User $authorUser = null;
     protected ?ProductUserData $productUserData = null;
-    protected Shop $shop;
     protected ?SourceProduct $sourceProduct = null;
     protected ?Book $book = null;
     protected ?int $minPrice = null;

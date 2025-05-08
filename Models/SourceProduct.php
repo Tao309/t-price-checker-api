@@ -49,6 +49,7 @@ class SourceProduct extends Entity
             'parent_id' => self::PARAM_SOURCE_PRODUCT_TYPE_ID,
             'relation_entity' => SourceProductType::class,
             'relation_id' => Entity::PARAM_ID,
+//            'foreign' => true,
         ],
         self::PARAM_SOURCE_PRODUCT_USER_DATA => [
             'parent_id' => Entity::PARAM_ID,
@@ -60,6 +61,7 @@ class SourceProduct extends Entity
             'parent_id' => Entity::PARAM_AUTHOR_USER_ID,
             'relation_entity' => User::class,
             'relation_id' => Entity::PARAM_ID,
+//            'foreign' => true,
         ],
     ];
 
@@ -69,7 +71,7 @@ class SourceProduct extends Entity
     protected DateTime $dateCreated;
 
     // Приватные свойства не попадают в обходе у родителя. __call в родителе.
-    protected ?User $authorUser = null;
-    protected SourceProductType $sourceProductType;
     protected ?SourceProductUserData $sourceProductUserData = null;
+    protected SourceProductType $sourceProductType;
+    protected ?User $authorUser = null;
 }

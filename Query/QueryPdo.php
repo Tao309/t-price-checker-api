@@ -310,6 +310,12 @@ class QueryPdo
         return $this;
     }
 
+    public function orderText($text): self
+    {
+        $this->order[] = $text;
+        return $this;
+    }
+
     public function assemble(): string
     {
         if (empty($this->queryType)) {

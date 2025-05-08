@@ -10,7 +10,8 @@ use Models\Product;
 use Models\ProductUserData;
 use Models\Stock;
 use PullRepository\PriceDatePullRepository;
-use PullRepository\SameProductPullRepository;
+use PullRepository\SameProductByBookPullRepository;
+use PullRepository\SameProductBySourceProductPullRepository;
 use PullRepository\StockPullRepository;
 use Query\QueryPdo;
 
@@ -209,37 +210,67 @@ class ProductRepository extends Repository
     }
 
     /**
-     * @param array $productModels
+     * @param array<Product> $productModels
      * @param bool $addSameProducts
      *
      * @return void
      */
     private function addOneToManyRelationsModels(array $productModels, bool $addSameProducts = true): void
     {
-        $ids = array_map(function ($productModel) {
-            return $productModel->getId();
-        }, $productModels);
+        $productIds = [];
+        $bookIds = [];
+        $sourceProductIds = [];
 
-        $priceDatesPull = $ids ? new PriceDatePullRepository($ids) : [];
-        $stocksPull = $ids ? new StockPullRepository($ids) : [];
-        $sameProductsPull = $ids && $addSameProducts ? new SameProductPullRepository($ids) : [];
+        foreach ($productModels as $productModel) {
+            $productIds[] = $productModel->getId();
 
-        array_map(function ($productModel) use ($priceDatesPull, $stocksPull, $sameProductsPull) {
+            if ($productModel->getBook()) {
+                $bookIds[] = $productModel->getBook()->getId();
+                continue;
+            }
+
+            if ($productModel->getSourceProduct()) {
+                $sourceProductIds[] = $productModel->getSourceProduct()->getId();
+                continue;
+            }
+        }
+
+        $bookIds =  array_unique($bookIds);
+        $sourceProductIds =  array_unique($sourceProductIds);
+
+        $priceDatesPull = $productIds ? new PriceDatePullRepository($productIds) : [];
+        $stocksPull = $productIds ? new StockPullRepository($productIds) : [];
+
+        $sameProductsByBook = $bookIds && $addSameProducts ? new SameProductByBookPullRepository($bookIds) : null;
+        $sameProductsBySourceProduct = $sourceProductIds && $addSameProducts
+            ? new SameProductBySourceProductPullRepository($sourceProductIds)
+            : null;
+
+        array_map(function ($productModel) use (
+            $priceDatesPull, $stocksPull, $sameProductsByBook, $sameProductsBySourceProduct
+        ) {
             $productId = $productModel->getId();
 
             $productModel->setPriceDates($priceDatesPull->getFromPull($productId));
             $productModel->setStocks($stocksPull->getFromPull($productId));
 
-            $findSameProductId = $productModel->getBook()
-                ? SameProductPullRepository::BOOK_PREFIX . $productModel->getBook()->getId()
-                : (
-                $productModel->getSourceProduct()
-                    ? SameProductPullRepository::SP_PREFIX . $productModel->getSourceProduct()->getId()
-                    : null
+            if ($productModel->getBook() && !empty($sameProductsByBook)) {
+                $productModel->setSameProducts(
+                    $sameProductsByBook->getFromPullSortMin($productModel, $productModel->getBook()->getId())
                 );
 
-            if ($findSameProductId  && !empty($sameProductsPull)) {
-                $productModel->setSameProducts($sameProductsPull->getFromPullSortMin($productModel, $findSameProductId));
+                return;
+            }
+
+            if ($productModel->getSourceProduct() && !empty($sameProductsBySourceProduct)) {
+                $productModel->setSameProducts(
+                    $sameProductsBySourceProduct->getFromPullSortMin(
+                        $productModel,
+                        $productModel->getSourceProduct()->getId()
+                    )
+                );
+
+                return;
             }
 
         }, $productModels);

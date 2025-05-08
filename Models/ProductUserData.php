@@ -77,6 +77,7 @@ class ProductUserData extends Entity
             'parent_id' => self::PARAM_USER_ID,
             'relation_entity' => User::class,
             'relation_id' => Entity::PARAM_ID,
+            'foreign' => true,
         ],
     ];
 

@@ -46,7 +46,7 @@ class Stock extends Entity
     ];
 
     protected DateTime $date;
-    protected string $qty;
+    protected int $qty;
     protected ?string $log;
 
     // Приватные свойства не попадают в обходе у родителя. __call в родителе.

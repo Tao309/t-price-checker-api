@@ -65,12 +65,23 @@ class BookRepository extends Repository
         $query = $this->getQuery();
 
         $query
-            ->where('LOWER('.Book::TABLE_PREFIX.'.title) LIKE :title')
-            ->limit(5);
+            ->where('LOWER('.Book::TABLE_PREFIX.'.title) = :title_search')
+            ->limit(7);
 
         $fetchData = [
-            Book::PARAM_TITLE => '%'.$title.'%'
+            'title_search' => $title,
         ];
+
+        $query->orWhere('LOWER('.Book::TABLE_PREFIX.'.title) LIKE :title');
+        $fetchData[Book::PARAM_TITLE] = '%'.$title.'%';
+
+        $query->orderText("CASE title
+            WHEN '".$title."' THEN 1
+            WHEN title LIKE '".$title."%' THEN 2
+            WHEN title LIKE '%".$title."%' THEN 3
+            WHEN title LIKE '%".$title."' THEN 4
+            ELSE 5
+            END");
 
         if (str_contains($title, ':')) {
             $explodeTitle = explode(':', $title);

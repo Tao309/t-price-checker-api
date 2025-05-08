@@ -102,6 +102,7 @@ class Book extends Entity
             Repository::PARAM_PARENT_ID => self::PARAM_BINDING_TYPE_ID,
             Repository::PARAM_RELATION_ENTITY => BindingType::class,
             Repository::PARAM_RELATION_ID => Entity::PARAM_ID,
+//            'foreign' => true,
         ],
         self::PARAM_BOOK_USER_DATA => [
             Repository::PARAM_PARENT_ID => Entity::PARAM_ID,
@@ -113,6 +114,7 @@ class Book extends Entity
             'parent_id' => Entity::PARAM_AUTHOR_USER_ID,
             'relation_entity' => User::class,
             'relation_id' => Entity::PARAM_ID,
+//            'foreign' => true,
         ],
     ];
 
@@ -133,8 +135,8 @@ class Book extends Entity
     protected ?float $goodreadsRating;
 
     // Приватные свойства не попадают в обходе у родителя. __call в родителе.
-    protected ?User $authorUser = null;
     protected ?BookUserData $bookUserData = null;
+    protected ?User $authorUser = null;
     protected ?BindingType $bindingType = null;
 
     public function getUser(): User

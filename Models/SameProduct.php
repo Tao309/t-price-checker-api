@@ -30,12 +30,14 @@ class SameProduct extends Entity
             'parent_id' => Product::PARAM_SHOP_ID,
             'relation_entity' => Shop::class,
             'relation_id' => Entity::PARAM_ID,
+            'foreign' => true,
         ],
         Product::PARAM_PRODUCT_USER_DATA => [
             'parent_id' => Entity::PARAM_ID,
             'relation_entity' => ProductUserData::class,
             'relation_id' => ProductUserData::PARAM_PRODUCT_ID,
             'relation_user_id' => ProductUserData::PARAM_USER_ID,
+            'foreign' => true,
         ],
     ];
 
@@ -46,6 +48,6 @@ class SameProduct extends Entity
     protected ?int $bookId;
     protected ?int $sourceProductId;
 
-    protected ?ProductUserData $productUserData = null;
     protected Shop $shop;
+    protected ?ProductUserData $productUserData = null;
 }

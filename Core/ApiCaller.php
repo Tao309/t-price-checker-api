@@ -40,7 +40,7 @@ class ApiCaller
                 'book_binding_types' => Config::getBookBindingTypes(),
             ],
             'access_rights' => AccessHandler::getRights(),
-            'app_version' => getenv('APP_VERSION') ?? 'not-found-version'
+            'app_version' => getenv('APP_VERSION') ?? 'not-found-version',
         ]);
     }
 

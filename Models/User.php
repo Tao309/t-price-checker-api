@@ -32,6 +32,7 @@ class User extends Entity
             'parent_id' => self::PARAM_USER_ROLE_ID,
             'relation_entity' => UserRole::class,
             'relation_id' => Entity::PARAM_ID,
+//            'foreign' => true,
         ],
     ];
 

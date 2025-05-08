@@ -43,7 +43,7 @@ class PriceDate extends Entity
     ];
 
     protected DateTime $date;
-    protected string $price;
+    protected int $price;
 
     // Приватные свойства не попадают в обходе у родителя. __call в родителе.
     protected User $user;
