@@ -8,6 +8,8 @@ use Repository\Repository;
 /**
  * @method int getTitle()
  * @method string getAuthor()
+ * @method int getOriginalTitle()
+ * @method string getOriginalAuthor()
  * @method string getIsbn()
  * @method int getPages()
  * @method int getCirculation()
@@ -27,6 +29,8 @@ use Repository\Repository;
  *
  * @method self setTitle(string $value)
  * @method self setAuthor(string $value)
+ * @method self setOriginalTitle(string $value)
+ * @method self setOriginalAuthor(string $value)
  * @method self setIsbn(string $value)
  * @method self setPages(int $value)
  * @method self setCirculation(int $value)
@@ -47,6 +51,8 @@ class Book extends Entity
 
     public const PARAM_TITLE = 'title';
     public const PARAM_AUTHOR = 'author';
+    public const PARAM_ORIGINAL_TITLE = 'original_title';
+    public const PARAM_ORIGINAL_AUTHOR = 'original_author';
     public const PARAM_ISBN = 'isbn';
     public const PARAM_PAGES = 'pages';
     public const PARAM_CIRCULATION = 'circulation'; // тираж.
@@ -71,6 +77,8 @@ class Book extends Entity
         self::PARAM_ID => 'ID',
         self::PARAM_TITLE => 'Название',
         self::PARAM_AUTHOR => 'Автор',
+        self::PARAM_ORIGINAL_TITLE => 'Название (оригинал)',
+        self::PARAM_ORIGINAL_AUTHOR => 'Автор (оригинал)',
         self::PARAM_ISBN => 'ISBN',
         self::PARAM_PAGES => 'Количество страниц',
         self::PARAM_CIRCULATION => 'Тираж',
@@ -120,6 +128,8 @@ class Book extends Entity
 
     protected string $title;
     protected ?string $author;
+    protected ?string $originalTitle;
+    protected ?string $originalAuthor;
     protected ?string $isbn;
     protected ?int $pages;
     protected ?int $circulation;
