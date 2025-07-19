@@ -206,7 +206,14 @@ class ProductRepository extends Repository
             $params[Product::PARAM_SHOP_PRODUCT_CODE] = QueryPdo::EXPR_IS_NOT_NULL;
         }
 
-        return $this->findByParams($params);
+        $filters = [
+            self::PARAM_LIMIT => 300,
+        ];
+
+        $models = $this->findByParams($params, $filters);
+        $this->addOneToManyRelationsModels($models, false);
+
+        return $models;
     }
 
     /**
@@ -253,6 +260,19 @@ class ProductRepository extends Repository
 
             $productModel->setPriceDates($priceDatesPull->getFromPull($productId));
             $productModel->setStocks($stocksPull->getFromPull($productId));
+
+            if ($productModel->getPriceDates()) {
+                $productModel->setMinPrice(min(
+                    array_map(function($priceDate) {
+                        return $priceDate->getPrice();
+                    }, $productModel->getPriceDates())
+                ));
+            }
+
+            if ($productModel->getStocks()) {
+                $stocks = $productModel->getStocks();
+                $productModel->setLastQty(end($stocks) ? end($stocks)->getQty() : null);
+            }
 
             if ($productModel->getBook() && !empty($sameProductsByBook)) {
                 $productModel->setSameProducts(

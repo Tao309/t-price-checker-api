@@ -38,6 +38,10 @@ class PriceDateRepository extends Repository
 
         try {
             foreach($priceDates as $priceDate) {
+                if (empty($priceDate[PriceDate::PARAM_PRICE]) || $priceDate[PriceDate::PARAM_PRICE] < 0) {
+                    continue;
+                }
+
                 $query->bindParams([
                     PriceDate::PARAM_ID => $positionId,
                     PriceDate::PARAM_PRICE => $priceDate[PriceDate::PARAM_PRICE],

@@ -71,7 +71,6 @@ class ProductUserData extends Entity
         self::PARAM_DATE_CREATED,
     ];
 
-
     protected const RELATION_TO_ONE = [
         self::PARAM_USER => [
             'parent_id' => self::PARAM_USER_ID,

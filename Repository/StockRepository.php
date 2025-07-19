@@ -39,6 +39,10 @@ class StockRepository extends Repository
 
         try {
             foreach($stocks as $stock) {
+                if (empty($stock[Stock::PARAM_QTY]) || $stock[Stock::PARAM_QTY] < 0) {
+                    continue;
+                }
+
                 $query->bindParams([
                     Stock::PARAM_ID => $positionId,
                     Stock::PARAM_QTY => $stock[Stock::PARAM_QTY],

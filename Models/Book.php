@@ -19,7 +19,7 @@ use Repository\Repository;
  * @method DateTime getDateCreated()
  * @method int getLivelibId()
  * @method int getGoodreadsId()
- * @method int getFantlabId()
+ * @method string getFantlabId()
  * @method float getLivelibRating()
  * @method float getGoodreadsRating()
  *
@@ -39,7 +39,7 @@ use Repository\Repository;
  * @method self setPublishYear(int $value)
  * @method self setLivelibId(int $value)
  * @method self setGoodreadsId(int $value)
- * @method self setFantlabId(int $value)
+ * @method self setFantlabId(string $value)
  * @method self setLivelibRating(int $value)
  * @method self setGoodreadsRating(int $value)
  *
@@ -149,7 +149,7 @@ class Book extends Entity
     protected DateTime $dateCreated;
     protected ?int $livelibId;
     protected ?int $goodreadsId;
-    protected ?int $fantlabId;
+    protected ?string $fantlabId;
     protected ?float $livelibRating;
     protected ?float $goodreadsRating;
 

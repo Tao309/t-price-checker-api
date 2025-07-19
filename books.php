@@ -6,7 +6,28 @@ use Repository\BookRepository;
 
 define('init', true);
 
+header('x-requested-with: tRequest');
+header('t-price-checker-id: ksfu83jfregjewyrfwefewhfdhs3e');
+
+$_SERVER['x-requested-with'] = 'tRequest';
+$_SERVER['t-price-checker-id'] = 'ksfu83jfregjewyrfwefewhfdhs3e';
+
 require_once ('autoload.php');
+require_once ('error_handler.php');
+
+//echo '<pre>';
+//print_r(getallheaders());
+//echo '</pre>';
+//
+//echo '<pre>';
+//print_r(headers_list());
+//echo '</pre>';
+//
+//echo '<pre>';
+//print_r($_SERVER);
+//echo '</pre>';
+//
+//exit;
 
 $bookId = isset($_GET['id']) ? (int) $_GET['id'] : null;
 
@@ -14,7 +35,17 @@ $page = '';
 $title = '';
 
 try {
+    try {
+        $env = parse_ini_file('.env');
+        foreach ($env as $key => $value) {
+            putenv($key . '=' . $value);
+        }
+    } catch (\Throwable $e) {
+        throw new RuntimeException('Unable to parse the environment file.');
+    }
+
     Config::initShopType(Config::TYPE_OZON);
+    Config::checkHeadersAndApplyAccess();
 
     $productRepository = new ProductRepository();
     $bookRepository = new BookRepository();
@@ -22,14 +53,8 @@ try {
     die($e->getMessage());
 }
 
-function cutDate(string $date)
-{
-    return explode(' ', $date)[0] ?? $date;
-}
-
 if ($bookId) {
     try {
-
         $book = $bookRepository->find($bookId);
 
         if (!$book) {exit;}
@@ -114,7 +139,7 @@ if ($bookId) {
     $title = 'Книги';
 
     try {
-        $books = $bookRepository->getBooks();
+        $books = $bookRepository->getBooks(1000);
 
         $page .= '<table class="table sortable asc">';
         $page .= '<thead class="head">';

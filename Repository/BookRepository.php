@@ -119,12 +119,12 @@ class BookRepository extends Repository
     /**
      * @return Book[]
      */
-    public function getBooks(): array
+    public function getBooks(int $limit = 100): array
     {
         $query = $this->getQuery();
 
         $query->order(Book::TABLE_PREFIX . '.title')
-            ->limit(100);
+            ->limit($limit);
 
         $rows = $query->fetchAll();
 

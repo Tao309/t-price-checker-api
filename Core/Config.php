@@ -74,16 +74,24 @@ class Config
     {
         $headers = getallheaders();
 
-        if (empty($headers['x-requested-with']) && $headers['x-requested-with'] !== 'tRequest') {
+        $requestedWith = $headers['x-requested-with'] ?? null;
+        $priceCheckerId = $headers['t-price-checker-id']  ?? null;
+
+        if (empty($priceCheckerId)) {
+            $requestedWith = $_SERVER['x-requested-with'] ?? null;
+            $priceCheckerId = $_SERVER['t-price-checker-id'] ?? null;
+        }
+
+        if (empty($requestedWith) || $requestedWith !== 'tRequest') {
             die(tResponse::MESSAGE_ACCESS_LIMITED);
         }
 
         // checkAuthToken from header
-        if (empty($headers['t-price-checker-id'])) {
+        if (empty($priceCheckerId)) {
             die(tResponse::MESSAGE_ACCESS_LIMITED);
         }
 
-        AccessHandler::applyUserAccess($headers['t-price-checker-id']);
+        AccessHandler::applyUserAccess($priceCheckerId);
 
         match (AccessHandler::getCurrentUserRole()) {
             UserRole::USER_ADMIN_ROLE => new AdminAccess(),
