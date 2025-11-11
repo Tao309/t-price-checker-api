@@ -181,8 +181,7 @@ class ProductRepository extends Repository
             ]
         );
 
-        // Всегда надо добавлять stocks и priceDates.
-        $this->addOneToManyRelationsModels($models, false);
+        $this->addOneToManyRelationsModels($models);
 
         return $models ? reset($models) : null;
     }

@@ -118,7 +118,7 @@ if ($bookId) {
             $page .= '<td class="title">';
             $page .= '<a href="'.$product->getUrl().'" target="_blank">' . $product->getTitle() . '</a>';
             $page .= '</td>';
-            $page .= '<td class="shop_type">' . $product->getShop()->getType() . '</td>';
+            $page .= '<td class="shop_type"><a href="'.$product->getUrl().'" target="_blank">' . $product->getShop()->getType() . '</a></td>';
             $page .= '<td class="price min_price">' . $product->getMinPrice() . '</td>';
             $page .= '<td class="price last_qty">' . $product->getLastQty() . '</td>';
             $page .= '<td class="date_prices">' . implode('', $datePrices) . '</td>';

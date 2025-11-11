@@ -8,7 +8,9 @@ use AccessRights\UserAccess;
 use Exception\NoRightsException;
 use Exception\ResponseException;
 use Models\BindingType;
+use Models\BookSeries;
 use Models\Entity;
+use Models\PublishingBrand;
 use Models\PublishingHouse;
 use Models\Shop;
 use Models\SourceProductType;
@@ -17,11 +19,11 @@ use Query\QueryPdo;
 
 class Config
 {
-    public const TYPE_OZON = 'ozon';//www.ozon.ru
-    public const TYPE_WILDBERRIES = 'wildberries';//www.wildberries.ru
-    public const TYPE_CHITAI_GOROD = 'chitai-gorod';//www.chitai-gorod.ru
-    public const TYPE_FFAN = 'ffan';//ffan.ru
-    public const TYPE_KNIGOFAN = 'knigofan';//knigofan.ru
+    public const TYPE_OZON = 'ozon';
+    public const TYPE_WILDBERRIES = 'wildberries';
+    public const TYPE_CHITAI_GOROD = 'chitai-gorod';
+    public const TYPE_FFAN = 'ffan';
+    public const TYPE_KNIGOFAN = 'knigofan';
 
     private const AVAILABLE_TYPES = [
         self::TYPE_OZON,
@@ -37,6 +39,8 @@ class Config
     private static ?array $sourceProductTypes = null;
     private static ?array $bookBindingTypes = null;
     private static ?array $bookPublishingHouses = null;
+    private static ?array $bookPublishingBrands = null;
+    private static ?array $bookSeries = null;
 
     public static function getCurrentUserid(): int
     {
@@ -221,6 +225,44 @@ class Config
         }
     }
 
+    public static function initPublishingBrands(): void
+    {
+        if (!is_null(self::$bookPublishingBrands)) {
+            return;
+        }
+
+        self::$bookPublishingBrands = [];
+
+        $cacheId = PublishingBrand::TABLE_NAME;
+        if (!Cache::isCacheExists($cacheId)) {
+            $query = (new QueryPdo())->select('*')->from(PublishingBrand::TABLE_NAME);
+            Cache::saveCache($cacheId, $query->fetchAll());
+        }
+
+        foreach (Cache::getCache($cacheId, Cache::TYPE_ARRAY) as $row) {
+            self::$bookPublishingBrands[$row[Entity::PARAM_ID]] = $row;
+        }
+    }
+
+    public static function initBookSeries(): void
+    {
+        if (!is_null(self::$bookSeries)) {
+            return;
+        }
+
+        self::$bookSeries = [];
+
+        $cacheId = BookSeries::TABLE_NAME;
+        if (!Cache::isCacheExists($cacheId)) {
+            $query = (new QueryPdo())->select('*')->from(BookSeries::TABLE_NAME);
+            Cache::saveCache($cacheId, $query->fetchAll());
+        }
+
+        foreach (Cache::getCache($cacheId, Cache::TYPE_ARRAY) as $row) {
+            self::$bookSeries[$row[Entity::PARAM_ID]] = $row;
+        }
+    }
+
     public static function getBookBindingTypes(): array
     {
         self::initBookBindingTypes();
@@ -228,6 +270,7 @@ class Config
         return self::$bookBindingTypes;
     }
 
+    // @todo сделать один метод на получение и инит по всем типам
     public static function getPublishingHouses(): array
     {
         self::initPublishingHouses();
@@ -239,6 +282,32 @@ class Config
         });
 
         return $houses;
+    }
+
+    public static function getPublishingBrands(): array
+    {
+        self::initPublishingBrands();
+
+        $bookPublishingBrands = self::$bookPublishingBrands;
+
+        usort($bookPublishingBrands, function($a, $b) {
+            return $a['name'] <=> $b['name'];
+        });
+
+        return $bookPublishingBrands;
+    }
+
+    public static function getBookSeries(): array
+    {
+        self::initBookSeries();
+
+        $bookSeries = self::$bookSeries;
+
+        usort($bookSeries, function($a, $b) {
+            return $a['name'] <=> $b['name'];
+        });
+
+        return $bookSeries;
     }
 
     public static function isWildberriesShopType(): bool
@@ -254,6 +323,31 @@ class Config
     public static function isChitaiGorodShopType(): bool
     {
         return self::getCurrentShopType() === self::TYPE_CHITAI_GOROD;
+    }
+
+    public static function getWildberriesUrl(): string
+    {
+        return getenv('URL_WB') ?? 'https://www.wildberries.ru';
+    }
+
+    public static function getOzonUrl(): string
+    {
+        return getenv('URL_OZON') ?? 'https://www.ozon.ru';
+    }
+
+    public static function getChitaiGorodUrl(): string
+    {
+        return getenv('URL_CHITAI_GOROD') ?? 'https://www.chitai-gorod.ru';
+    }
+
+    public static function getFfanUrl(): string
+    {
+        return getenv('URL_FFAN') ?? 'https://ffan.ru';
+    }
+
+    public static function getKnigofanUrl(): string
+    {
+        return getenv('URL_KNIGOFAN') ?? 'https://knigofan.ru';
     }
 
     public static function getDateTime(string $dateTime = null): \DateTime

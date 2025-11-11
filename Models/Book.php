@@ -25,6 +25,8 @@ use Repository\Repository;
  *
  * @method BindingType getBindingType()
  * @method PublishingHouse getPublishingHouse()
+ * @method PublishingBrand getPublishingBrand()
+ * @method BookSeries getBookSeries()
  * @method BookUserData getBookUserData()
  * @method User getAuthorUser()
  *
@@ -60,6 +62,8 @@ class Book extends Entity
     public const PARAM_SIZE = 'size'; // Размер.
     public const PARAM_BINDING_TYPE_ID = 'binding_type_id';
     public const PARAM_PUBLISHING_HOUSE_ID = 'publishing_house_id';
+    public const PARAM_PUBLISHING_BRAND_ID = 'publishing_brand_id';
+    public const PARAM_BOOK_SERIES_ID = 'book_series_id';
     public const PARAM_PUBLISH_YEAR = 'publish_year';
     public const PARAM_DATE_UPDATED = 'date_updated';
     public const PARAM_DATE_CREATED = 'date_created';
@@ -74,6 +78,8 @@ class Book extends Entity
     // От зависимых моделей.
     public const PARAM_BINDING_TYPE = 'binding_type';
     public const PARAM_PUBLISHING_HOUSE = 'publishing_house';
+    public const PARAM_PUBLISHING_BRAND = 'publishing_brand';
+    public const PARAM_BOOK_SERIES = 'book_series';
     public const PARAM_BOOK_USER_DATA = 'book_user_data';
 
     protected const PROPERTIES = [
@@ -119,7 +125,16 @@ class Book extends Entity
             Repository::PARAM_PARENT_ID => self::PARAM_PUBLISHING_HOUSE_ID,
             Repository::PARAM_RELATION_ENTITY => PublishingHouse::class,
             Repository::PARAM_RELATION_ID => Entity::PARAM_ID,
-//            'foreign' => true,
+        ],
+        self::PARAM_PUBLISHING_BRAND => [
+            Repository::PARAM_PARENT_ID => self::PARAM_PUBLISHING_BRAND_ID,
+            Repository::PARAM_RELATION_ENTITY => PublishingBrand::class,
+            Repository::PARAM_RELATION_ID => Entity::PARAM_ID,
+        ],
+        self::PARAM_BOOK_SERIES => [
+            Repository::PARAM_PARENT_ID => self::PARAM_BOOK_SERIES_ID,
+            Repository::PARAM_RELATION_ENTITY => BookSeries::class,
+            Repository::PARAM_RELATION_ID => Entity::PARAM_ID,
         ],
         self::PARAM_BOOK_USER_DATA => [
             Repository::PARAM_PARENT_ID => Entity::PARAM_ID,
@@ -158,6 +173,8 @@ class Book extends Entity
     protected ?User $authorUser = null;
     protected ?BindingType $bindingType = null;
     protected ?PublishingHouse $publishingHouse = null;
+    protected ?PublishingBrand $publishingBrand = null;
+    protected ?BookSeries $bookSeries = null;
 
     public function getUser(): User
     {
