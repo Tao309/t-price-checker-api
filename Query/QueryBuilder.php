@@ -15,6 +15,9 @@ class QueryBuilder
     private QueryPdo $queryPdo;
     private string $entityClassName;
 
+    // Не учитывать автора при поиске (ставим LEFT JOIN на таблицу users после product_user_data)
+    private bool $skipKeepAuthor = false;
+
     public function __construct(string $entityClassName)
     {
         $this->queryPdo = new QueryPdo();
@@ -26,6 +29,11 @@ class QueryBuilder
     public function getQueryPdo(): QueryPdo
     {
         return $this->queryPdo;
+    }
+
+    public function skipKeepAuthor(): void
+    {
+        $this->skipKeepAuthor = true;
     }
 
     /**
@@ -126,5 +134,10 @@ class QueryBuilder
 
             $this->appendToQuery($className, $relNamespace, $tablePrefix, $relToOne[$fieldName]);
         }
+    }
+
+    private function isSkipKeepAuthor(): bool
+    {
+        return $this->skipKeepAuthor;
     }
 }

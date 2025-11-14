@@ -31,6 +31,21 @@ class AdminAccess extends AccessHandler implements AdminAccessInterface
         return true;
     }
 
+    public function getBookAddPublishingHouse(): bool
+    {
+        return true;
+    }
+
+    public function getBookAddPublishingBrand(): bool
+    {
+        return true;
+    }
+
+    public function getBookAddSeries(): bool
+    {
+        return true;
+    }
+
     public function getSourceProductEnabled(): bool
     {
         return true;

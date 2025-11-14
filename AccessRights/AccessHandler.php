@@ -35,6 +35,9 @@ class AccessHandler
             'update',
             'create',
             'limit',
+            'add_publishing_house',
+            'add_publishing_brand',
+            'add_series',
         ],
         'source_product' => [
             'enabled',

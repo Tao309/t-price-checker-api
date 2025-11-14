@@ -51,6 +51,11 @@ class Cache
         return $data;
     }
 
+    public static function removeCache(string $id): void
+    {
+        unlink(self::getFilePathById($id));
+    }
+
     public static function isCacheExists(string $id): bool
     {
         return file_exists(self::getFilePathById($id));

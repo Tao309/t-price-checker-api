@@ -26,6 +26,14 @@ class ArrayHandler
             : '';
     }
 
+    // @todo проверить как сам PDO через params подставляет
+    public static function getUnsafeValueAsString(string $param, array $array): string
+    {
+        return self::hasParam($param, $array)
+            ? $array[$param]
+            : '';
+    }
+
     public static function getValueAsBool(string $param, array $array): bool
     {
         return self::hasParam($param, $array) ? (bool)$array[$param] : false;

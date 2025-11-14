@@ -4,16 +4,22 @@ namespace Core;
 
 use AccessRights\AccessHandler;
 use Models\Book;
+use Models\BookSeries;
 use Models\BookUserData;
 use Models\Product;
 use Models\ProductUserData;
+use Models\PublishingBrand;
+use Models\PublishingHouse;
 use Models\SourceProduct;
 use Models\SourceProductUserData;
 use Query\QueryPdo;
 use Repository\BookRepository;
+use Repository\BookSeriesRepository;
 use Repository\BookUserDataRepository;
 use Repository\ProductRepository;
 use Repository\ProductUserDataRepository;
+use Repository\PublishingBrandRepository;
+use Repository\PublishingHouseRepository;
 use Repository\SourceProductRepository;
 use Repository\SourceProductUserDataRepository;
 use Repository\StockRepository;
@@ -188,7 +194,7 @@ class ApiCaller
         ArrayHandler::hasParamThroughException(Book::PARAM_TITLE, $data, 'Not found title');
         $bookRepository = new BookRepository();
 
-        $result = $bookRepository->getBooksByTitle(ArrayHandler::getValueAsString(Book::PARAM_TITLE, $data));
+        $result = $bookRepository->getBooksByTitle(ArrayHandler::getUnsafeValueAsString(Book::PARAM_TITLE, $data));
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
@@ -489,4 +495,69 @@ class ApiCaller
         }
     }
 
+    // api call
+    public function createBookPublishingHouse(array $data): void
+    {
+        ArrayHandler::hasParamThroughException('name', $data, 'Not found name');
+        $repo = new PublishingHouseRepository();
+        $value = ArrayHandler::getUnsafeValueAsString('name', $data);
+
+        $found = $repo->getByName($value);
+
+        if ($found) {
+            $this->tResponse->setMessage('Издательство "'.$value.'" уже существует');
+            return;
+        }
+
+        $repo->save([
+            PublishingHouse::PARAM_NAME => $value
+        ]);
+
+        Config::clearPublishingHouses();
+        $this->tResponse->setSuccess(true);
+    }
+
+    // api call
+    public function createBookPublishingBrand(array $data): void
+    {
+        ArrayHandler::hasParamThroughException('name', $data, 'Not found name');
+        $repo = new PublishingBrandRepository();
+        $value = ArrayHandler::getUnsafeValueAsString('name', $data);
+
+        $found = $repo->getByName($value);
+
+        if ($found) {
+            $this->tResponse->setMessage('Издательский бренд "'.$value.'" уже существует');
+            return;
+        }
+
+        $repo->save([
+            PublishingBrand::PARAM_NAME => $value
+        ]);
+
+        Config::clearPublishingBrands();
+        $this->tResponse->setSuccess(true);
+    }
+
+    // api call
+    public function createBookSeries(array $data): void
+    {
+        ArrayHandler::hasParamThroughException('name', $data, 'Not found name');
+        $repo = new BookSeriesRepository();
+        $value = ArrayHandler::getUnsafeValueAsString('name', $data);
+
+        $found = $repo->getByName($value);
+
+        if ($found) {
+            $this->tResponse->setMessage('Издательство "'.$value.'" уже существует');
+            return;
+        }
+
+        $repo->save([
+            BookSeries::PARAM_NAME => $value
+        ]);
+
+        Config::clearBookSeries();
+        $this->tResponse->setSuccess(true);
+    }
 }

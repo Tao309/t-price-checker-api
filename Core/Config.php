@@ -225,6 +225,16 @@ class Config
         }
     }
 
+    public static function clearPublishingHouses(): void
+    {
+        $cacheId = PublishingHouse::TABLE_NAME;
+        if (!Cache::isCacheExists($cacheId)) {
+            return;
+        }
+
+        Cache::removeCache($cacheId);
+    }
+
     public static function initPublishingBrands(): void
     {
         if (!is_null(self::$bookPublishingBrands)) {
@@ -244,6 +254,16 @@ class Config
         }
     }
 
+    public static function clearPublishingBrands(): void
+    {
+        $cacheId = PublishingBrand::TABLE_NAME;
+        if (!Cache::isCacheExists($cacheId)) {
+            return;
+        }
+
+        Cache::removeCache($cacheId);
+    }
+
     public static function initBookSeries(): void
     {
         if (!is_null(self::$bookSeries)) {
@@ -261,6 +281,16 @@ class Config
         foreach (Cache::getCache($cacheId, Cache::TYPE_ARRAY) as $row) {
             self::$bookSeries[$row[Entity::PARAM_ID]] = $row;
         }
+    }
+
+    public static function clearBookSeries(): void
+    {
+        $cacheId = BookSeries::TABLE_NAME;
+        if (!Cache::isCacheExists($cacheId)) {
+            return;
+        }
+
+        Cache::removeCache($cacheId);
     }
 
     public static function getBookBindingTypes(): array

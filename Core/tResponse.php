@@ -30,6 +30,9 @@ class tResponse
         'saveSourceProduct',
         'getSourceProductsByTitle',
         'changeProductIsArchive',
+        'createBookPublishingHouse',
+        'createBookPublishingBrand',
+        'createBookSeries',
     ];
 
     private bool $success = false;
@@ -61,90 +64,56 @@ class tResponse
         }
     }
 
-
-    /**
-     * @return bool
-     */
     public function isSuccess(): bool
     {
         return $this->success;
     }
 
-    /**
-     * @param bool $success
-     */
     public function setSuccess(bool $success): void
     {
         $this->success = $success;
     }
 
-    /**
-     * @return string|null
-     */
     public function getMessage(): ?string
     {
         return $this->message;
     }
 
-    /**
-     * @param string|null $message
-     */
     public function setMessage(?string $message): void
     {
         $this->message = $message;
     }
 
-    /**
-     * @return string|null
-     */
     public function getTrace(): ?string
     {
         return $this->trace;
     }
 
-    /**
-     * @param string|null $trace
-     */
     public function setTrace(?string $trace): void
     {
         $this->trace = $trace;
     }
 
-    /**
-     * @return string|null
-     */
     public function getPreviousTrace(): ?string
     {
         return $this->previousTrace;
     }
 
-    /**
-     * @param string|null $trace
-     */
     public function setPreviousTrace(?string $trace): void
     {
         $this->previousTrace = $trace;
     }
 
-    /**
-     * @return array
-     */
     public function getData(): array
     {
         return $this->data;
     }
 
-    /**
-     * @param array $data
-     */
     public function setData(array $data): void
     {
         $this->data = $data;
     }
 
-    /**
-     * @param array $data
-     */
     public function appendData(array $data): void
     {
         $this->data = array_merge($this->data, $data);

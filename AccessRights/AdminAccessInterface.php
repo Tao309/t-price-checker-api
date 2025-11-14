@@ -14,6 +14,12 @@ interface AdminAccessInterface
 
     public function getBookCreate(): bool;
 
+    public function getBookAddPublishingHouse(): bool;
+
+    public function getBookAddPublishingBrand(): bool;
+
+    public function getBookAddSeries(): bool;
+
     public function getSourceProductEnabled(): bool;
 
     public function getSourceProductCreate(): bool;
