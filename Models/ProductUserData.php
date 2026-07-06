@@ -58,6 +58,7 @@ class ProductUserData extends Entity
         self::PARAM_AVAILABLE_DATE_FROM => 'Доступен с',
         self::PARAM_LISTEN_PRICE_VALUE => 'Отслеживание цены',
         self::PARAM_LISTEN_QTY_VALUE => 'Отслеживание количества',
+        self::PARAM_IS_ARCHIVE => 'В архиве',
         self::PARAM_COMMENT => 'Комментарий',
         self::PARAM_DATE_UPDATED => 'Дата обновления',
         self::PARAM_DATE_CREATED => 'Дата создания',
@@ -76,7 +77,8 @@ class ProductUserData extends Entity
             'parent_id' => self::PARAM_USER_ID,
             'relation_entity' => User::class,
             'relation_id' => Entity::PARAM_ID,
-            'foreign' => true,
+            // Чтобы был LEFT JOIN на таблицу users после product_user_data
+//            'foreign' => true,
         ],
     ];
 

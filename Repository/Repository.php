@@ -44,6 +44,9 @@ abstract class Repository
     // Кэшированные модели при запросах.
     private static array $cacheModels = [];
 
+    // Не учитывать автора при поиске (ставим LEFT JOIN на таблицу users после product_user_data)
+    private bool $skipKeepAuthor = false;
+
     public function __construct()
     {
         if (!$this->entityModel || !class_exists($this->entityModel)) {
@@ -51,6 +54,42 @@ abstract class Repository
         }
 
         $this->reflectionClass = new ReflectionClass('\\' . $this->entityModel);
+    }
+
+    public function prepareForSearch(string $value): string
+    {
+        $toRemove = [
+            'подвижная фигурка',
+            'фигурка подвижная',
+            'фигурка',
+            'joytoy',
+            'joy-toy',
+            'joy toy',
+            'w40k',
+            'w30k',
+            '40k',
+            '30k',
+            '40000',
+            'Warhammer 40K',
+            'warhammer',
+            'the horus heresy',
+            'horus heresy',
+            'подарочная модель',
+            '1/18',
+            '1/16',
+            '1/14',
+            '1/20',
+            'action figures',
+        ];
+
+//        $value = mb_strtolower(trim($value));
+        $value = addslashes(htmlspecialchars(mb_strtolower(trim($value)), ENT_NOQUOTES));
+
+        foreach ($toRemove as $toRemoveValue) {
+            $value = trim(str_ireplace($toRemoveValue, '', $value));
+        }
+
+        return $value;
     }
 
     public function enableDebugQuery(): void
@@ -394,9 +433,14 @@ abstract class Repository
         }
     }
 
-    protected function getQuery(): QueryPdo
+    protected function getQuery(bool $skipKeepAuthor = false): QueryPdo
     {
-        return (new QueryBuilder($this->entityModel))->getQueryPdo();
+        $qb = new QueryBuilder($this->entityModel);
+        if ($this->isSkipKeepAuthor()) {
+            $qb->skipKeepAuthor();
+        }
+
+        return $qb->getQueryPdo();
     }
 
     /**
@@ -414,6 +458,11 @@ abstract class Repository
         }
 
         return $arrayValues;
+    }
+
+    protected function skipKeepAuthor(): void
+    {
+        $this->skipKeepAuthor = true;
     }
 
     /**
@@ -693,5 +742,10 @@ abstract class Repository
     {
         $key = $this->entityModel . '-' . $id;
         return self::$cacheModels[$key] ?? null;
+    }
+
+    private function isSkipKeepAuthor(): bool
+    {
+        return $this->skipKeepAuthor;
     }
 }

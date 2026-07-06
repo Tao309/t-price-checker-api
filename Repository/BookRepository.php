@@ -60,7 +60,7 @@ class BookRepository extends Repository
      */
     public function getBooksByTitle(string $title): array
     {
-        $title = strtolower(trim($title));
+        $title = $this->prepareForSearch($title);
 
         $query = $this->getQuery();
 
@@ -76,7 +76,7 @@ class BookRepository extends Repository
         $fetchData[Book::PARAM_TITLE] = '%'.$title.'%';
 
         $query->orderText("CASE title
-            WHEN '".$title."' THEN 1
+            WHEN title = '".$title."' THEN 1
             WHEN title LIKE '".$title."%' THEN 2
             WHEN title LIKE '%".$title."%' THEN 3
             WHEN title LIKE '%".$title."' THEN 4

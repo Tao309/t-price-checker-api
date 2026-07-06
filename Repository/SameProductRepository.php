@@ -28,6 +28,7 @@ class SameProductRepository extends Repository
         $priceDatesSubQuery = (new QueryPdo())
             ->select([PriceDate::PARAM_ID, 'MIN('.PriceDate::PARAM_PRICE.') AS price'])
             ->from(PriceDate::TABLE_NAME)
+            // по своему пользователю только искать цены к похожим товарам
             ->where(PriceDate::PARAM_USER_ID, $currentUserId)
             ->group(PriceDate::PARAM_ID);
 

@@ -64,6 +64,7 @@ class ProductRepository extends Repository
 
         $entityId = null;
         $positionPrice = null;
+        $this->skipKeepAuthor();
         $product = $this->findProduct(ArrayHandler::getValueAsString(Product::PARAM_SHOP_PRODUCT_ID, $data));
 
         if ($product) {
@@ -184,6 +185,23 @@ class ProductRepository extends Repository
         $this->addOneToManyRelationsModels($models);
 
         return $models ? reset($models) : null;
+    }
+
+    /**
+     * @return Product[]
+     */
+    public function findProductsByIds(array $ids): array
+    {
+        $models = $this->findByParams(
+            [
+                Product::PARAM_ID => $ids,
+                Product::PARAM_SHOP_ID => Config::getCurrentShopId()
+            ]
+        );
+
+        $this->addOneToManyRelationsModels($models);
+
+        return $models;
     }
 
     /**
