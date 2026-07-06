@@ -19,6 +19,11 @@ class ArrayHandler
         return self::hasParam($param, $array) ? (int)$array[$param] : 0;
     }
 
+    public static function getValueAsArray(string $param, array $array): array
+    {
+        return self::hasParam($param, $array) && is_array($array[$param]) ? $array[$param] : [];
+    }
+
     public static function getValueAsString(string $param, array $array): string
     {
         return self::hasParam($param, $array)
@@ -30,7 +35,7 @@ class ArrayHandler
     public static function getUnsafeValueAsString(string $param, array $array): string
     {
         return self::hasParam($param, $array)
-            ? $array[$param]
+            ? trim($array[$param])
             : '';
     }
 

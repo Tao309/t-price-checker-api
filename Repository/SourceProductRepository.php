@@ -60,7 +60,7 @@ class SourceProductRepository extends Repository
      */
     public function getSourceProductsByTitle(string $title): array
     {
-        $title = strtolower(trim($title));
+        $title = $this->prepareForSearch($title);
 
         $query = $this->getQuery()
             ->where('LOWER('.SourceProduct::TABLE_PREFIX.'.title) LIKE :title')
@@ -69,6 +69,14 @@ class SourceProductRepository extends Repository
         $fetchData = [
             'title' => '%'.$title.'%'
         ];
+
+        $query->orderText("CASE title
+            WHEN title = '".$title."' THEN 1
+            WHEN title LIKE '".$title."%' THEN 2
+            WHEN title LIKE '%".$title."%' THEN 3
+            WHEN title LIKE '%".$title."' THEN 4
+            ELSE 5
+            END");
 
         if (str_contains($title, ':')) {
             $explodeTitle = explode(':', $title);

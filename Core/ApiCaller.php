@@ -6,6 +6,7 @@ use AccessRights\AccessHandler;
 use Models\Book;
 use Models\BookSeries;
 use Models\BookUserData;
+use Models\Entity;
 use Models\Product;
 use Models\ProductUserData;
 use Models\PublishingBrand;
@@ -122,6 +123,9 @@ class ApiCaller
         $sourceProductRepository->unlinkFromProduct($productId);
 
         $this->tResponse->setSuccess(true);
+        $this->tResponse->setData([
+            'product' => $productRepository->findProduct($product->getShopProductId())->toArray(),
+        ]);
     }
 
     // api call
@@ -186,6 +190,9 @@ class ApiCaller
         $bookRepository->unlinkBookFromProduct($productId);
 
         $this->tResponse->setSuccess(true);
+        $this->tResponse->setData([
+            'product' => $productRepository->findProduct($product->getShopProductId())->toArray(),
+        ]);
     }
 
     // api call
@@ -194,7 +201,9 @@ class ApiCaller
         ArrayHandler::hasParamThroughException(Book::PARAM_TITLE, $data, 'Not found title');
         $bookRepository = new BookRepository();
 
-        $result = $bookRepository->getBooksByTitle(ArrayHandler::getUnsafeValueAsString(Book::PARAM_TITLE, $data));
+        $title = ArrayHandler::getUnsafeValueAsString(Book::PARAM_TITLE, $data);
+
+        $result = $bookRepository->getBooksByTitle($bookRepository->prepareForSearch($title));
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
@@ -211,9 +220,9 @@ class ApiCaller
 
         $sourceProductRepository = new SourceProductRepository();
 
-        $result = $sourceProductRepository->getSourceProductsByTitle(
-            ArrayHandler::getValueAsString(SourceProduct::PARAM_TITLE, $data)
-        );
+        $title = ArrayHandler::getValueAsString(SourceProduct::PARAM_TITLE, $data);
+
+        $result = $sourceProductRepository->getSourceProductsByTitle($sourceProductRepository->prepareForSearch($title));
 
         $this->tResponse->setSuccess(true);
         $this->tResponse->setData([
@@ -226,70 +235,17 @@ class ApiCaller
     // api call
     public function changeProductIsArchive(array $data): void
     {
-        ArrayHandler::hasParamThroughException(Product::PARAM_SHOP_PRODUCT_ID, $data, 'Not found shop_product_id');
-        ArrayHandler::hasParamThroughException(ProductUserData::PARAM_IS_ARCHIVE, $data, 'Not found is_archive');
-
         $productRepository = new ProductRepository();
+
+        ArrayHandler::hasParamThroughException(Product::PARAM_SHOP_PRODUCT_ID, $data, 'Not found shop_product_id');
 
         $shopProductId = ArrayHandler::getValueAsString(Product::PARAM_SHOP_PRODUCT_ID, $data);
         $product = $productRepository->findProduct($shopProductId);
 
-        if ($product) {
-            $productUserDataRepository = new ProductUserDataRepository();
-            $isArchive = ArrayHandler::getValueAsBool(ProductUserData::PARAM_IS_ARCHIVE, $data);
-
+        if (!$product) {
             QueryPdo::beginTransaction();
             try {
-                if (!$product->getProductUserData()) {
-                    $productUserDataRepository->save([
-                        ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
-                        ProductUserData::PARAM_PRODUCT_ID => $product->getId(),
-                        ProductUserData::PARAM_AVAILABLE => true,
-                        ProductUserData::PARAM_IS_ARCHIVE => $isArchive,
-                    ]);
-
-                    $pud = $productUserDataRepository->find(
-                        Config::getCurrentUserid(),
-                        $product->getId()
-                    );
-
-                    $product->setProductUserData($pud);
-                } else {
-                    $productUserDataRepository->changeIsArchive($product->getId(), $isArchive);
-                    $product->getProductUserData()->setIsArchive($isArchive);
-                }
-
-                if ($product->getBook() && !$product->getBook()->getBookUserData()) {
-                    $bookUserDataRepository = new BookUserDataRepository();
-
-                    $bookUserDataRepository->save([
-                        BookUserData::PARAM_USER_ID => Config::getCurrentUserid(),
-                        BookUserData::PARAM_BOOK_ID => $product->getBook()->getId(),
-                    ]);
-
-                    $bud = $bookUserDataRepository->find(
-                        Config::getCurrentUserid(),
-                        $product->getBook()->getId()
-                    );
-
-                    $product->getBook()->setBookUserData($bud);
-                }
-
-                if ($product->getSourceProduct() && !$product->getSourceProduct()->getSourceProductUserData()) {
-                    $sourceProductUserDataRepository = new SourceProductUserDataRepository();
-
-                    $sourceProductUserDataRepository->save([
-                        SourceProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
-                        SourceProductUserData::PARAM_SOURCE_PRODUCT => $product->getSourceProduct()->getId(),
-                    ]);
-
-                    $spud = $sourceProductUserDataRepository->find(
-                        Config::getCurrentUserid(),
-                        $product->getSourceProduct()->getId()
-                    );
-
-                    $product->getSourceProduct()->setSourceProductUserData($spud);
-                }
+                $productRepository->saveProduct($data);
 
                 QueryPdo::commit();
             } catch (\Throwable $e) {
@@ -297,6 +253,81 @@ class ApiCaller
 
                 throw $e;
             }
+
+            $model = $productRepository->findProduct($shopProductId);
+
+            $this->tResponse->setSuccess(true);
+            $this->tResponse->setMessage('Product is created');
+            $this->tResponse->setData([
+                'product' => $model->toArray()
+            ]);
+
+            return;
+        }
+
+        $productUserData = ArrayHandler::getValueAsArray(Product::PARAM_PRODUCT_USER_DATA, $data);
+        $isArchive = ArrayHandler::getValueAsBool(ProductUserData::PARAM_IS_ARCHIVE, $productUserData);
+
+        $productUserDataRepository = new ProductUserDataRepository();
+
+        QueryPdo::beginTransaction();
+        try {
+            if (!$product->getProductUserData()) {
+                $productUserDataRepository->save([
+                    ProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
+                    ProductUserData::PARAM_PRODUCT_ID => $product->getId(),
+                    ProductUserData::PARAM_AVAILABLE => true,
+                    ProductUserData::PARAM_IS_ARCHIVE => $isArchive,
+                ]);
+
+                $pud = $productUserDataRepository->find(
+                    Config::getCurrentUserid(),
+                    $product->getId()
+                );
+
+                $product->setProductUserData($pud);
+            } else {
+                $productUserDataRepository->changeIsArchive($product->getId(), $isArchive);
+                $product->getProductUserData()->setIsArchive($isArchive);
+            }
+
+            if ($product->getBook() && !$product->getBook()->getBookUserData()) {
+                $bookUserDataRepository = new BookUserDataRepository();
+
+                $bookUserDataRepository->save([
+                    BookUserData::PARAM_USER_ID => Config::getCurrentUserid(),
+                    BookUserData::PARAM_BOOK_ID => $product->getBook()->getId(),
+                ]);
+
+                $bud = $bookUserDataRepository->find(
+                    Config::getCurrentUserid(),
+                    $product->getBook()->getId()
+                );
+
+                $product->getBook()->setBookUserData($bud);
+            }
+
+            if ($product->getSourceProduct() && !$product->getSourceProduct()->getSourceProductUserData()) {
+                $sourceProductUserDataRepository = new SourceProductUserDataRepository();
+
+                $sourceProductUserDataRepository->save([
+                    SourceProductUserData::PARAM_USER_ID => Config::getCurrentUserid(),
+                    SourceProductUserData::PARAM_SOURCE_PRODUCT => $product->getSourceProduct()->getId(),
+                ]);
+
+                $spud = $sourceProductUserDataRepository->find(
+                    Config::getCurrentUserid(),
+                    $product->getSourceProduct()->getId()
+                );
+
+                $product->getSourceProduct()->setSourceProductUserData($spud);
+            }
+
+            QueryPdo::commit();
+        } catch (\Throwable $e) {
+            QueryPdo::rollBack();
+
+            throw $e;
         }
 
         $this->tResponse->setSuccess(true);
@@ -455,9 +486,10 @@ class ApiCaller
 
         $productsCount = 0;
         $errorsCount = 0;
-        $savedCount = 0;
         $message = [];
         $productRepository  = new ProductRepository();
+        $ids = [];
+        $products = [];
 
         foreach ($productsData as $productData) {
             $productsCount++;
@@ -465,7 +497,7 @@ class ApiCaller
             try {
                 QueryPdo::beginTransaction();
                 try {
-                    $productRepository->saveProduct($productData);
+                    $ids[] = $productRepository->saveProduct($productData);
 
                     QueryPdo::commit();
                 } catch (\Throwable $e) {
@@ -473,18 +505,25 @@ class ApiCaller
 
                     throw $e;
                 }
-
-                $savedCount++;
             } catch (\Throwable $e) {
                 $errorsCount++;
                 $message[] = $e->getMessage();
             }
         }
 
+        if (!count($ids)) {
+            throw new \Exception('Количество id после сохранения равно нулю');
+        }
+
+        foreach($productRepository->findProductsByIds($ids) as $product) {
+            $products[] = $product->toArray();
+        }
+
         $this->tResponse->setData([
             'products_count' => $productsCount,
             'errors_count' => $errorsCount,
-            'saved_count' => $savedCount
+            'saved_count' => count($ids),
+            'products' => $products,
         ]);
 
         if ($message) {
@@ -509,12 +548,13 @@ class ApiCaller
             return;
         }
 
-        $repo->save([
+        $id = $repo->save([
             PublishingHouse::PARAM_NAME => $value
         ]);
 
         Config::clearPublishingHouses();
         $this->tResponse->setSuccess(true);
+        $this->tResponse->setData([Entity::PARAM_ID => $id]);
     }
 
     // api call
@@ -531,12 +571,13 @@ class ApiCaller
             return;
         }
 
-        $repo->save([
+        $id = $repo->save([
             PublishingBrand::PARAM_NAME => $value
         ]);
 
         Config::clearPublishingBrands();
         $this->tResponse->setSuccess(true);
+        $this->tResponse->setData([Entity::PARAM_ID => $id]);
     }
 
     // api call
@@ -553,11 +594,12 @@ class ApiCaller
             return;
         }
 
-        $repo->save([
+        $id = $repo->save([
             BookSeries::PARAM_NAME => $value
         ]);
 
         Config::clearBookSeries();
         $this->tResponse->setSuccess(true);
+        $this->tResponse->setData([Entity::PARAM_ID => $id]);
     }
 }
