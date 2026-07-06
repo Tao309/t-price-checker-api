@@ -18,10 +18,13 @@ spl_autoload_register(function($class) {
     require_once($file);
 });
 
-function expect($condition, $message, $code = 0): void {
-    if (!$condition) {
-        throw new \Exception\ResponseException($message, $code);
+try {
+    $env = parse_ini_file('.env');
+    foreach ($env as $key => $value) {
+        putenv($key . '=' . $value);
     }
+} catch (\Throwable $e) {
+    throw new RuntimeException('Unable to parse the environment file.');
 }
 
 function processPdoException(\Exception\CustomPdoException $e): void

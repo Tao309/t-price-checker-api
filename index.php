@@ -16,15 +16,6 @@ require_once ('error_handler.php');
 ob_start();
 
 try {
-    try {
-        $env = parse_ini_file('.env');
-        foreach ($env as $key => $value) {
-            putenv($key . '=' . $value);
-        }
-    } catch (\Throwable $e) {
-        throw new RuntimeException('Unable to parse the environment file.');
-    }
-
     Config::initShopType(ArrayHandler::getValueAsString('shop_type', $_POST));
 
     $tResponse = new tResponse();
