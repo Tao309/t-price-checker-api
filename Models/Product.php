@@ -20,10 +20,9 @@ use DateTime;
  * @method Shop getShop()
  * @method SourceProduct|null getSourceProduct()
  * @method Book|null getBook()
- * @method int getMinPrice()
- * @method int getLastQty()
  * @method ProductUserData getProductUserData()
  * @method User getAuthorUser()
+ * @method ProductAvailability getProductAvailability()
  *
  * @method PriceDate[] getPriceDates()
  * @method Stock[] getStocks()
@@ -34,6 +33,7 @@ use DateTime;
  * @method setSourceProduct(SourceProduct|null $model)
  * @method setBook(Book|null $model)
  * @method setProductUserData(null|ProductUserData $model)
+ * @method setProductAvailability(null|ProductAvailability $model)
  * @method setSameProducts(array $models)
  * @method setStocks(array $models)
  * @method setPriceDates(array $models)
@@ -66,13 +66,14 @@ class Product extends Entity
     public const PARAM_BOOK = 'book';
     public const PARAM_SHOP = 'shop';
     public const PARAM_PRODUCT_USER_DATA = 'product_user_data';
+    public const PARAM_PRODUCT_AVAILABILITY = 'product_availability';
 
     public const FLAG_TO_SAVE_PRODUCT_USER_DATA = 'flag_to_save_product_user_data';
     public const FLAG_TO_SAVE_PRICE_DATES = 'flag_to_save_price_dates';
     public const FLAG_TO_SAVE_STOCKS = 'flag_to_save_stocks';
     public const FLAG_TO_CHANGE_ID = 'flag_to_change_id';
 
-    protected const PROPERTIES = [
+    protected const array PROPERTIES = [
         self::PARAM_ID => 'ID',
         self::PARAM_SHOP_PRODUCT_ID => 'ID товара с магазина',
         self::PARAM_SHOP_PRODUCT_CODE => 'Код 1С',
@@ -84,19 +85,19 @@ class Product extends Entity
     ];
 
     // Свойства, только для чтения, нельзя перезаписывать.
-    protected const ONLY_READ_PROPERTIES = [
+    protected const array ONLY_READ_PROPERTIES = [
         self::PARAM_ID,
         self::PARAM_SHOP_PRODUCT_ID,
         self::PARAM_DATE_UPDATED,
         self::PARAM_DATE_CREATED,
     ];
 
-    protected const WHEN_CREATE_REQUIRED_PROPERTIES = [
+    protected const array WHEN_CREATE_REQUIRED_PROPERTIES = [
         self::PARAM_SHOP_PRODUCT_ID,
         self::PARAM_TITLE,
     ];
 
-    protected const RELATION_TO_ONE = [
+    protected const array RELATION_TO_ONE = [
         self::PARAM_SOURCE_PRODUCT => [
             'parent_id' => self::PARAM_SOURCE_PRODUCT_ID,
             'relation_entity' => SourceProduct::class,
@@ -119,6 +120,12 @@ class Product extends Entity
             'relation_id' => ProductUserData::PARAM_PRODUCT_ID,
             'relation_user_id' => ProductUserData::PARAM_USER_ID,
         ],
+        self::PARAM_PRODUCT_AVAILABILITY => [
+            'parent_id' => Entity::PARAM_ID,
+            'relation_entity' => ProductAvailability::class,
+            'relation_id' => ProductAvailability::PARAM_PRODUCT_ID,
+            'relation_user_id' => ProductAvailability::PARAM_USER_ID,
+        ],
         Entity::PARAM_AUTHOR_USER => [
             'parent_id' => Entity::PARAM_AUTHOR_USER_ID,
             'relation_entity' => User::class,
@@ -127,7 +134,7 @@ class Product extends Entity
         ],
     ];
 
-    protected const RELATION_TO_MANY = [
+    protected const array RELATION_TO_MANY = [
         self::PARAM_PRICE_DATES => [
             'parent_id' => Entity::PARAM_ID,
             'relation_entity' => PriceDate::class
@@ -155,10 +162,12 @@ class Product extends Entity
     protected Shop $shop;
     protected ?User $authorUser = null;
     protected ?ProductUserData $productUserData = null;
+    protected ?ProductAvailability $productAvailability = null;
     protected ?SourceProduct $sourceProduct = null;
     protected ?Book $book = null;
-    protected ?int $minPrice = null;
-    protected ?int $lastQty = null;
+
+    private ?int $minPrice = null;
+    private ?int $lastQty = null;
 
     /** @var SameProduct[] */
     protected array $sameProducts = [];
@@ -172,16 +181,18 @@ class Product extends Entity
         parent::__construct($data);
 
         if ($this->getPriceDates()) {
-            $this->minPrice = min(
-                array_map(function($priceDate) {
-                    return $priceDate->getPrice();
-                }, $this->getPriceDates())
+            $this->setMinPrice(
+                min(
+                    array_map(function($priceDate) {
+                        return $priceDate->getPrice();
+                    }, $this->getPriceDates())
+                )
             );
         }
 
         if ($this->getStocks()) {
             $stocks = $this->getStocks();
-            $this->lastQty = end($stocks) ? end($stocks)->getQty() : null;
+            $this->setLastQty(end($stocks) ? end($stocks)->getQty() : null);
         }
 
         if ($this->getBook() && !$this->getBook()->getBookUserData()
@@ -199,22 +210,48 @@ class Product extends Entity
     {
         switch ($this->getShop()?->getType()) {
             case Config::TYPE_KNIGOFAN:
-                return 'https://knigofan.ru/catalog/horus-heresy/primarkhi/929/';
+                // @todo Исправить в будущем
+                return Config::getKnigofanUrl() . '/catalog/horus-heresy/primarkhi/929/';
             case Config::TYPE_WILDBERRIES:
                 if ($this->getShopProductCode()) {
-                    return 'https://www.wildberries.ru/catalog/' . $this->getShopProductCode() . '/detail.aspx?size=' . $this->getShopProductId();
+                    return Config::getWildberriesUrl() . '/catalog/' . $this->getShopProductCode()
+                        . '/detail.aspx?size=' . $this->getShopProductId();
                 }
 
-                return 'https://www.wildberries.ru/catalog/' . $this->getShopProductId() . '/detail.aspx';
+                return Config::getWildberriesUrl() . '/catalog/' . $this->getShopProductId() . '/detail.aspx';
             case Config::TYPE_OZON:
-                return 'https://www.ozon.ru/product/' . $this->getShopProductId() . '/';
+                return Config::getOzonUrl() . '/product/' . $this->getShopProductId() . '/';
             case Config::TYPE_FFAN:
-                return 'https://ffan.ru/catalog/product/' . $this->getShopProductId() . '/';
+                return Config::getFfanUrl() . '/catalog/product/' . $this->getShopProductId() . '/';
             case Config::TYPE_CHITAI_GOROD:
-                return 'https://www.chitai-gorod.ru/product/-' . $this->getShopProductId();
+                return Config::getChitaiGorodUrl() .  '/product/book-' . $this->getShopProductId();
             default:
                 return null;
         }
+    }
+
+    public function getMinPrice(): ?int
+    {
+        return $this->minPrice;
+    }
+
+    public function setMinPrice(int $minPrice): self
+    {
+        $this->minPrice = $minPrice;
+
+        return $this;
+    }
+
+    public function getLastQty(): ?int
+    {
+        return $this->lastQty;
+    }
+
+    public function setLastQty(int $lastQty): self
+    {
+        $this->lastQty = $lastQty;
+
+        return $this;
     }
 
     /**
@@ -236,11 +273,15 @@ class Product extends Entity
 
     public function getAvailable(): bool
     {
-        return $this->getProductUserData()->getAvailable();
+        return $this->getProductAvailability()->isAvailable();
     }
 
     public function getNotAvailableDateFrom(): ?DateTime
     {
+        if ($this->getProductAvailability()->getToDirection()->getCode() === ProductAvailabilityType::TYPE_AVAILABLE) {
+
+        }
+
         return $this->getProductUserData()->getNotAvailableDateFrom();
     }
 
