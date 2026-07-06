@@ -86,7 +86,7 @@ class Config
             $priceCheckerId = $_SERVER['t-price-checker-id'] ?? null;
         }
 
-        if (empty($requestedWith) || $requestedWith !== 'tRequest') {
+        if (empty($requestedWith) || $requestedWith !== getenv('X_REQUESTED_WITH')) {
             die(tResponse::MESSAGE_ACCESS_LIMITED);
         }
 
